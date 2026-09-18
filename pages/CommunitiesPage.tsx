@@ -45,7 +45,6 @@ export default function CommunitiesPage() {
     if (!user) return
     setNetError(false)
     setLoading(true)
-
     const [communitiesRes, joinedRes] = await Promise.all([
       supabase.from('communities').select('id, owner_id, name, description, cover_url, members_count').order('members_count', { ascending: false }),
       supabase.from('community_members').select('community_id').eq('user_id', user.id),
