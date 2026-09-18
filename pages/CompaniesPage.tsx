@@ -53,7 +53,6 @@ export default function CompaniesPage() {
     if (!user) return
     setNetError(false)
     setLoading(true)
-
     const [companiesRes, followedRes] = await Promise.all([
       supabase.from('companies').select('id, owner_id, name, category, description, location, logo_url, is_verified, status, rating, followers_count').order('followers_count', { ascending: false }),
       supabase.from('company_followers').select('company_id').eq('user_id', user.id),
