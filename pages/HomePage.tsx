@@ -207,6 +207,7 @@ function Header({ unreadNotifications, unreadMessages, onSignOut }: { unreadNoti
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>FarmLite</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <IconBadge icon="search" onClick={() => navigate('/search')} />
         <IconBadge icon="bell" count={unreadNotifications} onClick={() => navigate('/notifications')} />
         <IconBadge icon="message" count={unreadMessages} onClick={() => navigate('/messages')} />
         <div onClick={onSignOut} style={{ cursor: 'pointer' }} title="Sign out">
