@@ -15,6 +15,9 @@ import SavedPage from './pages/SavedPage'
 import MessagesPage from './pages/MessagesPage'
 import NotificationsPage from './pages/NotificationsPage'
 import FarmBotPage from './pages/FarmBotPage'
+import CreatePostPage from './pages/CreatePostPage'
+import SearchPage from './pages/SearchPage'
+import CompanyDetailsPage from './pages/CompanyDetailsPage'
 
 function App() {
   return (
@@ -104,6 +107,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FarmBotPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create"
+              element={
+                <ProtectedRoute>
+                  <CreatePostPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/companies/:id"
+              element={
+                <ProtectedRoute>
+                  <CompanyDetailsPage />
                 </ProtectedRoute>
               }
             />
