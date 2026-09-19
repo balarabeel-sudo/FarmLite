@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
+import { useLocale } from '../LocaleContext'
 import Icon from '../Icons'
+import LanguageCurrencyBar from '../LanguageCurrencyBar'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 
@@ -43,18 +45,19 @@ type FeedPost = {
   profiles: { full_name: string | null; username: string | null; profile_image: string | null } | null
 }
 
-const QUICK_ACTIONS: { icon: string; label: string; path: string }[] = [
-  { icon: 'cart', label: 'Marketplace', path: '/marketplace' },
-  { icon: 'building', label: 'Companies', path: '/companies' },
-  { icon: 'robot', label: 'FarmBot AI', path: '/farmbot' },
-  { icon: 'users', label: 'Groups', path: '/communities' },
-  { icon: 'tractor', label: 'Equipment', path: '/equipment' },
-  { icon: 'bookmark', label: 'Saved', path: '/saved' },
+const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'farmbot' | 'groups' | 'equipment' | 'saved'; path: string }[] = [
+  { icon: 'cart', labelKey: 'marketplace', path: '/marketplace' },
+  { icon: 'building', labelKey: 'companies', path: '/companies' },
+  { icon: 'robot', labelKey: 'farmbot', path: '/farmbot' },
+  { icon: 'users', labelKey: 'groups', path: '/communities' },
+  { icon: 'tractor', labelKey: 'equipment', path: '/equipment' },
+  { icon: 'bookmark', labelKey: 'saved', path: '/saved' },
 ]
 
 export default function HomePage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  const { t, formatPrice } = useLocale()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -105,6 +108,7 @@ export default function HomePage() {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
         <Header unreadNotifications={0} unreadMessages={0} onSignOut={signOut} />
+        <LanguageCurrencyBar />
         <NetworkError onRetry={load} />
       </div>
     )
@@ -113,39 +117,40 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '90px' }}>
       <Header unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} onSignOut={signOut} />
+      <LanguageCurrencyBar />
 
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '0 16px 16px' }}>
         <div style={{
           background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, borderRadius: '18px',
           padding: '22px', marginBottom: '20px', color: 'white',
         }}>
-          <p style={{ fontSize: '13px', color: '#DCFCE7' }}>Welcome back,</p>
+          <p style={{ fontSize: '13px', color: '#DCFCE7' }}>{t('welcomeBack')}</p>
           <p style={{ fontSize: '22px', fontWeight: 800, marginTop: '2px' }}>{firstName}</p>
-          <p style={{ fontSize: '12.5px', color: '#DCFCE7', marginTop: '6px' }}>Let's grow your farm and business today.</p>
+          <p style={{ fontSize: '12.5px', color: '#DCFCE7', marginTop: '6px' }}>{t('welcomeSubtitle')}</p>
         </div>
 
-        <SectionTitle title="Quick Actions" />
+        <SectionTitle title={t('quickActions')} />
         {loading ? (
           <QuickActionsSkeleton />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '22px' }}>
             {QUICK_ACTIONS.map((a) => (
               <div
-                key={a.label}
+                key={a.labelKey}
                 onClick={() => navigate(a.path)}
                 style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 6px', textAlign: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                   <Icon name={a.icon} size={19} color={COLORS.green} />
                 </div>
-                <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.text, marginTop: '8px' }}>{a.label}</p>
+                <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.text, marginTop: '8px' }}>{t(a.labelKey)}</p>
               </div>
             ))}
           </div>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <SectionTitle title="Featured Today" />
-          <Link to="/marketplace" style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green, textDecoration: 'none' }}>View all</Link>
+          <SectionTitle title={t('featuredToday')} />
+          <Link to="/marketplace" style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green, textDecoration: 'none' }}>{t('viewAll')}</Link>
         </div>
 
         {loading ? (
@@ -161,7 +166,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ padding: '10px' }}>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
-                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{l.currency} {Number(l.price).toLocaleString()}{l.unit ? `/${l.unit}` : ''}</p>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{formatPrice(Number(l.price))}{l.unit ? `/${l.unit}` : ''}</p>
                   {l.location && (
                     <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {l.location}
@@ -173,7 +178,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <SectionTitle title="Feed" />
+        <SectionTitle title={t('feed')} />
         <div style={{ marginTop: '10px' }}>
           {loading ? (
             <FeedPostSkeleton count={3} />
