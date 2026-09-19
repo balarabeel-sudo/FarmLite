@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
+import { uploadImage } from '../uploadImage'
 import Icon from '../Icons'
-import { ListCardSkeleton } from '../LoadingSkeleton'
-import NetworkError from '../NetworkError'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -16,200 +15,140 @@ const COLORS = {
   red: '#DC2626',
 }
 
-type Community = {
-  id: string
-  owner_id: string
-  name: string
-  description: string | null
-  cover_url: string | null
-  members_count: number
-}
+const CATEGORIES: { value: 'general' | 'crop' | 'livestock' | 'tips'; label: string }[] = [
+  { value: 'general', label: 'General' },
+  { value: 'crop', label: 'Crop' },
+  { value: 'livestock', label: 'Livestock' },
+  { value: 'tips', label: 'Tips' },
+]
 
-export default function CommunitiesPage() {
+export default function CreatePostPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [loading, setLoading] = useState(true)
-  const [netError, setNetError] = useState(false)
-  const [communities, setCommunities] = useState<Community[]>([])
-  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
-  const [search, setSearch] = useState('')
+  const [content, setContent] = useState('')
+  const [category, setCategory] = useState<'general' | 'crop' | 'livestock' | 'tips'>('general')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [error, setError] = useState('')
 
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const handlePickImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
 
-  const load = async () => {
-    if (!user) return
-    setNetError(false)
-    setLoading(true)
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview('')
+  }
 
-    const [communitiesRes, joinedRes] = await Promise.all([
-      supabase.from('communities').select('id, owner_id, name, description, cover_url, members_count').order('members_count', { ascending: false }),
-      supabase.from('community_members').select('community_id').eq('user_id', user.id),
-    ])
+  const handlePost = async () => {
+    if (!user || !content.trim()) return
+    setError('')
+    setPosting(true)
 
-    if (communitiesRes.error) {
-      setNetError(true)
-      setLoading(false)
-      return
+    try {
+      let imageUrl: string | null = null
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile, 'posts')
+      }
+
+      const { error: insertError } = await supabase.from('posts').insert({
+        user_id: user.id,
+        category,
+        content: content.trim(),
+        images: imageUrl ? [imageUrl] : null,
+        visibility: 'public',
+      })
+
+      if (insertError) throw insertError
+
+      navigate('/', { replace: true })
+    } catch (e: any) {
+      setError(e?.message || 'Could not publish your post. Please try again.')
+    } finally {
+      setPosting(false)
     }
-
-    setCommunities((communitiesRes.data || []) as any)
-    setJoinedIds(new Set((joinedRes.data || []).map((r: any) => r.community_id)))
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [user])
-
-  const resetForm = () => {
-    setName('')
-    setDescription('')
-    setFormError('')
-  }
-
-  const handleAdd = async () => {
-    if (!user || !name.trim()) return
-    setFormError('')
-    setSaving(true)
-
-    const { data, error } = await supabase.from('communities').insert({
-      owner_id: user.id,
-      name: name.trim(),
-      description: description.trim() || null,
-    }).select('id').single()
-
-    if (error || !data) {
-      setSaving(false)
-      setFormError(error?.message || 'Could not create the group.')
-      return
-    }
-
-    // Creator automatically joins their own group, as its admin
-    await supabase.from('community_members').insert({ community_id: data.id, user_id: user.id, role: 'admin' })
-
-    setSaving(false)
-    resetForm()
-    setShowForm(false)
-    load()
-  }
-
-  const toggleJoin = async (communityId: string) => {
-    if (!user) return
-    if (joinedIds.has(communityId)) {
-      await supabase.from('community_members').delete().eq('user_id', user.id).eq('community_id', communityId)
-      setJoinedIds((prev) => { const next = new Set(prev); next.delete(communityId); return next })
-      setCommunities((prev) => prev.map((c) => c.id === communityId ? { ...c, members_count: Math.max(c.members_count - 1, 0) } : c))
-    } else {
-      await supabase.from('community_members').insert({ user_id: user.id, community_id: communityId })
-      setJoinedIds((prev) => new Set(prev).add(communityId))
-      setCommunities((prev) => prev.map((c) => c.id === communityId ? { ...c, members_count: c.members_count + 1 } : c))
-    }
-  }
-
-  const filtered = communities.filter((c) => !search.trim() || c.name.toLowerCase().includes(search.trim().toLowerCase()))
-
-  if (netError) {
-    return (
-      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} onAdd={() => setShowForm(!showForm)} />
-        <NetworkError onRetry={load} />
-      </div>
-    )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} onAdd={() => { setShowForm(!showForm); if (showForm) resetForm() }} />
+    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
+        background: COLORS.card, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div onClick={() => navigate(-1)} style={{ cursor: 'pointer', display: 'flex' }}>
+            <Icon name="close" size={22} color={COLORS.text} />
+          </div>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>New Post</p>
+        </div>
+        <div
+          onClick={posting || !content.trim() ? undefined : handlePost}
+          style={{
+            padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white',
+            background: COLORS.green, cursor: content.trim() ? 'pointer' : 'default',
+            opacity: posting || !content.trim() ? 0.5 : 1,
+          }}>
+          {posting ? 'Posting...' : 'Post'}
+        </div>
+      </div>
 
       <div style={{ padding: '16px' }}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search groups..."
-          style={{ width: '100%', padding: '11px 14px', borderRadius: '12px', border: `1px solid ${COLORS.border}`, marginBottom: '16px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.card }}
+        {error && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px' }}>
+            <p style={{ fontSize: '11.5px', color: COLORS.red }}>{error}</p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+          {CATEGORIES.map((c) => (
+            <div
+              key={c.value}
+              onClick={() => setCategory(c.value)}
+              style={{
+                padding: '7px 14px', borderRadius: '9px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                background: category === c.value ? COLORS.green : COLORS.card,
+                color: category === c.value ? 'white' : COLORS.textMuted,
+                border: `1px solid ${category === c.value ? COLORS.green : COLORS.border}`,
+              }}>
+              {c.label}
+            </div>
+          ))}
+        </div>
+
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Share something with the FarmLite community..."
+          rows={6}
+          style={{
+            width: '100%', padding: '14px', borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            fontSize: '14px', boxSizing: 'border-box', background: COLORS.card, resize: 'none', color: COLORS.text,
+          }}
         />
 
-        {showForm && (
-          <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, marginBottom: '10px', color: COLORS.text }}>Create a group</p>
-
-            {formError && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
-                <p style={{ fontSize: '11.5px', color: COLORS.red }}>{formError}</p>
-              </div>
-            )}
-
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" style={inputStyle} />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this group about? (optional)" rows={3} style={{ ...inputStyle, resize: 'none', marginBottom: '12px' }} />
-
-            <div onClick={saving ? undefined : handleAdd} style={{ background: COLORS.green, color: 'white', textAlign: 'center', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Creating...' : 'Create Group'}
+        {imagePreview ? (
+          <div style={{ position: 'relative', marginTop: '12px' }}>
+            <img src={imagePreview} alt="" style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '14px' }} />
+            <div onClick={removeImage} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '14px', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <Icon name="close" size={14} color="white" />
             </div>
-          </div>
-        )}
-
-        {loading ? (
-          <ListCardSkeleton count={4} />
-        ) : filtered.length === 0 ? (
-          <div style={{ background: COLORS.card, padding: '32px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
-            {communities.length === 0 ? 'No groups yet. Tap + to start one.' : 'No groups match your search.'}
           </div>
         ) : (
-          filtered.map((c) => (
-            <div key={c.id} onClick={() => navigate(`/communities/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {c.cover_url ? <img src={c.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={20} color={COLORS.green} />}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{c.name}</p>
-                {c.description && (
-                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.description}</p>
-                )}
-                <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '5px' }}>{c.members_count} members</p>
-              </div>
-              {c.owner_id !== user?.id && (
-                <div
-                  onClick={(e) => { e.stopPropagation(); toggleJoin(c.id) }}
-                  style={{
-                    alignSelf: 'center', padding: '7px 14px', borderRadius: '9px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                    background: joinedIds.has(c.id) ? COLORS.bg : COLORS.green,
-                    color: joinedIds.has(c.id) ? COLORS.textMuted : 'white',
-                    border: joinedIds.has(c.id) ? `1px solid ${COLORS.border}` : 'none',
-                  }}>
-                  {joinedIds.has(c.id) ? 'Joined' : 'Join'}
-                </div>
-              )}
-            </div>
-          ))
+          <label style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '12px',
+            padding: '14px', borderRadius: '14px', border: `1.5px dashed ${COLORS.border}`, cursor: 'pointer', color: COLORS.textMuted,
+          }}>
+            <Icon name="camera" size={18} color={COLORS.textMuted} />
+            <span style={{ fontSize: '12.5px', fontWeight: 600 }}>Add a photo (optional)</span>
+            <input type="file" accept="image/*" onChange={handlePickImage} style={{ display: 'none' }} />
+          </label>
         )}
       </div>
     </div>
   )
-}
-
-function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
-      background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-          <Icon name="arrowLeft" size={22} color={COLORS.text} />
-        </div>
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Groups</p>
-      </div>
-      <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon name="plus" size={18} color="white" />
-      </div>
-    </div>
-  )
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
-  marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
