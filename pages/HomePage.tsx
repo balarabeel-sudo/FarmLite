@@ -196,6 +196,7 @@ export default function HomePage() {
 }
 
 function Header({ unreadNotifications, unreadMessages, onSignOut }: { unreadNotifications: number; unreadMessages: number; onSignOut: () => void }) {
+  const navigate = useNavigate()
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
@@ -206,9 +207,8 @@ function Header({ unreadNotifications, unreadMessages, onSignOut }: { unreadNoti
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>FarmLite</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <IconBadge icon="search" onClick={() => {}} />
-        <IconBadge icon="bell" count={unreadNotifications} onClick={() => {}} />
-        <IconBadge icon="message" count={unreadMessages} onClick={() => {}} />
+        <IconBadge icon="bell" count={unreadNotifications} onClick={() => navigate('/notifications')} />
+        <IconBadge icon="message" count={unreadMessages} onClick={() => navigate('/messages')} />
         <div onClick={onSignOut} style={{ cursor: 'pointer' }} title="Sign out">
           <Icon name="logout" size={18} color={COLORS.textMuted} />
         </div>
