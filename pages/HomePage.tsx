@@ -107,7 +107,7 @@ export default function HomePage() {
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header unreadNotifications={0} unreadMessages={0} onSignOut={signOut} />
+        <Header unreadNotifications={0} unreadMessages={0} profileImage={null} onSignOut={signOut} />
         <LanguageCurrencyBar />
         <NetworkError onRetry={load} />
       </div>
@@ -116,7 +116,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '90px' }}>
-      <Header unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} onSignOut={signOut} />
+      <Header unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} profileImage={profile?.profile_image || null} onSignOut={signOut} />
       <LanguageCurrencyBar />
 
       <div style={{ padding: '0 16px 16px' }}>
@@ -160,9 +160,9 @@ export default function HomePage() {
         ) : (
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '22px', paddingBottom: '4px' }}>
             {listings.map((l) => (
-              <div key={l.id} onClick={() => navigate('/marketplace')} style={{ minWidth: '140px', background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+              <div key={l.id} onClick={() => navigate(`/marketplace?listing=${l.id}`)} style={{ minWidth: '140px', background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
                 <div style={{ width: '100%', height: '90px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {l.images?.[0] ? <img src={l.images[0]} alt={l.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
+                  {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
                 </div>
                 <div style={{ padding: '10px' }}>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
@@ -195,7 +195,7 @@ export default function HomePage() {
   )
 }
 
-function Header({ unreadNotifications, unreadMessages, onSignOut }: { unreadNotifications: number; unreadMessages: number; onSignOut: () => void }) {
+function Header({ unreadNotifications, unreadMessages, profileImage, onSignOut }: { unreadNotifications: number; unreadMessages: number; profileImage: string | null; onSignOut: () => void }) {
   const navigate = useNavigate()
   return (
     <div style={{
@@ -210,6 +210,9 @@ function Header({ unreadNotifications, unreadMessages, onSignOut }: { unreadNoti
         <IconBadge icon="search" onClick={() => navigate('/search')} />
         <IconBadge icon="bell" count={unreadNotifications} onClick={() => navigate('/notifications')} />
         <IconBadge icon="message" count={unreadMessages} onClick={() => navigate('/messages')} />
+        <div onClick={() => navigate('/profile')} style={{ width: '26px', height: '26px', borderRadius: '13px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          {profileImage ? <img src={profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={14} color={COLORS.green} />}
+        </div>
         <div onClick={onSignOut} style={{ cursor: 'pointer' }} title="Sign out">
           <Icon name="logout" size={18} color={COLORS.textMuted} />
         </div>
@@ -265,7 +268,7 @@ function FeedCard({ post }: { post: FeedPost }) {
       <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginBottom: '10px' }}>{post.content}</p>
 
       {post.images?.[0] && (
-        <img src={post.images[0]} alt="" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px' }} />
+        <img src={post.images[0]} alt="" loading="lazy" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px' }} />
       )}
 
       <div style={{ display: 'flex', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
