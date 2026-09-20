@@ -53,6 +53,7 @@ export default function CompaniesPage() {
     if (!user) return
     setNetError(false)
     setLoading(true)
+
     const [companiesRes, followedRes] = await Promise.all([
       supabase.from('companies').select('id, owner_id, name, category, description, location, logo_url, is_verified, status, rating, followers_count').order('followers_count', { ascending: false }),
       supabase.from('company_followers').select('company_id').eq('user_id', user.id),
@@ -175,7 +176,7 @@ export default function CompaniesPage() {
           </div>
         ) : (
           filtered.map((c) => (
-            <div key={c.id} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px' }}>
+            <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {c.logo_url ? <img src={c.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={22} color={COLORS.green} />}
               </div>
@@ -199,7 +200,7 @@ export default function CompaniesPage() {
               </div>
               {c.owner_id !== user?.id && (
                 <div
-                  onClick={() => toggleFollow(c.id)}
+                  onClick={(e) => { e.stopPropagation(); toggleFollow(c.id) }}
                   style={{
                     alignSelf: 'center', padding: '7px 14px', borderRadius: '9px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
                     background: followedIds.has(c.id) ? COLORS.bg : COLORS.green,
