@@ -45,6 +45,7 @@ export default function CommunitiesPage() {
     if (!user) return
     setNetError(false)
     setLoading(true)
+
     const [communitiesRes, joinedRes] = await Promise.all([
       supabase.from('communities').select('id, owner_id, name, description, cover_url, members_count').order('members_count', { ascending: false }),
       supabase.from('community_members').select('community_id').eq('user_id', user.id),
@@ -158,7 +159,7 @@ export default function CommunitiesPage() {
           </div>
         ) : (
           filtered.map((c) => (
-            <div key={c.id} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px' }}>
+            <div key={c.id} onClick={() => navigate(`/communities/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {c.cover_url ? <img src={c.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={20} color={COLORS.green} />}
               </div>
@@ -171,7 +172,7 @@ export default function CommunitiesPage() {
               </div>
               {c.owner_id !== user?.id && (
                 <div
-                  onClick={() => toggleJoin(c.id)}
+                  onClick={(e) => { e.stopPropagation(); toggleJoin(c.id) }}
                   style={{
                     alignSelf: 'center', padding: '7px 14px', borderRadius: '9px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
                     background: joinedIds.has(c.id) ? COLORS.bg : COLORS.green,
