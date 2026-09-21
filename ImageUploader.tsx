@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from './Icons'
 import { uploadMedia, type MediaFolder } from './imageUpload'
 
@@ -17,13 +17,16 @@ type Props = {
   onChange: (urls: string[]) => void
   folder?: MediaFolder
   max?: number
+  onBusyChange?: (busy: boolean) => void
 }
 
 // Multi-photo picker: choose from gallery or camera, shows previews. First photo is the cover.
-export default function ImageUploader({ value, onChange, folder = 'listings', max = 5 }: Props) {
+export default function ImageUploader({ value, onChange, folder = 'listings', max = 5, onBusyChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(0)
   const [error, setError] = useState('')
+
+  useEffect(() => { onBusyChange?.(busy > 0) }, [busy])
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -74,7 +77,7 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
               style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '11px', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <Icon name="close" size={12} color="white" />
             </div>
-            {i === 0 ? (
+            {max === 1 ? null : i === 0 ? (
               <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, textAlign: 'center', fontSize: '10px', fontWeight: 700, color: 'white', background: COLORS.green, padding: '2px 0' }}>
                 Cover
               </div>
@@ -113,7 +116,7 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
         onChange={(e) => { handleFiles(e.target.files); e.target.value = '' }}
       />
       <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '6px' }}>
-        {value.length}/{max} photos. The first photo shows on the listing card.
+        {max === 1 ? 'Tap to change the photo.' : `${value.length}/${max} photos. The first photo is the cover.`}
       </p>
       {error && <p style={{ fontSize: '11.5px', color: COLORS.red, marginTop: '4px' }}>{error}</p>}
     </div>
