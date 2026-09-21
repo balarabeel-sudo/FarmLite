@@ -8,7 +8,7 @@ import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { formatMoney } from '../moneyUtils'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
-import { COLORS, inputStyle, labelStyle, ErrorBanner } from '../shared'
+import { COLORS, inputStyle, labelStyle, ErrorBanner, PAGE_SIZE, LoadMoreButton } from '../shared'
 
 type ListingType = 'buy' | 'rent'
 type Status = 'available' | 'unavailable'
@@ -81,6 +81,8 @@ export default function EquipmentPage() {
   const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<TypeFilter>('all')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -93,13 +95,22 @@ export default function EquipmentPage() {
 
   const setField = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
 
+  const itemsQuery = (from: number, to: number) => {
+    let q = supabase.from('equipment').select(COLUMNS)
+    q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    if (filter !== 'all') q = q.eq('listing_type', filter)
+    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
+    if (term) q = q.ilike('name', `%${term}%`)
+    return q.order('created_at', { ascending: false }).range(from, to)
+  }
+
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
     const [itemsRes, savedRes, meRes] = await Promise.all([
-      supabase.from('equipment').select(COLUMNS).order('created_at', { ascending: false }),
+      itemsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('equipment_id').eq('user_id', user.id).not('equipment_id', 'is', null),
       supabase.from('profiles').select('location, whatsapp').eq('user_id', user.id).maybeSingle(),
     ])
@@ -110,14 +121,34 @@ export default function EquipmentPage() {
       return
     }
 
-    setItems((itemsRes.data || []) as any)
+    const page = (itemsRes.data || []) as any as Equipment[]
+    setItems(page)
+    setHasMore(page.length === PAGE_SIZE)
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.equipment_id)))
     const me = meRes.data as any
     setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [user])
+  const loadMore = async () => {
+    if (!user || loadingMore) return
+    setLoadingMore(true)
+    const { data, error } = await itemsQuery(items.length, items.length + PAGE_SIZE - 1)
+    if (!error) {
+      const more = (data || []) as any as Equipment[]
+      setItems((prev) => [...prev, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    }
+    setLoadingMore(false)
+  }
+
+  useEffect(() => { load() }, [user, filter])
+
+  useEffect(() => {
+    if (!user) return
+    const timer = setTimeout(() => load(), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const closeForm = () => {
     setShowForm(false)
@@ -226,12 +257,7 @@ export default function EquipmentPage() {
     }
   }
 
-  const filtered = items.filter((it) => {
-    if (it.status !== 'available' && it.seller_id !== user?.id) return false
-    if (filter !== 'all' && it.listing_type !== filter) return false
-    if (search.trim() && !it.name.toLowerCase().includes(search.trim().toLowerCase())) return false
-    return true
-  })
+  const filtered = items
 
   const onHeaderAdd = () => (showForm ? closeForm() : openNew())
 
@@ -386,6 +412,8 @@ export default function EquipmentPage() {
             </div>
           ))
         )}
+
+        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
 
       {detail && (
