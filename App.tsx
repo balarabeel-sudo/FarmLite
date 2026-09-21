@@ -9,7 +9,7 @@ import RegisterPage from './pages/RegisterPage'
 import MarketplacePage from './pages/MarketplacePage'
 import CompaniesPage from './pages/CompaniesPage'
 import CommunitiesPage from './pages/CommunitiesPage'
-import ProfilePage from './pages/ProfilePage'
+import AccountPage from './pages/AccountPage'
 import EquipmentPage from './pages/EquipmentPage'
 import SavedPage from './pages/SavedPage'
 import MessagesPage from './pages/MessagesPage'
@@ -68,7 +68,7 @@ function App() {
               path="/profile"
               element={
                 <ProtectedRoute>
-                  <ProfilePage />
+                  <AccountPage />
                 </ProtectedRoute>
               }
             />
