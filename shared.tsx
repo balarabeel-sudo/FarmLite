@@ -27,3 +27,22 @@ export function ErrorBanner({ text }: { text: string }) {
     </div>
   )
 }
+
+export const PAGE_SIZE = 12
+
+// "Load more" control for paged lists. Shows nothing once there is nothing left to load.
+export function LoadMoreButton({ onClick, loading, hasMore }: { onClick: () => void; loading: boolean; hasMore: boolean }) {
+  if (!hasMore) return null
+  return (
+    <div
+      onClick={loading ? undefined : onClick}
+      style={{
+        textAlign: 'center', padding: '12px', marginTop: '6px', borderRadius: '10px',
+        border: `1px solid ${COLORS.border}`, background: COLORS.card, color: COLORS.green,
+        fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.6 : 1,
+      }}>
+      {loading ? 'Loading...' : 'Load more'}
+    </div>
+  )
+}
+
