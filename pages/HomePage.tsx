@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
+import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
 import LanguageCurrencyBar from '../LanguageCurrencyBar'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import PostImages from '../PostImages'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -57,7 +59,7 @@ const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'fa
 export default function HomePage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const { t, formatPrice } = useLocale()
+  const { t } = useLocale()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -166,7 +168,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ padding: '10px' }}>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
-                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{formatPrice(Number(l.price))}{l.unit ? `/${l.unit}` : ''}</p>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{formatMoney(Number(l.price), l.currency)}{l.unit ? `/${l.unit}` : ''}</p>
                   {l.location && (
                     <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {l.location}
@@ -268,9 +270,7 @@ function FeedCard({ post }: { post: FeedPost }) {
 
       <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginBottom: '10px' }}>{post.content}</p>
 
-      {post.images?.[0] && (
-        <img src={post.images[0]} alt="" loading="lazy" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px' }} />
-      )}
+      <div style={{ marginBottom: '10px' }}><PostImages images={post.images} /></div>
 
       <div style={{ display: 'flex', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
