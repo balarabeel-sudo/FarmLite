@@ -252,10 +252,11 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 }
 
 function FeedCard({ post }: { post: FeedPost }) {
+  const navigate = useNavigate()
   const author = post.profiles
   return (
     <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+      <div onClick={() => author?.username && navigate(`/u/${author.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', cursor: author?.username ? 'pointer' : 'default' }}>
         <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {author?.profile_image ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={16} color={COLORS.green} />}
         </div>
