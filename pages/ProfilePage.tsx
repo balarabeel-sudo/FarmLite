@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ProfileHeaderSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import PostImages from '../PostImages'
 import { uploadMedia } from '../imageUpload'
 import { validatePhone, cleanPhone } from '../phoneUtils'
 
@@ -317,7 +318,7 @@ export default function ProfilePage() {
           posts.map((post) => (
             <div key={post.id} style={{ background: COLORS.card, borderRadius: '14px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5 }}>{post.content}</p>
-              {post.images?.[0] && <img src={post.images[0]} alt="" loading="lazy" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', marginTop: '10px' }} />}
+              <PostImages images={post.images} />
               <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: COLORS.textMuted }}>
                   <Icon name="heart" size={13} color={COLORS.textMuted} /> {post.likes_count}
