@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { useLocale } from '../LocaleContext'
+import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
@@ -23,7 +23,6 @@ type ListingResult = { id: string; title: string; price: number; currency: strin
 
 export default function SearchPage() {
   const navigate = useNavigate()
-  const { formatPrice } = useLocale()
 
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -180,7 +179,7 @@ export default function SearchPage() {
                 <Avatar url={l.images?.[0] || null} icon="leaf" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={rowTitle}>{l.title}</p>
-                  <p style={{ fontSize: '11px', color: COLORS.green, fontWeight: 700 }}>{formatPrice(Number(l.price))}{l.unit ? `/${l.unit}` : ''}</p>
+                  <p style={{ fontSize: '11px', color: COLORS.green, fontWeight: 700 }}>{formatMoney(Number(l.price), l.currency)}{l.unit ? `/${l.unit}` : ''}</p>
                 </div>
                 <Icon name="chevronRight" size={16} color={COLORS.textMuted} />
               </div>
