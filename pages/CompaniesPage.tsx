@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
@@ -7,6 +8,7 @@ import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { validatePhone, cleanPhone } from '../phoneUtils'
+import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -42,6 +44,8 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,13 +61,23 @@ export default function CompaniesPage() {
   const [website, setWebsite] = useState('')
   const [uploading, setUploading] = useState(false)
 
+  const COMPANY_COLUMNS = 'id, owner_id, name, category, description, location, logo_url, is_verified, status, rating, followers_count'
+
+  const companiesQuery = (from: number, to: number) => {
+    let q = supabase.from('companies').select(COMPANY_COLUMNS)
+    q = user ? q.or(`status.eq.approved,owner_id.eq.${user.id}`) : q.eq('status', 'approved')
+    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
+    if (term) q = q.ilike('name', `%${term}%`)
+    return q.order('followers_count', { ascending: false }).range(from, to)
+  }
+
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
     const [companiesRes, followedRes] = await Promise.all([
-      supabase.from('companies').select('id, owner_id, name, category, description, location, logo_url, is_verified, status, rating, followers_count').order('followers_count', { ascending: false }),
+      companiesQuery(0, PAGE_SIZE - 1),
       supabase.from('company_followers').select('company_id').eq('user_id', user.id),
     ])
 
@@ -73,12 +87,32 @@ export default function CompaniesPage() {
       return
     }
 
-    setCompanies((companiesRes.data || []) as any)
+    const page = (companiesRes.data || []) as any as Company[]
+    setCompanies(page)
+    setHasMore(page.length === PAGE_SIZE)
     setFollowedIds(new Set((followedRes.data || []).map((r: any) => r.company_id)))
     setLoading(false)
   }
 
+  const loadMore = async () => {
+    if (!user || loadingMore) return
+    setLoadingMore(true)
+    const { data, error } = await companiesQuery(companies.length, companies.length + PAGE_SIZE - 1)
+    if (!error) {
+      const more = (data || []) as any as Company[]
+      setCompanies((prev) => [...prev, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    }
+    setLoadingMore(false)
+  }
+
   useEffect(() => { load() }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const timer = setTimeout(() => load(), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const resetForm = () => {
     setName('')
@@ -142,11 +176,7 @@ export default function CompaniesPage() {
     }
   }
 
-  const filtered = companies.filter((c) => {
-    if (c.status !== 'approved' && c.owner_id !== user?.id) return false
-    if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false
-    return true
-  })
+  const filtered = companies
 
   if (netError) {
     return (
@@ -244,6 +274,8 @@ export default function CompaniesPage() {
             </div>
           ))
         )}
+
+        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
     </div>
   )
@@ -268,9 +300,9 @@ function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
   )
 }
 
-const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
+const labelStyle: CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
   marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
