@@ -1,9 +1,9 @@
-import { useState, ChangeEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
-import { uploadImage } from '../uploadImage'
 import Icon from '../Icons'
+import ImageUploader from '../ImageUploader'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -22,56 +22,56 @@ const CATEGORIES: { value: 'general' | 'crop' | 'livestock' | 'tips'; label: str
   { value: 'tips', label: 'Tips' },
 ]
 
+// Route: /create  (normal post)  or  /create?community=<id>  (post inside a group)
 export default function CreatePostPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const communityId = searchParams.get('community')
 
   const [content, setContent] = useState('')
   const [category, setCategory] = useState<'general' | 'crop' | 'livestock' | 'tips'>('general')
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState('')
+  const [images, setImages] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [communityName, setCommunityName] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
-  const handlePickImage = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-  }
+  useEffect(() => {
+    if (!communityId) return
+    supabase.from('communities').select('name').eq('id', communityId).maybeSingle().then(({ data }) => {
+      if (data) setCommunityName(data.name)
+    })
+  }, [communityId])
 
-  const removeImage = () => {
-    setImageFile(null)
-    setImagePreview('')
-  }
+  const canPost = !!content.trim() && !posting && !uploading
 
   const handlePost = async () => {
-    if (!user || !content.trim()) return
+    if (!user || !canPost) return
     setError('')
     setPosting(true)
 
-    try {
-      let imageUrl: string | null = null
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile, 'posts')
-      }
+    const { error: insertError } = await supabase.from('posts').insert({
+      user_id: user.id,
+      community_id: communityId || null,
+      category,
+      content: content.trim(),
+      images: images.length > 0 ? images : null,
+      visibility: 'public',
+    })
 
-      const { error: insertError } = await supabase.from('posts').insert({
-        user_id: user.id,
-        category,
-        content: content.trim(),
-        images: imageUrl ? [imageUrl] : null,
-        visibility: 'public',
-      })
+    setPosting(false)
 
-      if (insertError) throw insertError
-
-      navigate('/', { replace: true })
-    } catch (e: any) {
-      setError(e?.message || 'Could not publish your post. Please try again.')
-    } finally {
-      setPosting(false)
+    if (insertError) {
+      setError(
+        communityId
+          ? 'Could not post. Only group members can post in a group.'
+          : 'Could not publish your post. Please try again.',
+      )
+      return
     }
+
+    navigate(communityId ? `/communities/${communityId}` : '/', { replace: true })
   }
 
   return (
@@ -87,30 +87,36 @@ export default function CreatePostPage() {
           <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>New Post</p>
         </div>
         <div
-          onClick={posting || !content.trim() ? undefined : handlePost}
+          onClick={canPost ? handlePost : undefined}
           style={{
             padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white',
-            background: COLORS.green, cursor: content.trim() ? 'pointer' : 'default',
-            opacity: posting || !content.trim() ? 0.5 : 1,
+            background: COLORS.green, cursor: canPost ? 'pointer' : 'default', opacity: canPost ? 1 : 0.5,
           }}>
-          {posting ? 'Posting...' : 'Post'}
+          {posting ? 'Posting...' : uploading ? 'Uploading...' : 'Post'}
         </div>
       </div>
 
       <div style={{ padding: '16px' }}>
+        {communityId && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
+            <Icon name="users" size={15} color={COLORS.green} />
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>Posting in {communityName || 'group'}</p>
+          </div>
+        )}
+
         {error && (
           <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px' }}>
             <p style={{ fontSize: '11.5px', color: COLORS.red }}>{error}</p>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto' }}>
           {CATEGORIES.map((c) => (
             <div
               key={c.value}
               onClick={() => setCategory(c.value)}
               style={{
-                padding: '7px 14px', borderRadius: '9px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                padding: '7px 14px', borderRadius: '9px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
                 background: category === c.value ? COLORS.green : COLORS.card,
                 color: category === c.value ? 'white' : COLORS.textMuted,
                 border: `1px solid ${category === c.value ? COLORS.green : COLORS.border}`,
@@ -123,31 +129,17 @@ export default function CreatePostPage() {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share something with the FarmLite community..."
+          placeholder={communityId ? 'Share something with the group...' : 'Share something with the FarmLite community...'}
           rows={6}
+          maxLength={2000}
           style={{
             width: '100%', padding: '14px', borderRadius: '14px', border: `1px solid ${COLORS.border}`,
             fontSize: '14px', boxSizing: 'border-box', background: COLORS.card, resize: 'none', color: COLORS.text,
           }}
         />
 
-        {imagePreview ? (
-          <div style={{ position: 'relative', marginTop: '12px' }}>
-            <img src={imagePreview} alt="" style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '14px' }} />
-            <div onClick={removeImage} style={{ position: 'absolute', top: '8px', right: '8px', width: '28px', height: '28px', borderRadius: '14px', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <Icon name="close" size={14} color="white" />
-            </div>
-          </div>
-        ) : (
-          <label style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '12px',
-            padding: '14px', borderRadius: '14px', border: `1.5px dashed ${COLORS.border}`, cursor: 'pointer', color: COLORS.textMuted,
-          }}>
-            <Icon name="camera" size={18} color={COLORS.textMuted} />
-            <span style={{ fontSize: '12.5px', fontWeight: 600 }}>Add a photo (optional)</span>
-            <input type="file" accept="image/*" onChange={handlePickImage} style={{ display: 'none' }} />
-          </label>
-        )}
+        <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, margin: '14px 0 8px' }}>Photos (optional)</p>
+        <ImageUploader value={images} onChange={setImages} folder="posts" max={4} onBusyChange={setUploading} />
       </div>
     </div>
   )
