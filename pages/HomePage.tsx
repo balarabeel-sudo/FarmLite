@@ -5,7 +5,6 @@ import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
 import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
-import LanguageCurrencyBar from '../LanguageCurrencyBar'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PostImages from '../PostImages'
@@ -58,7 +57,7 @@ const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'fa
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const { t } = useLocale()
 
   const [loading, setLoading] = useState(true)
@@ -66,7 +65,6 @@ export default function HomePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
 
@@ -76,10 +74,9 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      const [profileRes, notifRes, msgRes, listingsRes, feedRes] = await Promise.all([
+      const [profileRes, notifRes, listingsRes, feedRes] = await Promise.all([
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
-        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
         supabase.from('posts').select('id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
       ])
@@ -92,7 +89,6 @@ export default function HomePage() {
 
       setProfile(profileRes.data as any)
       setUnreadNotifications(notifRes.count || 0)
-      setUnreadMessages(msgRes.count || 0)
       setListings((listingsRes.data || []) as any)
       setFeed((feedRes.data || []) as any)
     } catch {
@@ -109,8 +105,7 @@ export default function HomePage() {
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header unreadNotifications={0} unreadMessages={0} profileImage={null} onSignOut={signOut} />
-        <LanguageCurrencyBar />
+        <Header unreadNotifications={0} profileImage={null} />
         <NetworkError onRetry={load} />
       </div>
     )
@@ -118,8 +113,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '90px' }}>
-      <Header unreadNotifications={unreadNotifications} unreadMessages={unreadMessages} profileImage={profile?.profile_image || null} onSignOut={signOut} />
-      <LanguageCurrencyBar />
+      <Header unreadNotifications={unreadNotifications} profileImage={profile?.profile_image || null} />
 
       <div style={{ padding: '0 16px 16px' }}>
         <div style={{
@@ -197,7 +191,7 @@ export default function HomePage() {
   )
 }
 
-function Header({ unreadNotifications, unreadMessages, profileImage, onSignOut }: { unreadNotifications: number; unreadMessages: number; profileImage: string | null; onSignOut: () => void }) {
+function Header({ unreadNotifications, profileImage }: { unreadNotifications: number; profileImage: string | null }) {
   const navigate = useNavigate()
   return (
     <div style={{
@@ -211,12 +205,8 @@ function Header({ unreadNotifications, unreadMessages, profileImage, onSignOut }
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <IconBadge icon="search" onClick={() => navigate('/search')} />
         <IconBadge icon="bell" count={unreadNotifications} onClick={() => navigate('/notifications')} />
-        <IconBadge icon="message" count={unreadMessages} onClick={() => navigate('/messages')} />
         <div onClick={() => navigate('/profile')} style={{ width: '26px', height: '26px', borderRadius: '13px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           {profileImage ? <img src={profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={14} color={COLORS.green} />}
-        </div>
-        <div onClick={onSignOut} style={{ cursor: 'pointer' }} title="Sign out">
-          <Icon name="logout" size={18} color={COLORS.textMuted} />
         </div>
       </div>
     </div>
@@ -294,7 +284,7 @@ function BottomNav() {
     { icon: 'cart', label: 'Market', path: '/marketplace', primary: false },
     { icon: 'plus', label: '', path: '/create', primary: true },
     { icon: 'message', label: 'Messages', path: '/messages', primary: false },
-    { icon: 'user', label: 'Profile', path: '/profile', primary: false },
+    { icon: 'user', label: 'Account', path: '/profile', primary: false },
   ]
   return (
     <div style={{
