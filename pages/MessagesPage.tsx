@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
@@ -37,6 +37,8 @@ type Conversation = {
 export default function MessagesPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -47,6 +49,7 @@ export default function MessagesPage() {
   const [thread, setThread] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [threadLoading, setThreadLoading] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -108,6 +111,8 @@ export default function MessagesPage() {
     if (!user) return
     setActivePartnerId(partnerId)
     setActivePartnerName(partnerName)
+    setThread([])
+    setThreadLoading(true)
 
     const { data } = await supabase
       .from('messages')
@@ -116,10 +121,30 @@ export default function MessagesPage() {
       .order('created_at', { ascending: true })
 
     setThread((data || []) as any)
+    setThreadLoading(false)
 
     await supabase.from('messages').update({ is_read: true }).eq('receiver_id', user.id).eq('sender_id', partnerId).eq('is_read', false)
     setConversations((prev) => prev.map((c) => c.partnerId === partnerId ? { ...c, unreadCount: 0 } : c))
   }
+
+  // Opens a conversation directly when arriving from a profile (/messages?to=<user_id>).
+  useEffect(() => {
+    const to = searchParams.get('to')
+    if (!user || !to) return
+    if (to === user.id) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    ;(async () => {
+      const { data } = await supabase.from('profiles').select('full_name, username').eq('user_id', to).maybeSingle()
+      await openThread(to, data?.full_name || data?.username || 'FarmLite user')
+      setSearchParams({}, { replace: true })
+    })()
+  }, [user])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [thread])
 
   const send = async () => {
     if (!user || !activePartnerId || !draft.trim()) return
@@ -151,9 +176,18 @@ export default function MessagesPage() {
   if (activePartnerId) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
-        <Header title={activePartnerName} onBack={() => setActivePartnerId(null)} />
+        <Header title={activePartnerName} onBack={() => { setActivePartnerId(null); load() }} />
 
         <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {threadLoading && <ListCardSkeleton count={2} />}
+          {!threadLoading && thread.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: COLORS.textMuted, fontSize: '12.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <Icon name="message" size={26} color={COLORS.textMuted} />
+              </div>
+              No messages yet. Say hello!
+            </div>
+          )}
           {thread.map((m) => {
             const mine = m.sender_id === user?.id
             return (
@@ -168,9 +202,10 @@ export default function MessagesPage() {
               </div>
             )
           })}
+          <div ref={bottomRef} />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', background: COLORS.card, borderTop: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', background: COLORS.card, borderTop: `1px solid ${COLORS.border}`, position: 'sticky', bottom: 0 }}>
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -195,13 +230,16 @@ export default function MessagesPage() {
           <ListCardSkeleton count={4} />
         ) : conversations.length === 0 ? (
           <div style={{ background: COLORS.card, padding: '40px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+              <Icon name="message" size={28} color={COLORS.textMuted} />
+            </div>
             No conversations yet.
           </div>
         ) : (
           conversations.map((c) => (
             <div key={c.partnerId} onClick={() => openThread(c.partnerId, c.partnerName)} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '22px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                {c.partnerAvatar ? <img src={c.partnerAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
+                {c.partnerAvatar ? <img src={c.partnerAvatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>{c.partnerName}</p>
