@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
@@ -7,6 +8,7 @@ import { GridCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
+import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -101,6 +103,8 @@ export default function MarketplacePage() {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<CategoryFilter>('all')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -112,13 +116,23 @@ export default function MarketplacePage() {
 
   const setField = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
 
+  // Builds the listings query for the current search/category filters.
+  const listingsQuery = (from: number, to: number) => {
+    let q = supabase.from('marketplace_listings').select(LISTING_COLUMNS)
+    q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    if (filter !== 'all') q = q.eq('category', filter)
+    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
+    if (term) q = q.ilike('title', `%${term}%`)
+    return q.order('created_at', { ascending: false }).range(from, to)
+  }
+
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
     const [listingsRes, savedRes, meRes] = await Promise.all([
-      supabase.from('marketplace_listings').select(LISTING_COLUMNS).order('created_at', { ascending: false }),
+      listingsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('listing_id').eq('user_id', user.id).not('listing_id', 'is', null),
       supabase.from('profiles').select('location, whatsapp').eq('user_id', user.id).maybeSingle(),
     ])
@@ -129,23 +143,51 @@ export default function MarketplacePage() {
       return
     }
 
-    setListings((listingsRes.data || []) as any)
+    const page = (listingsRes.data || []) as any as Listing[]
+    setListings(page)
+    setHasMore(page.length === PAGE_SIZE)
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.listing_id)))
     const me = meRes.data as any
     setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [user])
+  const loadMore = async () => {
+    if (!user || loadingMore) return
+    setLoadingMore(true)
+    const { data, error } = await listingsQuery(listings.length, listings.length + PAGE_SIZE - 1)
+    if (!error) {
+      const more = (data || []) as any as Listing[]
+      setListings((prev) => [...prev, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    }
+    setLoadingMore(false)
+  }
 
-  // Opens a listing directly when arriving from the Home page (/marketplace?listing=<id>).
+  useEffect(() => { load() }, [user, filter])
+
+  // Waits until the user pauses typing before searching again.
+  useEffect(() => {
+    if (!user) return
+    const timer = setTimeout(() => load(), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  // Opens a listing directly when arriving from the Home page (/marketplace?listing=<id>),
+  // fetching it on its own if it is not on the currently loaded page.
   useEffect(() => {
     const id = searchParams.get('listing')
-    if (!id || listings.length === 0) return
-    const found = listings.find((l) => l.id === id)
-    if (found) setDetail(found)
+    if (!id) return
     setSearchParams({}, { replace: true })
-  }, [listings])
+    const found = listings.find((l) => l.id === id)
+    if (found) {
+      setDetail(found)
+      return
+    }
+    supabase.from('marketplace_listings').select(LISTING_COLUMNS).eq('id', id).maybeSingle().then(({ data }) => {
+      if (data) setDetail(data as any)
+    })
+  }, [searchParams])
 
   const closeForm = () => {
     setShowForm(false)
@@ -251,12 +293,7 @@ export default function MarketplacePage() {
     }
   }
 
-  const filtered = listings.filter((l) => {
-    if (l.status !== 'available' && l.seller_id !== user?.id) return false
-    if (filter !== 'all' && l.category !== filter) return false
-    if (search.trim() && !l.title.toLowerCase().includes(search.trim().toLowerCase())) return false
-    return true
-  })
+  const filtered = listings
 
   const onHeaderAdd = () => (showForm ? closeForm() : openNew())
 
@@ -433,6 +470,8 @@ export default function MarketplacePage() {
             ))}
           </div>
         )}
+
+        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
 
       {detail && (
@@ -577,9 +616,9 @@ function Header({ onBack, onAdd, open }: { onBack: () => void; onAdd: () => void
   )
 }
 
-const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
+const labelStyle: CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
   marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
