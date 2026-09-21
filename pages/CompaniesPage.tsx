@@ -5,6 +5,8 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import ImageUploader from '../ImageUploader'
+import { validatePhone, cleanPhone } from '../phoneUtils'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -48,6 +50,12 @@ export default function CompaniesPage() {
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
+  const [logo, setLogo] = useState<string[]>([])
+  const [cover, setCover] = useState<string[]>([])
+  const [phone, setPhone] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [website, setWebsite] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -77,12 +85,22 @@ export default function CompaniesPage() {
     setCategory('')
     setLocation('')
     setDescription('')
+    setLogo([])
+    setCover([])
+    setPhone('')
+    setWhatsapp('')
+    setWebsite('')
     setFormError('')
   }
 
   const handleAdd = async () => {
-    if (!user || !name.trim() || !category.trim()) return
+    if (!user || uploading) return
     setFormError('')
+    if (!name.trim() || !category.trim()) return setFormError('Enter the company name and category.')
+    const phoneErr = validatePhone(phone) || validatePhone(whatsapp)
+    if (phoneErr) return setFormError(phoneErr)
+    let site = website.trim()
+    if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`
     setSaving(true)
 
     const { error } = await supabase.from('companies').insert({
@@ -91,6 +109,11 @@ export default function CompaniesPage() {
       category: category.trim(),
       description: description.trim() || null,
       location: location.trim() || null,
+      logo_url: logo[0] || null,
+      cover_url: cover[0] || null,
+      phone: cleanPhone(phone) || null,
+      whatsapp: cleanPhone(whatsapp) || null,
+      website: site || null,
       status: 'pending',
     })
 
@@ -156,14 +179,22 @@ export default function CompaniesPage() {
               </div>
             )}
 
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company name" style={inputStyle} />
+            <p style={labelStyle}>Company logo</p>
+            <div style={{ marginBottom: '12px' }}><ImageUploader value={logo} onChange={setLogo} folder="companies" max={1} onBusyChange={setUploading} /></div>
+            <p style={labelStyle}>Cover photo</p>
+            <div style={{ marginBottom: '12px' }}><ImageUploader value={cover} onChange={setCover} folder="companies" max={1} onBusyChange={setUploading} /></div>
+
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company name" maxLength={100} style={inputStyle} />
             <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category, e.g. Seeds, Fertilizer, Equipment" style={inputStyle} />
             <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" style={inputStyle} />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={3} style={{ ...inputStyle, resize: 'none', marginBottom: '8px' }} />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
+            <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
+            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website (optional)" inputMode="url" style={inputStyle} />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={3} maxLength={1000} style={{ ...inputStyle, resize: 'none', marginBottom: '8px' }} />
             <p style={{ fontSize: '11px', color: COLORS.textMuted, marginBottom: '12px' }}>New companies are reviewed before they appear publicly.</p>
 
-            <div onClick={saving ? undefined : handleAdd} style={{ background: COLORS.green, color: 'white', textAlign: 'center', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Submitting...' : 'Submit for Review'}
+            <div onClick={saving || uploading ? undefined : handleAdd} style={{ background: COLORS.green, color: 'white', textAlign: 'center', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving || uploading ? 0.6 : 1 }}>
+              {saving ? 'Submitting...' : uploading ? 'Uploading photo...' : 'Submit for Review'}
             </div>
           </div>
         )}
@@ -178,7 +209,7 @@ export default function CompaniesPage() {
           filtered.map((c) => (
             <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {c.logo_url ? <img src={c.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={22} color={COLORS.green} />}
+                {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={22} color={COLORS.green} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -236,6 +267,8 @@ function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
     </div>
   )
 }
+
+const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
