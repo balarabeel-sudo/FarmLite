@@ -18,6 +18,8 @@ import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
 import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
+import CommunityDetailsPage from './pages/CommunityDetailsPage'
+import UserProfilePage from './pages/UserProfilePage'
 
 function App() {
   return (
@@ -131,6 +133,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CompanyDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/communities/:id"
+              element={
+                <ProtectedRoute>
+                  <CommunityDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/u/:username"
+              element={
+                <ProtectedRoute>
+                  <UserProfilePage />
                 </ProtectedRoute>
               }
             />
