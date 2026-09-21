@@ -1,13 +1,17 @@
 import { supabase } from './supabaseClient'
 
-export type MediaFolder = 'avatars' | 'covers' | 'listings' | 'posts' | 'equipment'
+export type MediaFolder = 'avatars' | 'covers' | 'logos' | 'gallery' | 'listings' | 'posts' | 'equipment' | 'companies' | 'communities'
 
 const MAX_SIDE: Record<MediaFolder, number> = {
   avatars: 600,
   covers: 1800,
+  logos: 600,
+  gallery: 1600,
   listings: 1600,
   posts: 1600,
   equipment: 1600,
+  companies: 1600,
+  communities: 1600,
 }
 
 // Shrinks a photo on the phone before upload (saves data and storage).
