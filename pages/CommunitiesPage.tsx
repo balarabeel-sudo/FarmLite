@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
@@ -6,6 +7,7 @@ import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
+import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -36,6 +38,8 @@ export default function CommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([])
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -46,13 +50,22 @@ export default function CommunitiesPage() {
   const [cover, setCover] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
 
+  const COMMUNITY_COLUMNS = 'id, owner_id, name, description, cover_url, icon_url, members_count'
+
+  const communitiesQuery = (from: number, to: number) => {
+    let q = supabase.from('communities').select(COMMUNITY_COLUMNS)
+    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
+    if (term) q = q.ilike('name', `%${term}%`)
+    return q.order('members_count', { ascending: false }).range(from, to)
+  }
+
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
     const [communitiesRes, joinedRes] = await Promise.all([
-      supabase.from('communities').select('id, owner_id, name, description, cover_url, icon_url, members_count').order('members_count', { ascending: false }),
+      communitiesQuery(0, PAGE_SIZE - 1),
       supabase.from('community_members').select('community_id').eq('user_id', user.id),
     ])
 
@@ -62,12 +75,32 @@ export default function CommunitiesPage() {
       return
     }
 
-    setCommunities((communitiesRes.data || []) as any)
+    const page = (communitiesRes.data || []) as any as Community[]
+    setCommunities(page)
+    setHasMore(page.length === PAGE_SIZE)
     setJoinedIds(new Set((joinedRes.data || []).map((r: any) => r.community_id)))
     setLoading(false)
   }
 
+  const loadMore = async () => {
+    if (!user || loadingMore) return
+    setLoadingMore(true)
+    const { data, error } = await communitiesQuery(communities.length, communities.length + PAGE_SIZE - 1)
+    if (!error) {
+      const more = (data || []) as any as Community[]
+      setCommunities((prev) => [...prev, ...more])
+      setHasMore(more.length === PAGE_SIZE)
+    }
+    setLoadingMore(false)
+  }
+
   useEffect(() => { load() }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const timer = setTimeout(() => load(), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const resetForm = () => {
     setName('')
@@ -118,7 +151,7 @@ export default function CommunitiesPage() {
     }
   }
 
-  const filtered = communities.filter((c) => !search.trim() || c.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const filtered = communities
 
   if (netError) {
     return (
@@ -205,6 +238,8 @@ export default function CommunitiesPage() {
             </div>
           ))
         )}
+
+        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
     </div>
   )
@@ -229,7 +264,7 @@ function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
   )
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
   marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
