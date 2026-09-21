@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import ImageUploader from '../ImageUploader'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -22,6 +23,7 @@ type Community = {
   name: string
   description: string | null
   cover_url: string | null
+  icon_url: string | null
   members_count: number
 }
 
@@ -40,6 +42,9 @@ export default function CommunitiesPage() {
   const [formError, setFormError] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [icon, setIcon] = useState<string[]>([])
+  const [cover, setCover] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -47,7 +52,7 @@ export default function CommunitiesPage() {
     setLoading(true)
 
     const [communitiesRes, joinedRes] = await Promise.all([
-      supabase.from('communities').select('id, owner_id, name, description, cover_url, members_count').order('members_count', { ascending: false }),
+      supabase.from('communities').select('id, owner_id, name, description, cover_url, icon_url, members_count').order('members_count', { ascending: false }),
       supabase.from('community_members').select('community_id').eq('user_id', user.id),
     ])
 
@@ -67,11 +72,13 @@ export default function CommunitiesPage() {
   const resetForm = () => {
     setName('')
     setDescription('')
+    setIcon([])
+    setCover([])
     setFormError('')
   }
 
   const handleAdd = async () => {
-    if (!user || !name.trim()) return
+    if (!user || !name.trim() || uploading) return
     setFormError('')
     setSaving(true)
 
@@ -79,6 +86,8 @@ export default function CommunitiesPage() {
       owner_id: user.id,
       name: name.trim(),
       description: description.trim() || null,
+      icon_url: icon[0] || null,
+      cover_url: cover[0] || null,
     }).select('id').single()
 
     if (error || !data) {
@@ -142,11 +151,19 @@ export default function CommunitiesPage() {
               </div>
             )}
 
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" style={inputStyle} />
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }}>Group photo</p>
+            <div style={{ marginBottom: '12px' }}>
+              <ImageUploader value={icon} onChange={setIcon} folder="avatars" max={1} onBusyChange={setUploading} />
+            </div>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }}>Cover photo (optional)</p>
+            <div style={{ marginBottom: '12px' }}>
+              <ImageUploader value={cover} onChange={setCover} folder="covers" max={1} onBusyChange={setUploading} />
+            </div>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" maxLength={80} style={inputStyle} />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this group about? (optional)" rows={3} style={{ ...inputStyle, resize: 'none', marginBottom: '12px' }} />
 
             <div onClick={saving ? undefined : handleAdd} style={{ background: COLORS.green, color: 'white', textAlign: 'center', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Creating...' : 'Create Group'}
+              {saving ? 'Creating...' : uploading ? 'Uploading photo...' : 'Create Group'}
             </div>
           </div>
         )}
@@ -155,13 +172,16 @@ export default function CommunitiesPage() {
           <ListCardSkeleton count={4} />
         ) : filtered.length === 0 ? (
           <div style={{ background: COLORS.card, padding: '32px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+              <Icon name="users" size={28} color={COLORS.textMuted} />
+            </div>
             {communities.length === 0 ? 'No groups yet. Tap + to start one.' : 'No groups match your search.'}
           </div>
         ) : (
           filtered.map((c) => (
             <div key={c.id} onClick={() => navigate(`/communities/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {c.cover_url ? <img src={c.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={20} color={COLORS.green} />}
+                {c.icon_url || c.cover_url ? <img src={c.icon_url || c.cover_url || ''} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={20} color={COLORS.green} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{c.name}</p>
