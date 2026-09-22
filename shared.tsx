@@ -28,6 +28,38 @@ export function ErrorBanner({ text }: { text: string }) {
   )
 }
 
+import Icon from './Icons'
+
+// The three company badges, kept visually distinct and never combined into one icon:
+// ✓ verified (business info checked), 🔵 premium (blue tick, paid), ⭐ trusted partner (FarmLite-granted).
+export function CompanyBadges({ verified, premium, trustedPartner, size = 14 }: { verified?: boolean; premium?: boolean; trustedPartner?: boolean; size?: number }) {
+  if (!verified && !premium && !trustedPartner) return null
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      {verified && <Icon name="checkCircle" size={size} color="#16A34A" />}
+      {premium && <Icon name="checkCircle" size={size} color="#2563EB" />}
+      {trustedPartner && <Icon name="star" size={size} color="#F59E0B" />}
+    </span>
+  )
+}
+
+// Small "PRO" badge for a premium user or company. size 'sm' for inline next to a name, 'md' for a profile header.
+export function PremiumBadge({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+  const h = size === 'sm' ? '15px' : '20px'
+  const fs = size === 'sm' ? '9px' : '10.5px'
+  const iconSize = size === 'sm' ? 9 : 11
+  return (
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '3px', height: h, padding: '0 6px',
+        borderRadius: '999px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: 'white',
+        fontSize: fs, fontWeight: 800, letterSpacing: '0.3px', flexShrink: 0,
+      }}>
+      <Icon name="crown" size={iconSize} color="white" /> PRO
+    </span>
+  )
+}
+
 export const PAGE_SIZE = 12
 
 // "Load more" control for paged lists. Shows nothing once there is nothing left to load.
