@@ -10,6 +10,7 @@ import MarketplacePage from './pages/MarketplacePage'
 import CompaniesPage from './pages/CompaniesPage'
 import CommunitiesPage from './pages/CommunitiesPage'
 import AccountPage from './pages/AccountPage'
+import EditProfilePage from './pages/EditProfilePage'
 import EquipmentPage from './pages/EquipmentPage'
 import SavedPage from './pages/SavedPage'
 import MessagesPage from './pages/MessagesPage'
@@ -18,6 +19,7 @@ import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
 import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
+import CompanyRegisterPage from './pages/CompanyRegisterPage'
 import CommunityDetailsPage from './pages/CommunityDetailsPage'
 import UserProfilePage from './pages/UserProfilePage'
 
@@ -125,6 +127,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/companies/new"
+              element={
+                <ProtectedRoute>
+                  <CompanyRegisterPage />
                 </ProtectedRoute>
               }
             />
