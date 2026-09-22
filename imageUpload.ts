@@ -58,3 +58,25 @@ export async function uploadMedia(file: File, folder: MediaFolder): Promise<stri
 
   return supabase.storage.from('media').getPublicUrl(path).data.publicUrl
 }
+
+// Uploads a document (registration certificate: an image photo or a PDF) as-is, no compression.
+export async function uploadDocument(file: File, folder: 'documents'): Promise<string> {
+  const { data: auth } = await supabase.auth.getUser()
+  const user = auth.user
+  if (!user) throw new Error('Please log in first.')
+  const okType = file.type.startsWith('image/') || file.type === 'application/pdf'
+  if (!okType) throw new Error('Please choose an image or a PDF file.')
+  if (file.size > 8 * 1024 * 1024) throw new Error('File is too large. Please keep it under 8MB.')
+
+  const ext = file.type === 'application/pdf' ? 'pdf' : file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${user.id}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+  const { error } = await supabase.storage.from('media').upload(path, file, {
+    contentType: file.type,
+    cacheControl: '31536000',
+    upsert: false,
+  })
+  if (error) throw new Error('Document upload failed. Check your connection and try again.')
+
+  return supabase.storage.from('media').getPublicUrl(path).data.publicUrl
+}
