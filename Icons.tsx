@@ -32,6 +32,7 @@ const paths: Record<string, string> = {
   currency: 'M17 5H9.5a3.5 3.5 0 0 0 0 7h1a3.5 3.5 0 0 1 0 7H4M7 19h8M12 2v2M12 20v2',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z',
   crown: 'M3 8l4 4 5-7 5 7 4-4-2 11H5L3 8Zm2 13h14',
+  eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Zm11 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
   leaf: 'M11 20A7 7 0 0 1 4 13c0-6 7-11 15-11 0 8-5 15-11 15a7 7 0 0 1-6-3.5',
   mapPin: 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
   star: 'M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.2L12 17.8l-6.2 3.6L7 14.2 2 9.3l7.1-.7L12 2Z',
@@ -55,6 +56,10 @@ const paths: Record<string, string> = {
   package: 'M16.5 9.4 7.5 4.2M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7ZM3.3 7 12 12l8.7-5M12 22V12',
   check: 'M20 6 9 17l-5-5',
   upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12',
+  fileText: 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6ZM14 3v6h6M9 13h6M9 17h6M9 9h1',
+  briefcase: 'M3 7h18v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Zm5 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18',
+  shield: 'M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z',
+  helpCircle: 'M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1.2-1.5 2.2v.5M12 17.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z',
 }
 
 export default function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2 }: IconProps) {
