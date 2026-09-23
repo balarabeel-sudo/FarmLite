@@ -67,6 +67,7 @@ export default function HomePage() {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
 
   const load = async () => {
     if (!user) return
@@ -74,11 +75,12 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      const [profileRes, notifRes, listingsRes, feedRes] = await Promise.all([
+      const [profileRes, notifRes, listingsRes, feedRes, savedPostsRes] = await Promise.all([
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
         supabase.from('posts').select('id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
+        supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
       ])
 
       if (profileRes.error || listingsRes.error || feedRes.error) {
@@ -91,11 +93,23 @@ export default function HomePage() {
       setUnreadNotifications(notifRes.count || 0)
       setListings((listingsRes.data || []) as any)
       setFeed((feedRes.data || []) as any)
+      setSavedPostIds(new Set((savedPostsRes.data || []).map((r: any) => r.post_id)))
     } catch {
       setNetError(true)
     }
 
     setLoading(false)
+  }
+
+  const toggleSavePost = async (postId: string) => {
+    if (!user) return
+    if (savedPostIds.has(postId)) {
+      await supabase.from('saved_items').delete().eq('user_id', user.id).eq('post_id', postId)
+      setSavedPostIds((prev) => { const next = new Set(prev); next.delete(postId); return next })
+    } else {
+      await supabase.from('saved_items').insert({ user_id: user.id, post_id: postId })
+      setSavedPostIds((prev) => new Set(prev).add(postId))
+    }
   }
 
   useEffect(() => { load() }, [user])
@@ -181,7 +195,7 @@ export default function HomePage() {
           ) : feed.length === 0 ? (
             <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
           ) : (
-            feed.map((post) => <FeedCard key={post.id} post={post} />)
+            feed.map((post) => <FeedCard key={post.id} post={post} saved={savedPostIds.has(post.id)} onToggleSave={() => toggleSavePost(post.id)} />)
           )}
         </div>
       </div>
@@ -243,7 +257,7 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
   )
 }
 
-function FeedCard({ post }: { post: FeedPost }) {
+function FeedCard({ post, saved, onToggleSave }: { post: FeedPost; saved: boolean; onToggleSave: () => void }) {
   const navigate = useNavigate()
   const author = post.profiles
   return (
@@ -269,8 +283,8 @@ function FeedCard({ post }: { post: FeedPost }) {
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
           <Icon name="comment" size={15} color={COLORS.textMuted} /> {post.comments_count}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, marginLeft: 'auto' }}>
-          <Icon name="share" size={15} color={COLORS.textMuted} />
+        <span onClick={onToggleSave} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, marginLeft: 'auto', cursor: 'pointer' }}>
+          <Icon name="bookmark" size={15} color={saved ? COLORS.orange : COLORS.textMuted} />
         </span>
       </div>
     </div>
