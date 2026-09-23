@@ -7,6 +7,7 @@ import { ProfileHeaderSkeleton, FeedPostSkeleton, GridCardSkeleton } from '../Lo
 import NetworkError from '../NetworkError'
 import PostImages from '../PostImages'
 import { cleanPhone, whatsappLink } from '../phoneUtils'
+import { PremiumBadge } from '../shared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -36,6 +37,7 @@ type Profile = {
   whatsapp: string | null
   website: string | null
   is_verified: boolean
+  is_premium: boolean
   followers_count: number
   following_count: number
   posts_count: number
@@ -84,7 +86,7 @@ export default function UserProfilePage() {
 
     const profileRes = await supabase
       .from('profiles')
-      .select('user_id, full_name, username, profile_image, cover_image, bio, location, role, farm_type, phone, whatsapp, website, is_verified, followers_count, following_count, posts_count')
+      .select('user_id, full_name, username, profile_image, cover_image, bio, location, role, farm_type, phone, whatsapp, website, is_verified, is_premium, followers_count, following_count, posts_count')
       .eq('username', username)
       .maybeSingle()
 
@@ -99,11 +101,6 @@ export default function UserProfilePage() {
       setLoading(false)
       return
     }
-    if (p.user_id === user.id) {
-      navigate('/profile', { replace: true })
-      return
-    }
-
     const [postsRes, listingsRes, followRes] = await Promise.all([
       supabase.from('posts').select('id, content, images, likes_count, comments_count, created_at').eq('user_id', p.user_id).eq('visibility', 'public').order('created_at', { ascending: false }).limit(30),
       supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('seller_id', p.user_id).eq('status', 'available').order('created_at', { ascending: false }).limit(30),
@@ -169,6 +166,7 @@ export default function UserProfilePage() {
   }
 
   const roleLabel = profile ? ROLE_LABELS[profile.role] : undefined
+  const isSelf = !!(profile && user && profile.user_id === user.id)
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
@@ -194,6 +192,7 @@ export default function UserProfilePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>{profile.full_name || profile.username || 'FarmLite user'}</p>
                   {profile.is_verified && <Icon name="checkCircle" size={14} color={COLORS.green} />}
+                  {profile.is_premium && <PremiumBadge />}
                 </div>
                 <p style={{ fontSize: '12px', color: COLORS.textMuted }}>@{profile.username}{roleLabel ? ` · ${roleLabel}` : ''}</p>
               </div>
@@ -212,27 +211,33 @@ export default function UserProfilePage() {
               <Stat label="Following" value={profile.following_count || 0} />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-              <div
-                onClick={toggleFollow}
-                style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
-                  background: isFollowing ? COLORS.card : COLORS.green,
-                  color: isFollowing ? COLORS.text : 'white',
-                  border: `1px solid ${isFollowing ? COLORS.border : COLORS.green}`,
-                  opacity: followBusy ? 0.6 : 1,
-                }}>
-                <Icon name={isFollowing ? 'check' : 'plus'} size={14} color={isFollowing ? COLORS.text : 'white'} />
-                {isFollowing ? 'Following' : 'Follow'}
+            {isSelf ? (
+              <div onClick={() => navigate('/profile/edit')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, background: COLORS.card, fontSize: '12.5px', fontWeight: 700, color: COLORS.text, cursor: 'pointer', marginTop: '16px' }}>
+                <Icon name="edit" size={14} color={COLORS.text} /> Edit Profile
               </div>
-              <div
-                onClick={() => navigate(`/messages?to=${profile.user_id}`)}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, background: COLORS.card, fontSize: '12.5px', fontWeight: 700, color: COLORS.text, cursor: 'pointer' }}>
-                <Icon name="message" size={14} color={COLORS.text} /> Message
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <div
+                  onClick={toggleFollow}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+                    background: isFollowing ? COLORS.card : COLORS.green,
+                    color: isFollowing ? COLORS.text : 'white',
+                    border: `1px solid ${isFollowing ? COLORS.border : COLORS.green}`,
+                    opacity: followBusy ? 0.6 : 1,
+                  }}>
+                  <Icon name={isFollowing ? 'check' : 'plus'} size={14} color={isFollowing ? COLORS.text : 'white'} />
+                  {isFollowing ? 'Following' : 'Follow'}
+                </div>
+                <div
+                  onClick={() => navigate(`/messages?to=${profile.user_id}`)}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, background: COLORS.card, fontSize: '12.5px', fontWeight: 700, color: COLORS.text, cursor: 'pointer' }}>
+                  <Icon name="message" size={14} color={COLORS.text} /> Message
+                </div>
               </div>
-            </div>
+            )}
 
-            {(profile.whatsapp || profile.phone) && (
+            {!isSelf && (profile.whatsapp || profile.phone) && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 {profile.whatsapp && (
                   <a href={whatsappLink(profile.whatsapp)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', background: '#DCFCE7', color: COLORS.greenDark, fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>
