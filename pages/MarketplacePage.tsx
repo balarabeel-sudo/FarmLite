@@ -8,6 +8,7 @@ import { GridCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
+import { PremiumBadge } from '../shared'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
@@ -30,6 +31,7 @@ type Seller = {
   username: string | null
   profile_image: string | null
   phone: string | null
+  is_premium: boolean
 }
 
 type Listing = {
@@ -88,7 +90,7 @@ const EMPTY_FORM: Form = {
 }
 
 const LISTING_COLUMNS =
-  'id, seller_id, category, title, description, price, currency, unit, quantity, location, whatsapp, negotiable, images, status, seller:profiles!marketplace_listings_seller_id_fkey(full_name, username, profile_image, phone)'
+  'id, seller_id, category, title, description, price, currency, unit, quantity, location, whatsapp, negotiable, images, status, seller:profiles!marketplace_listings_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
 
 export default function MarketplacePage() {
   const navigate = useNavigate()
@@ -100,9 +102,11 @@ export default function MarketplacePage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
+  const [imageCap, setImageCap] = useState(5)
 
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<CategoryFilter>('all')
+  const [filter, setFilter] = useState<CategoryFilter>((searchParams.get('category') as CategoryFilter) || 'all')
+  const [mineOnly, setMineOnly] = useState(searchParams.get('mine') === '1')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
 
@@ -119,7 +123,11 @@ export default function MarketplacePage() {
   // Builds the listings query for the current search/category filters.
   const listingsQuery = (from: number, to: number) => {
     let q = supabase.from('marketplace_listings').select(LISTING_COLUMNS)
-    q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    if (mineOnly) {
+      q = q.eq('seller_id', user!.id)
+    } else {
+      q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    }
     if (filter !== 'all') q = q.eq('category', filter)
     const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
     if (term) q = q.ilike('title', `%${term}%`)
@@ -134,7 +142,7 @@ export default function MarketplacePage() {
     const [listingsRes, savedRes, meRes] = await Promise.all([
       listingsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('listing_id').eq('user_id', user.id).not('listing_id', 'is', null),
-      supabase.from('profiles').select('location, whatsapp').eq('user_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('location, whatsapp, is_premium').eq('user_id', user.id).maybeSingle(),
     ])
 
     if (listingsRes.error) {
@@ -149,6 +157,7 @@ export default function MarketplacePage() {
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.listing_id)))
     const me = meRes.data as any
     setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
+    setImageCap(me?.is_premium ? 10 : 5)
     setLoading(false)
   }
 
@@ -164,7 +173,7 @@ export default function MarketplacePage() {
     setLoadingMore(false)
   }
 
-  useEffect(() => { load() }, [user, filter])
+  useEffect(() => { load() }, [user, filter, mineOnly])
 
   // Waits until the user pauses typing before searching again.
   useEffect(() => {
@@ -311,6 +320,12 @@ export default function MarketplacePage() {
       <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
 
       <div style={{ padding: '16px' }}>
+        {mineOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
+            <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: COLORS.greenDark }}>Showing your listings</p>
+            <span onClick={() => setMineOnly(false)} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.greenDark, cursor: 'pointer' }}>Show all</span>
+          </div>
+        )}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
             <Icon name="search" size={16} color={COLORS.textMuted} />
@@ -351,7 +366,7 @@ export default function MarketplacePage() {
 
             <p style={labelStyle}>Photos</p>
             <div style={{ marginBottom: '12px' }}>
-              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="listings" max={5} />
+              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="listings" max={imageCap} />
             </div>
 
             <select value={form.category} onChange={(e) => setField('category', e.target.value as Category)} style={inputStyle}>
@@ -554,7 +569,10 @@ function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onClose 
                 {l.seller.profile_image ? <img src={l.seller.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
               </div>
               <div>
-                <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{l.seller.full_name || l.seller.username || 'Seller'}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{l.seller.full_name || l.seller.username || 'Seller'}</p>
+                  {l.seller.is_premium && <PremiumBadge />}
+                </div>
                 {l.seller.username && <p style={{ fontSize: '11px', color: COLORS.textMuted }}>@{l.seller.username}</p>}
               </div>
             </div>
