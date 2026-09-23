@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
@@ -8,7 +8,7 @@ import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { formatMoney } from '../moneyUtils'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
-import { COLORS, inputStyle, labelStyle, ErrorBanner, PAGE_SIZE, LoadMoreButton } from '../shared'
+import { COLORS, inputStyle, labelStyle, ErrorBanner, PAGE_SIZE, LoadMoreButton, PremiumBadge } from '../shared'
 
 type ListingType = 'buy' | 'rent'
 type Status = 'available' | 'unavailable'
@@ -19,6 +19,7 @@ type Seller = {
   username: string | null
   profile_image: string | null
   phone: string | null
+  is_premium: boolean
 }
 
 type Equipment = {
@@ -68,10 +69,11 @@ const EMPTY_FORM: Form = {
 }
 
 const COLUMNS =
-  'id, seller_id, name, category, description, listing_type, price, currency, unit, location, images, status, whatsapp, negotiable, condition, seller:profiles!equipment_seller_id_fkey(full_name, username, profile_image, phone)'
+  'id, seller_id, name, category, description, listing_type, price, currency, unit, location, images, status, whatsapp, negotiable, condition, seller:profiles!equipment_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
 
 export default function EquipmentPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
 
   const [loading, setLoading] = useState(true)
@@ -79,8 +81,10 @@ export default function EquipmentPage() {
   const [items, setItems] = useState<Equipment[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
+  const [imageCap, setImageCap] = useState(5)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<TypeFilter>('all')
+  const [filter, setFilter] = useState<TypeFilter>((searchParams.get('type') as TypeFilter) || 'all')
+  const [mineOnly, setMineOnly] = useState(searchParams.get('mine') === '1')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
 
@@ -97,7 +101,11 @@ export default function EquipmentPage() {
 
   const itemsQuery = (from: number, to: number) => {
     let q = supabase.from('equipment').select(COLUMNS)
-    q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    if (mineOnly) {
+      q = q.eq('seller_id', user!.id)
+    } else {
+      q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    }
     if (filter !== 'all') q = q.eq('listing_type', filter)
     const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
     if (term) q = q.ilike('name', `%${term}%`)
@@ -112,7 +120,7 @@ export default function EquipmentPage() {
     const [itemsRes, savedRes, meRes] = await Promise.all([
       itemsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('equipment_id').eq('user_id', user.id).not('equipment_id', 'is', null),
-      supabase.from('profiles').select('location, whatsapp').eq('user_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('location, whatsapp, is_premium').eq('user_id', user.id).maybeSingle(),
     ])
 
     if (itemsRes.error) {
@@ -127,6 +135,7 @@ export default function EquipmentPage() {
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.equipment_id)))
     const me = meRes.data as any
     setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
+    setImageCap(me?.is_premium ? 10 : 5)
     setLoading(false)
   }
 
@@ -142,7 +151,7 @@ export default function EquipmentPage() {
     setLoadingMore(false)
   }
 
-  useEffect(() => { load() }, [user, filter])
+  useEffect(() => { load() }, [user, filter, mineOnly])
 
   useEffect(() => {
     if (!user) return
@@ -277,6 +286,12 @@ export default function EquipmentPage() {
       <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
 
       <div style={{ padding: '16px' }}>
+        {mineOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
+            <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: COLORS.greenDark }}>Showing your equipment</p>
+            <span onClick={() => setMineOnly(false)} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.greenDark, cursor: 'pointer' }}>Show all</span>
+          </div>
+        )}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
             <Icon name="search" size={16} color={COLORS.textMuted} />
@@ -302,7 +317,7 @@ export default function EquipmentPage() {
 
             <p style={labelStyle}>Photos</p>
             <div style={{ marginBottom: '12px' }}>
-              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="equipment" max={5} onBusyChange={setUploading} />
+              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="equipment" max={imageCap} onBusyChange={setUploading} />
             </div>
 
             <input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="Name, e.g. Tractor (New Holland)" maxLength={100} style={inputStyle} />
@@ -509,7 +524,10 @@ function DetailSheet({ item: it, isMine, saved, onToggleSave, onEdit, onClose }:
                 {it.seller.profile_image ? <img src={it.seller.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
               </div>
               <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{it.seller.full_name || it.seller.username || 'Seller'}</p>
+                {it.seller.is_premium && <PremiumBadge />}
+              </div>
                 {it.seller.username && <p style={{ fontSize: '11px', color: COLORS.textMuted }}>@{it.seller.username}</p>}
               </div>
             </div>
