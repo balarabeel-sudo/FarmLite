@@ -75,6 +75,14 @@ function App() {
               }
             />
             <Route
+              path="/profile/edit"
+              element={
+                <ProtectedRoute>
+                  <EditProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/equipment"
               element={
                 <ProtectedRoute>
