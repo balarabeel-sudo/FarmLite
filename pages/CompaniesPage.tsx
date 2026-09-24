@@ -1,308 +1,165 @@
-import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-import { useAuth } from '../AuthContext'
-import Icon from '../Icons'
-import { ListCardSkeleton } from '../LoadingSkeleton'
-import NetworkError from '../NetworkError'
-import ImageUploader from '../ImageUploader'
-import { validatePhone, cleanPhone } from '../phoneUtils'
-import { PAGE_SIZE, LoadMoreButton } from '../shared'
+import { supabase } from '../../supabaseClient'
+import AdminLayout from '../AdminLayout'
+import { useStaff } from '../AdminStaffContext'
+import { logAdminAction } from '../adminAuth'
 
-const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
-  green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  orange: '#F59E0B',
-  red: '#DC2626',
-}
+const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', bg: '#F7F8F7', red: '#DC2626', blue: '#2563EB', amber: '#B45309' }
 
 type Company = {
   id: string
-  owner_id: string
   name: string
   category: string
-  description: string | null
-  location: string | null
-  logo_url: string | null
-  is_verified: boolean
   status: string
-  rating: number
+  is_premium: boolean
+  premium_until: string | null
+  trusted_partner: boolean
   followers_count: number
+  created_at: string
 }
 
-export default function CompaniesPage() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  pending: { bg: '#FEF3C7', color: '#92400E' },
+  needs_review: { bg: '#FEF3C7', color: '#92400E' },
+  verified: { bg: '#DCFCE7', color: '#166534' },
+  rejected: { bg: '#FEE2E2', color: '#991B1B' },
+  suspended: { bg: '#F3F4F6', color: '#4B5563' },
+}
+
+const STATUS_FILTERS = ['all', 'verified', 'pending', 'needs_review', 'rejected', 'suspended']
+
+export default function AdminCompaniesPage() {
+  const staff = useStaff()
+  const canManage = staff.permissions.has('companies.manage')
+  const canManageTrustedPartner = staff.permissions.has('companies.manage_trusted_partner')
 
   const [loading, setLoading] = useState(true)
-  const [netError, setNetError] = useState(false)
+  const [error, setError] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
-  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
-  const [hasMore, setHasMore] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
-  const [location, setLocation] = useState('')
-  const [description, setDescription] = useState('')
-  const [logo, setLogo] = useState<string[]>([])
-  const [cover, setCover] = useState<string[]>([])
-  const [phone, setPhone] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [website, setWebsite] = useState('')
-  const [uploading, setUploading] = useState(false)
-
-  const COMPANY_COLUMNS = 'id, owner_id, name, category, description, location, logo_url, is_verified, status, rating, followers_count'
-
-  const companiesQuery = (from: number, to: number) => {
-    let q = supabase.from('companies').select(COMPANY_COLUMNS)
-    q = user ? q.or(`status.eq.approved,owner_id.eq.${user.id}`) : q.eq('status', 'approved')
-    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
-    if (term) q = q.ilike('name', `%${term}%`)
-    return q.order('followers_count', { ascending: false }).range(from, to)
-  }
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const load = async () => {
-    if (!user) return
-    setNetError(false)
+    setError(false)
     setLoading(true)
-
-    const [companiesRes, followedRes] = await Promise.all([
-      companiesQuery(0, PAGE_SIZE - 1),
-      supabase.from('company_followers').select('company_id').eq('user_id', user.id),
-    ])
-
-    if (companiesRes.error) {
-      setNetError(true)
+    let q = supabase.from('companies').select('id, name, category, status, is_premium, premium_until, trusted_partner, followers_count, created_at').order('created_at', { ascending: false })
+    if (statusFilter !== 'all') q = q.eq('status', statusFilter)
+    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
+    if (term) q = q.ilike('name', `%${term}%`)
+    const { data, error } = await q.limit(200)
+    if (error) {
+      setError(true)
       setLoading(false)
       return
     }
-
-    const page = (companiesRes.data || []) as any as Company[]
-    setCompanies(page)
-    setHasMore(page.length === PAGE_SIZE)
-    setFollowedIds(new Set((followedRes.data || []).map((r: any) => r.company_id)))
+    setCompanies((data || []) as any)
     setLoading(false)
   }
 
-  const loadMore = async () => {
-    if (!user || loadingMore) return
-    setLoadingMore(true)
-    const { data, error } = await companiesQuery(companies.length, companies.length + PAGE_SIZE - 1)
-    if (!error) {
-      const more = (data || []) as any as Company[]
-      setCompanies((prev) => [...prev, ...more])
-      setHasMore(more.length === PAGE_SIZE)
-    }
-    setLoadingMore(false)
-  }
-
-  useEffect(() => { load() }, [user])
-
+  useEffect(() => { load() }, [statusFilter])
   useEffect(() => {
-    if (!user) return
-    const timer = setTimeout(() => load(), 300)
-    return () => clearTimeout(timer)
+    const t = setTimeout(load, 300)
+    return () => clearTimeout(t)
   }, [search])
 
-  const resetForm = () => {
-    setName('')
-    setCategory('')
-    setLocation('')
-    setDescription('')
-    setLogo([])
-    setCover([])
-    setPhone('')
-    setWhatsapp('')
-    setWebsite('')
-    setFormError('')
-  }
-
-  const handleAdd = async () => {
-    if (!user || uploading) return
-    setFormError('')
-    if (!name.trim() || !category.trim()) return setFormError('Enter the company name and category.')
-    const phoneErr = validatePhone(phone) || validatePhone(whatsapp)
-    if (phoneErr) return setFormError(phoneErr)
-    let site = website.trim()
-    if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`
-    setSaving(true)
-
-    const { error } = await supabase.from('companies').insert({
-      owner_id: user.id,
-      name: name.trim(),
-      category: category.trim(),
-      description: description.trim() || null,
-      location: location.trim() || null,
-      logo_url: logo[0] || null,
-      cover_url: cover[0] || null,
-      phone: cleanPhone(phone) || null,
-      whatsapp: cleanPhone(whatsapp) || null,
-      website: site || null,
-      status: 'pending',
-    })
-
-    setSaving(false)
-
-    if (error) {
-      setFormError(error.message || 'Could not register your company.')
-      return
-    }
-
-    resetForm()
-    setShowForm(false)
-    load()
-  }
-
-  const toggleFollow = async (companyId: string) => {
-    if (!user) return
-    if (followedIds.has(companyId)) {
-      await supabase.from('company_followers').delete().eq('user_id', user.id).eq('company_id', companyId)
-      setFollowedIds((prev) => { const next = new Set(prev); next.delete(companyId); return next })
-      setCompanies((prev) => prev.map((c) => c.id === companyId ? { ...c, followers_count: Math.max(c.followers_count - 1, 0) } : c))
-    } else {
-      await supabase.from('company_followers').insert({ user_id: user.id, company_id: companyId })
-      setFollowedIds((prev) => new Set(prev).add(companyId))
-      setCompanies((prev) => prev.map((c) => c.id === companyId ? { ...c, followers_count: c.followers_count + 1 } : c))
+  const setStatus = async (c: Company, status: string) => {
+    const { error } = await supabase.from('companies').update({ status }).eq('id', c.id)
+    if (!error) {
+      await logAdminAction(status === 'suspended' ? 'Suspended company' : 'Restored company', { type: 'company', id: c.id, label: c.name })
+      load()
     }
   }
 
-  const filtered = companies
-
-  if (netError) {
-    return (
-      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} onAdd={() => setShowForm(!showForm)} />
-        <NetworkError onRetry={load} />
-      </div>
-    )
+  const toggleTrustedPartner = async (c: Company) => {
+    const { error } = await supabase.from('companies').update({ trusted_partner: !c.trusted_partner }).eq('id', c.id)
+    if (!error) {
+      await logAdminAction(c.trusted_partner ? 'Removed Trusted Partner status' : 'Granted Trusted Partner status', { type: 'company', id: c.id, label: c.name })
+      load()
+    }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} onAdd={() => { setShowForm(!showForm); if (showForm) resetForm() }} />
-
-      <div style={{ padding: '16px' }}>
+    <AdminLayout title="Companies">
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search companies..."
-          style={{ width: '100%', padding: '11px 14px', borderRadius: '12px', border: `1px solid ${COLORS.border}`, marginBottom: '16px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.card }}
+          style={{ padding: '9px 12px', borderRadius: '8px', border: `1px solid ${A.border}`, fontSize: '13px', minWidth: '220px' }}
         />
-
-        {showForm && (
-          <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, marginBottom: '10px', color: COLORS.text }}>Register a company</p>
-
-            {formError && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
-                <p style={{ fontSize: '11.5px', color: COLORS.red }}>{formError}</p>
-              </div>
-            )}
-
-            <p style={labelStyle}>Company logo</p>
-            <div style={{ marginBottom: '12px' }}><ImageUploader value={logo} onChange={setLogo} folder="companies" max={1} onBusyChange={setUploading} /></div>
-            <p style={labelStyle}>Cover photo</p>
-            <div style={{ marginBottom: '12px' }}><ImageUploader value={cover} onChange={setCover} folder="companies" max={1} onBusyChange={setUploading} /></div>
-
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company name" maxLength={100} style={inputStyle} />
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category, e.g. Seeds, Fertilizer, Equipment" style={inputStyle} />
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" style={inputStyle} />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-            <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website (optional)" inputMode="url" style={inputStyle} />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={3} maxLength={1000} style={{ ...inputStyle, resize: 'none', marginBottom: '8px' }} />
-            <p style={{ fontSize: '11px', color: COLORS.textMuted, marginBottom: '12px' }}>New companies are reviewed before they appear publicly.</p>
-
-            <div onClick={saving || uploading ? undefined : handleAdd} style={{ background: COLORS.green, color: 'white', textAlign: 'center', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving || uploading ? 0.6 : 1 }}>
-              {saving ? 'Submitting...' : uploading ? 'Uploading photo...' : 'Submit for Review'}
-            </div>
+        {STATUS_FILTERS.map((s) => (
+          <div
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            style={{
+              padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
+              background: statusFilter === s ? A.green : A.surface,
+              color: statusFilter === s ? 'white' : A.textMuted,
+              border: `1px solid ${statusFilter === s ? A.green : A.border}`,
+            }}>
+            {s.replace('_', ' ')}
           </div>
-        )}
+        ))}
+      </div>
 
+      <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         {loading ? (
-          <ListCardSkeleton count={4} />
-        ) : filtered.length === 0 ? (
-          <div style={{ background: COLORS.card, padding: '32px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
-            {companies.length === 0 ? 'No companies registered yet.' : 'No companies match your search.'}
+          <p style={{ padding: '20px', fontSize: '13px', color: A.textMuted }}>Loading companies...</p>
+        ) : error ? (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: A.textMuted, marginBottom: '10px' }}>Could not load companies.</p>
+            <span onClick={load} style={{ fontSize: '13px', fontWeight: 700, color: A.green, cursor: 'pointer' }}>Try again</span>
           </div>
+        ) : companies.length === 0 ? (
+          <p style={{ padding: '20px', fontSize: '13px', color: A.textMuted }}>No companies match this filter.</p>
         ) : (
-          filtered.map((c) => (
-            <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={22} color={COLORS.green} />}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{c.name}</p>
-                  {c.is_verified && <Icon name="checkCircle" size={13} color={COLORS.green} />}
-                </div>
-                <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{c.category}{c.location ? ` · ${c.location}` : ''}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-                  {c.rating > 0 && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', color: COLORS.orange, fontWeight: 700 }}>
-                      <Icon name="star" size={11} color={COLORS.orange} /> {Number(c.rating).toFixed(1)}
-                    </span>
-                  )}
-                  <span style={{ fontSize: '11px', color: COLORS.textMuted }}>{c.followers_count} followers</span>
-                  {c.status === 'pending' && c.owner_id === user?.id && (
-                    <span style={{ fontSize: '10px', color: COLORS.orange, fontWeight: 700 }}>Pending review</span>
-                  )}
-                </div>
-              </div>
-              {c.owner_id !== user?.id && (
-                <div
-                  onClick={(e) => { e.stopPropagation(); toggleFollow(c.id) }}
-                  style={{
-                    alignSelf: 'center', padding: '7px 14px', borderRadius: '9px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                    background: followedIds.has(c.id) ? COLORS.bg : COLORS.green,
-                    color: followedIds.has(c.id) ? COLORS.textMuted : 'white',
-                    border: followedIds.has(c.id) ? `1px solid ${COLORS.border}` : 'none',
-                  }}>
-                  {followedIds.has(c.id) ? 'Following' : 'Follow'}
-                </div>
-              )}
-            </div>
-          ))
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: A.bg, textAlign: 'left' }}>
+                {['Company', 'Category', 'Status', 'Premium', 'Trusted Partner', 'Followers', ''].map((h) => (
+                  <th key={h} style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: A.textMuted, textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {companies.map((c) => {
+                const s = STATUS_STYLE[c.status] || STATUS_STYLE.pending
+                return (
+                  <tr key={c.id} style={{ borderTop: `1px solid ${A.border}` }}>
+                    <td style={{ padding: '10px 16px', fontWeight: 600, color: A.text }}>{c.name}</td>
+                    <td style={{ padding: '10px 16px', color: A.textMuted }}>{c.category}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px', textTransform: 'capitalize' }}>{c.status.replace('_', ' ')}</span>
+                    </td>
+                    <td style={{ padding: '10px 16px', color: c.is_premium ? A.blue : A.textMuted, fontWeight: c.is_premium ? 700 : 400 }}>
+                      {c.is_premium ? (c.premium_until ? `Active · ${new Date(c.premium_until).toLocaleDateString()}` : 'Active') : '—'}
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      {canManageTrustedPartner ? (
+                        <span onClick={() => toggleTrustedPartner(c)} style={{ cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: c.trusted_partner ? A.amber : A.textMuted }}>
+                          {c.trusted_partner ? '⭐ Remove' : '+ Grant'}
+                        </span>
+                      ) : (
+                        c.trusted_partner ? <span style={{ color: A.amber }}>⭐</span> : '—'
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 16px', color: A.textMuted }}>{c.followers_count}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right' }}>
+                      {canManage && (c.status === 'verified' || c.status === 'suspended') && (
+                        c.status === 'verified' ? (
+                          <span onClick={() => setStatus(c, 'suspended')} style={{ fontSize: '12px', fontWeight: 700, color: A.red, cursor: 'pointer' }}>Suspend</span>
+                        ) : (
+                          <span onClick={() => setStatus(c, 'verified')} style={{ fontSize: '12px', fontWeight: 700, color: A.green, cursor: 'pointer' }}>Restore</span>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
-
-        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
-    </div>
+    </AdminLayout>
   )
-}
-
-function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
-      background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-          <Icon name="arrowLeft" size={22} color={COLORS.text} />
-        </div>
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Companies</p>
-      </div>
-      <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon name="plus" size={18} color="white" />
-      </div>
-    </div>
-  )
-}
-
-const labelStyle: CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
-
-const inputStyle: CSSProperties = {
-  width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
-  marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
