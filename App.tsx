@@ -22,6 +22,12 @@ import CompanyDetailsPage from './pages/CompanyDetailsPage'
 import CompanyRegisterPage from './pages/CompanyRegisterPage'
 import CommunityDetailsPage from './pages/CommunityDetailsPage'
 import UserProfilePage from './pages/UserProfilePage'
+import AdminProtectedRoute from './admin/AdminProtectedRoute'
+import OverviewPage from './admin/pages/OverviewPage'
+import StaffPage from './admin/pages/StaffPage'
+import RolesPage from './admin/pages/RolesPage'
+import VerificationPage from './admin/pages/VerificationPage'
+import AdminCompaniesPage from './admin/pages/CompaniesPage'
 
 function App() {
   return (
@@ -172,6 +178,58 @@ function App() {
             />
 
             {/* Unknown routes fall back to Home (which itself redirects to /login if needed) */}
+            {/* FarmLite Admin - a signed-in user still needs an active staff row to see anything here */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute>
+                    <OverviewPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/staff"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="staff.view">
+                    <StaffPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/roles"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="roles.view">
+                    <RolesPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/verification"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="companies.verify">
+                    <VerificationPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/companies"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="companies.view">
+                    <AdminCompaniesPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
