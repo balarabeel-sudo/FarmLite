@@ -8,23 +8,38 @@ import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { formatMoney } from '../moneyUtils'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
-import { COLORS, inputStyle, labelStyle, ErrorBanner } from '../shared'
+import { COLORS, inputStyle, labelStyle, ErrorBanner, CompanyBadges } from '../shared'
 
 type Company = {
   id: string
   owner_id: string
   name: string
   category: string
+  business_type: string | null
   description: string | null
   location: string | null
+  country: string | null
+  state: string | null
+  city: string | null
+  address: string | null
   logo_url: string | null
   cover_url: string | null
   phone: string | null
   whatsapp: string | null
   website: string | null
   gallery: string[] | null
-  is_verified: boolean
+  products: string[] | null
+  services: string[] | null
+  representative_name: string | null
+  representative_role: string | null
+  registration_authority: string | null
+  registration_number: string | null
   status: string
+  review_note: string | null
+  is_premium: boolean
+  premium_until: string | null
+  trusted_partner: boolean
+  views_count: number
   rating: number
   followers_count: number
 }
@@ -38,8 +53,23 @@ type Listing = {
   images: string[] | null
 }
 
-const COMPANY_COLUMNS =
-  'id, owner_id, name, category, description, location, logo_url, cover_url, phone, whatsapp, website, gallery, is_verified, status, rating, followers_count'
+const COMPANY_COLUMNS = `
+  id, owner_id, name, category, business_type, description, location, country, state, city, address,
+  logo_url, cover_url, phone, whatsapp, website, gallery, products, services,
+  representative_name, representative_role, registration_authority, registration_number,
+  status, review_note, is_premium, premium_until, trusted_partner, views_count, rating, followers_count
+`.replace(/\s+/g, ' ').trim()
+
+const REP_ROLE_LABELS: Record<string, string> = {
+  founder: 'Founder', director: 'Director', manager: 'Manager', representative: 'Business Representative',
+}
+
+const STATUS_INFO: Record<string, { text: string; color: string }> = {
+  pending: { text: 'Your company is waiting for review. Only you can see it until it is verified.', color: '#92400E' },
+  needs_review: { text: 'FarmLite needs more information before this company can be verified. Edit your details below.', color: '#92400E' },
+  rejected: { text: 'This company was not approved.', color: '#991B1B' },
+  suspended: { text: 'This company has been suspended and is not visible to other users.', color: '#991B1B' },
+}
 
 export default function CompanyDetailsPage() {
   const { id } = useParams()
@@ -57,6 +87,8 @@ export default function CompanyDetailsPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formError, setFormError] = useState('')
+  const [galleryCap, setGalleryCap] = useState(6)
+
   const [logo, setLogo] = useState<string[]>([])
   const [cover, setCover] = useState<string[]>([])
   const [gallery, setGallery] = useState<string[]>([])
@@ -65,6 +97,10 @@ export default function CompanyDetailsPage() {
   const [phone, setPhone] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [website, setWebsite] = useState('')
+  const [productsText, setProductsText] = useState('')
+  const [servicesText, setServicesText] = useState('')
+  const [repName, setRepName] = useState('')
+  const [repRole, setRepRole] = useState('founder')
 
   const load = async () => {
     if (!id || !user) return
@@ -89,17 +125,26 @@ export default function CompanyDetailsPage() {
     setFollowing(!!followRes.data)
     if (c) fillForm(c)
     setLoading(false)
+
+    if (c && c.owner_id !== user.id) {
+      supabase.rpc('increment_company_views', { p_company_id: c.id })
+    }
   }
 
   const fillForm = (c: Company) => {
     setLogo(c.logo_url ? [c.logo_url] : [])
     setCover(c.cover_url ? [c.cover_url] : [])
     setGallery(c.gallery || [])
+    setGalleryCap(c.is_premium ? 12 : 6)
     setDescription(c.description || '')
     setLocation(c.location || '')
     setPhone(c.phone || '')
     setWhatsapp(c.whatsapp || '')
     setWebsite(c.website || '')
+    setProductsText((c.products || []).join(', '))
+    setServicesText((c.services || []).join(', '))
+    setRepName(c.representative_name || '')
+    setRepRole(c.representative_role || 'founder')
   }
 
   useEffect(() => { load() }, [id, user])
@@ -125,8 +170,15 @@ export default function CompanyDetailsPage() {
       setFormError(phoneErr)
       return
     }
+    if (!repName.trim()) {
+      setFormError("Enter the representative's full name.")
+      return
+    }
     let site = website.trim()
     if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`
+
+    const products = productsText.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20)
+    const services = servicesText.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20)
 
     setSaving(true)
     const { error } = await supabase.from('companies').update({
@@ -138,11 +190,15 @@ export default function CompanyDetailsPage() {
       phone: cleanPhone(phone) || null,
       whatsapp: cleanPhone(whatsapp) || null,
       website: site || null,
+      products,
+      services,
+      representative_name: repName.trim(),
+      representative_role: repRole,
     }).eq('id', company.id).eq('owner_id', user.id)
     setSaving(false)
 
     if (error) {
-      setFormError('Could not save your changes. Try again.')
+      setFormError(error.message || 'Could not save your changes. Try again.')
       return
     }
     setEditing(false)
@@ -178,6 +234,9 @@ export default function CompanyDetailsPage() {
 
   const isOwner = company.owner_id === user?.id
   const photos = company.gallery || []
+  const products = company.products || []
+  const services = company.services || []
+  const statusInfo = STATUS_INFO[company.status]
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
@@ -193,11 +252,13 @@ export default function CompanyDetailsPage() {
             {company.logo_url ? <img src={company.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={28} color={COLORS.green} />}
           </div>
           <div style={{ paddingBottom: '2px', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <p style={{ fontSize: '17px', fontWeight: 800, color: COLORS.text }}>{company.name}</p>
-              {company.is_verified && <Icon name="checkCircle" size={15} color={COLORS.green} />}
+              <CompanyBadges verified={company.status === 'verified'} premium={company.is_premium} trustedPartner={company.trusted_partner} size={15} />
             </div>
-            <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '2px' }}>{company.category}</p>
+            <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '2px' }}>
+              {company.category}{company.business_type ? ` · ${company.business_type}` : ''}
+            </p>
           </div>
         </div>
 
@@ -207,10 +268,15 @@ export default function CompanyDetailsPage() {
           </p>
         )}
 
-        {isOwner && company.status === 'pending' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#FEF3C7', borderRadius: '10px', padding: '10px 12px', marginTop: '12px' }}>
-            <Icon name="alertTriangle" size={14} color={COLORS.orange} />
-            <p style={{ fontSize: '11.5px', color: '#92400E' }}>Your company is waiting for review. Only you can see it until it is approved.</p>
+        {isOwner && statusInfo && (
+          <div style={{ background: '#FEF3C7', borderRadius: '10px', padding: '10px 12px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon name="alertTriangle" size={14} color={COLORS.orange} />
+              <p style={{ fontSize: '11.5px', color: statusInfo.color }}>{statusInfo.text}</p>
+            </div>
+            {company.review_note && (
+              <p style={{ fontSize: '11.5px', color: statusInfo.color, marginTop: '6px', paddingLeft: '22px' }}>"{company.review_note}"</p>
+            )}
           </div>
         )}
 
@@ -218,7 +284,42 @@ export default function CompanyDetailsPage() {
           <Stat label="Followers" value={company.followers_count} />
           <Stat label="Rating" value={company.rating > 0 ? Number(company.rating).toFixed(1) : '—'} />
           <Stat label="Listings" value={listings.length} />
+          {isOwner && <Stat label="Views" value={company.views_count} />}
         </div>
+
+        {isOwner && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 13px', borderRadius: '12px', marginBottom: '14px',
+            background: company.is_premium ? 'linear-gradient(135deg, #FEF3C7, #FDE68A)' : COLORS.card,
+            border: `1px solid ${company.is_premium ? '#F59E0B' : COLORS.border}`,
+          }}>
+            <Icon name="crown" size={16} color={company.is_premium ? '#D97706' : COLORS.textMuted} />
+            <p style={{ fontSize: '11.5px', color: COLORS.text }}>
+              {company.is_premium
+                ? company.premium_until
+                  ? `Premium active until ${new Date(company.premium_until).toLocaleDateString()}`
+                  : 'Premium active'
+                : 'Not on Premium yet — more photos and priority in search. Pricing coming soon.'}
+            </p>
+          </div>
+        )}
+
+        {(company.representative_name || company.registration_authority) && (
+          <div style={{ background: COLORS.card, borderRadius: '12px', padding: '12px 14px', marginBottom: '16px' }}>
+            {company.representative_name && (
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: company.registration_authority ? '6px' : 0 }}>
+                <Icon name="briefcase" size={13} color={COLORS.textMuted} />
+                {company.representative_name}{company.representative_role ? ` · ${REP_ROLE_LABELS[company.representative_role] || company.representative_role}` : ''}
+              </p>
+            )}
+            {isOwner && company.registration_authority && (
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon name="fileText" size={13} color={COLORS.textMuted} />
+                {company.registration_authority}{company.registration_number ? ` · ${company.registration_number}` : ''}
+              </p>
+            )}
+          </div>
+        )}
 
         {isOwner ? (
           !editing && (
@@ -259,14 +360,26 @@ export default function CompanyDetailsPage() {
             <p style={labelStyle}>Cover photo</p>
             <div style={{ marginBottom: '12px' }}><ImageUploader value={cover} onChange={setCover} folder="covers" max={1} onBusyChange={setUploading} /></div>
 
-            <p style={labelStyle}>Photos of your business (up to 6)</p>
-            <div style={{ marginBottom: '12px' }}><ImageUploader value={gallery} onChange={setGallery} folder="listings" max={6} onBusyChange={setUploading} /></div>
+            <p style={labelStyle}>Photos of your business (up to {galleryCap})</p>
+            <div style={{ marginBottom: '12px' }}><ImageUploader value={gallery} onChange={setGallery} folder="gallery" max={galleryCap} onBusyChange={setUploading} /></div>
 
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="About your company" rows={4} maxLength={1000} style={{ ...inputStyle, resize: 'none' }} />
             <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" maxLength={80} style={inputStyle} />
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
             <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website (optional)" inputMode="url" style={{ ...inputStyle, marginBottom: '12px' }} />
+            <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website (optional)" inputMode="url" style={inputStyle} />
+
+            <p style={labelStyle}>Products (comma separated)</p>
+            <input value={productsText} onChange={(e) => setProductsText(e.target.value)} placeholder="e.g. Maize, Seeds, Fertilizer" style={inputStyle} />
+
+            <p style={labelStyle}>Services (comma separated)</p>
+            <input value={servicesText} onChange={(e) => setServicesText(e.target.value)} placeholder="e.g. Farm Services, Agricultural Supply" style={inputStyle} />
+
+            <p style={labelStyle}>Representative</p>
+            <input value={repName} onChange={(e) => setRepName(e.target.value)} placeholder="Full name" maxLength={80} style={inputStyle} />
+            <select value={repRole} onChange={(e) => setRepRole(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }}>
+              {Object.entries(REP_ROLE_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+            </select>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <div onClick={() => { setEditing(false); setFormError(''); fillForm(company) }} style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, fontSize: '12.5px', fontWeight: 700, color: COLORS.textMuted, cursor: 'pointer' }}>Cancel</div>
@@ -281,6 +394,24 @@ export default function CompanyDetailsPage() {
           <>
             <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text, marginBottom: '6px' }}>About</p>
             <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.6, marginBottom: '20px' }}>{company.description}</p>
+          </>
+        )}
+
+        {products.length > 0 && (
+          <>
+            <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text, marginBottom: '10px' }}>Products</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
+              {products.map((p) => <Chip key={p} text={p} />)}
+            </div>
+          </>
+        )}
+
+        {services.length > 0 && (
+          <>
+            <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text, marginBottom: '10px' }}>Services</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
+              {services.map((s) => <Chip key={s} text={s} />)}
+            </div>
           </>
         )}
 
@@ -329,6 +460,14 @@ export default function CompanyDetailsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function Chip({ text }: { text: string }) {
+  return (
+    <span style={{ padding: '6px 12px', borderRadius: '999px', background: '#DCFCE7', color: COLORS.greenDark, fontSize: '11.5px', fontWeight: 700 }}>
+      {text}
+    </span>
   )
 }
 
