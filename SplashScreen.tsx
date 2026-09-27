@@ -13,10 +13,14 @@ const COLORS = {
 
 const SPLASH_DURATION_MS = 4000
 
+type Props = {
+  onFinish?: () => void
+}
+
 // Shown once when the app first opens. Plays a short logo entrance
 // animation, then sends the person to Home (if already signed in)
 // or to Login (if not) — the same pattern apps like Instagram/X use.
-export default function SplashScreen() {
+export default function SplashScreen({ onFinish }: Props) {
   const navigate = useNavigate()
   const [visible, setVisible] = useState(false)
 
@@ -31,13 +35,14 @@ export default function SplashScreen() {
       } else {
         navigate('/login', { replace: true })
       }
+      onFinish?.()
     }, SPLASH_DURATION_MS)
 
     return () => {
       cancelAnimationFrame(raf)
       clearTimeout(timer)
     }
-  }, [navigate])
+  }, [navigate, onFinish])
 
   return (
     <div
