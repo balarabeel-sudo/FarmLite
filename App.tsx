@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './AuthContext'
 import { LocaleProvider } from './LocaleContext'
 import ProtectedRoute from './ProtectedRoute'
+import SplashScreen from './SplashScreen'
 
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -28,12 +30,22 @@ import StaffPage from './admin/pages/StaffPage'
 import RolesPage from './admin/pages/RolesPage'
 import VerificationPage from './admin/pages/VerificationPage'
 import AdminCompaniesPage from './admin/pages/CompaniesPage'
+import UsersPage from './admin/pages/UsersPage'
+import AdminMarketplacePage from './admin/pages/MarketplacePage'
+import AdminEquipmentPage from './admin/pages/EquipmentPage'
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true)
+
   return (
     <BrowserRouter>
       <LocaleProvider>
         <AuthProvider>
+          {showSplash && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
+              <SplashScreen onFinish={() => setShowSplash(false)} />
+            </div>
+          )}
           <Routes>
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
@@ -225,6 +237,36 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="companies.view">
                     <AdminCompaniesPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="users.view">
+                    <UsersPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/marketplace"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="marketplace.view">
+                    <AdminMarketplacePage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/equipment"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="equipment.view">
+                    <AdminEquipmentPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
