@@ -60,6 +60,7 @@ const paths: Record<string, string> = {
   briefcase: 'M3 7h18v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Zm5 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18',
   shield: 'M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z',
   helpCircle: 'M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1.2-1.5 2.2v.5M12 17.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z',
+  eyeOff: 'M17.9 17.9A10.9 10.9 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.1-6.1M9.9 4.2A9 9 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2M1 1l22 22',
 }
 
 export default function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2 }: IconProps) {
