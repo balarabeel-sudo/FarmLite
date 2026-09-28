@@ -10,20 +10,26 @@ import { AdminStaffContext } from './AdminStaffContext'
 // real, DB-backed staff + permission check on top - not a client-side flag.
 // A signed-in user who is not active staff sees nothing admin-related at all.
 export default function AdminProtectedRoute({ children, requirePermission }: { children: ReactNode; requirePermission?: string }) {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [session, setSession] = useState<StaffSession | null | 'loading'>('loading')
 
   useEffect(() => {
+    // Wait for AuthContext to finish resolving the session first - checking
+    // staff status while `user` is still momentarily null (right after a
+    // refresh or fresh sign-in) is what was bouncing people back to Home.
+    if (authLoading) return
+
     if (!user) {
       setSession(null)
       return
     }
     let alive = true
+    setSession('loading')
     loadStaffSession().then((s) => { if (alive) setSession(s) })
     return () => { alive = false }
-  }, [user])
+  }, [user, authLoading])
 
-  if (session === 'loading') {
+  if (authLoading || session === 'loading') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B6B5B', fontSize: '14px' }}>
         Loading admin console...
