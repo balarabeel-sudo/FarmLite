@@ -61,6 +61,8 @@ const paths: Record<string, string> = {
   shield: 'M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z',
   helpCircle: 'M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1.2-1.5 2.2v.5M12 17.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z',
   eyeOff: 'M17.9 17.9A10.9 10.9 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.1-6.1M9.9 4.2A9 9 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2M1 1l22 22',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z M22 6l-10 7L2 6',
+  chevronDown: 'M6 9l6 6 6-6',
 }
 
 export default function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2 }: IconProps) {
