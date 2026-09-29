@@ -8,6 +8,7 @@ import Icon from '../Icons'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PostImages from '../PostImages'
+import CommentsSheet from '../CommentsSheet'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -135,6 +136,10 @@ export default function HomePage() {
     }
   }
 
+  const changeCommentCount = (postId: string, delta: number) => {
+    setFeed((prev) => prev.map((p) => (p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count + delta) } : p)))
+  }
+
   const sharePost = async (post: FeedPost) => {
     const shareData = { title: 'FarmLite', text: post.content, url: window.location.origin }
     if ((navigator as any).share) {
@@ -238,6 +243,7 @@ export default function HomePage() {
                 onToggleSave={() => toggleSavePost(post.id)}
                 onToggleLike={() => toggleLikePost(post.id)}
                 onShare={() => sharePost(post)}
+                onCommentCountChange={(delta) => changeCommentCount(post.id, delta)}
               />
             ))
           )}
@@ -302,7 +308,7 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 }
 
 function FeedCard({
-  post, saved, liked, onToggleSave, onToggleLike, onShare,
+  post, saved, liked, onToggleSave, onToggleLike, onShare, onCommentCountChange,
 }: {
   post: FeedPost
   saved: boolean
@@ -310,10 +316,12 @@ function FeedCard({
   onToggleSave: () => void
   onToggleLike: () => void
   onShare: () => Promise<boolean>
+  onCommentCountChange: (delta: number) => void
 }) {
   const navigate = useNavigate()
   const author = post.profiles
   const [copied, setCopied] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
 
   const handleShare = async () => {
     const didCopy = await onShare()
@@ -343,17 +351,33 @@ function FeedCard({
         <span onClick={onToggleLike} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: liked ? '#DC2626' : COLORS.textMuted, cursor: 'pointer' }}>
           <Icon name="heart" size={15} color={liked ? '#DC2626' : COLORS.textMuted} /> {post.likes_count}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
+        <span onClick={() => setCommentsOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
           <Icon name="comment" size={15} color={COLORS.textMuted} /> {post.comments_count}
         </span>
         <span onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
-          <Icon name="share" size={15} color={COLORS.textMuted} /> {copied ? 'Copied!' : ''}
+          <ShareIcon size={16} color={COLORS.textMuted} /> {copied ? 'Copied!' : ''}
         </span>
         <span onClick={onToggleSave} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, marginLeft: 'auto', cursor: 'pointer' }}>
           <Icon name="bookmark" size={15} color={saved ? COLORS.orange : COLORS.textMuted} />
         </span>
       </div>
+
+      <CommentsSheet
+        postId={post.id}
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        onCountChange={onCommentCountChange}
+      />
     </div>
+  )
+}
+
+// Forward-arrow share icon (Facebook-style), so it no longer looks like a download icon.
+function ShareIcon({ size = 16, color = '#5B6B5B' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5l8 7-8 7v-4c-5.5 0-9 1.5-12 5 1-6 4.5-10.5 12-11z" />
+    </svg>
   )
 }
 
