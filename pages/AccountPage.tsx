@@ -7,6 +7,7 @@ import Icon from '../Icons'
 import { ProfileHeaderSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
+import LanguageCurrencyBar from '../LanguageCurrencyBar'
 
 const ROLE_LABELS: Record<string, string> = { farmer: 'Farmer', buyer: 'Buyer', agribusiness: 'Agribusiness' }
 
@@ -68,7 +69,7 @@ export default function AccountPage() {
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} />
+        <Header onBack={() => navigate(-1)} />
         <NetworkError onRetry={load} />
       </div>
     )
@@ -78,7 +79,7 @@ export default function AccountPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} />
+      <Header onBack={() => navigate(-1)} />
 
       <div style={{ padding: '16px' }}>
         {loading || !profile ? (
@@ -152,7 +153,10 @@ export default function AccountPage() {
                 onClick={() => {}}
               />
               <Row icon="shield" label="Privacy & Security" comingSoon />
-              <Row icon="globe" label="Language" comingSoon />
+              <div style={{ borderBottom: `1px solid ${COLORS.bg}`, paddingTop: '13px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: COLORS.text, padding: '0 14px 10px' }}>Language & Currency</p>
+                <LanguageCurrencyBar />
+              </div>
               <Row icon="helpCircle" label="Help & Support" comingSoon />
               <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
             </Section>
