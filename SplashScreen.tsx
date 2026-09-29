@@ -29,11 +29,17 @@ export default function SplashScreen({ onFinish }: Props) {
     const raf = requestAnimationFrame(() => setVisible(true))
 
     const timer = setTimeout(async () => {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        navigate('/', { replace: true })
-      } else {
-        navigate('/login', { replace: true })
+      // Only decide home-vs-login when someone lands on the bare root URL
+      // (opening the app fresh). If they were headed somewhere specific
+      // (a deep link, a typed URL, a refresh mid-page), leave that path
+      // alone - the app's normal routing/ProtectedRoute already handles it.
+      if (window.location.pathname === '/') {
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          navigate('/', { replace: true })
+        } else {
+          navigate('/login', { replace: true })
+        }
       }
       onFinish?.()
     }, SPLASH_DURATION_MS)
