@@ -68,6 +68,7 @@ export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
+  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
 
   const load = async () => {
     if (!user) return
@@ -75,12 +76,13 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      const [profileRes, notifRes, listingsRes, feedRes, savedPostsRes] = await Promise.all([
+      const [profileRes, notifRes, listingsRes, feedRes, savedPostsRes, likedPostsRes] = await Promise.all([
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
         supabase.from('posts').select('id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
         supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
+        supabase.from('post_likes').select('post_id').eq('user_id', user.id),
       ])
 
       if (profileRes.error || listingsRes.error || feedRes.error) {
@@ -94,6 +96,7 @@ export default function HomePage() {
       setListings((listingsRes.data || []) as any)
       setFeed((feedRes.data || []) as any)
       setSavedPostIds(new Set((savedPostsRes.data || []).map((r: any) => r.post_id)))
+      setLikedPostIds(new Set((likedPostsRes.data || []).map((r: any) => r.post_id)))
     } catch {
       setNetError(true)
     }
@@ -110,6 +113,37 @@ export default function HomePage() {
       await supabase.from('saved_items').insert({ user_id: user.id, post_id: postId })
       setSavedPostIds((prev) => new Set(prev).add(postId))
     }
+  }
+
+  const toggleLikePost = async (postId: string) => {
+    if (!user) return
+    const alreadyLiked = likedPostIds.has(postId)
+
+    // Optimistic update so the heart + count respond instantly; a trigger on
+    // post_likes keeps posts.likes_count as the source of truth in the DB.
+    setLikedPostIds((prev) => {
+      const next = new Set(prev)
+      alreadyLiked ? next.delete(postId) : next.add(postId)
+      return next
+    })
+    setFeed((prev) => prev.map((p) => (p.id === postId ? { ...p, likes_count: Math.max(0, p.likes_count + (alreadyLiked ? -1 : 1)) } : p)))
+
+    if (alreadyLiked) {
+      await supabase.from('post_likes').delete().eq('user_id', user.id).eq('post_id', postId)
+    } else {
+      await supabase.from('post_likes').insert({ user_id: user.id, post_id: postId })
+    }
+  }
+
+  const sharePost = async (post: FeedPost) => {
+    const shareData = { title: 'FarmLite', text: post.content, url: window.location.origin }
+    if ((navigator as any).share) {
+      try { await (navigator as any).share(shareData) } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(`${post.content}\n\n${window.location.origin}`)
+      return true // signals FeedCard to show "Copied!"
+    }
+    return false
   }
 
   useEffect(() => { load() }, [user])
@@ -195,7 +229,17 @@ export default function HomePage() {
           ) : feed.length === 0 ? (
             <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
           ) : (
-            feed.map((post) => <FeedCard key={post.id} post={post} saved={savedPostIds.has(post.id)} onToggleSave={() => toggleSavePost(post.id)} />)
+            feed.map((post) => (
+              <FeedCard
+                key={post.id}
+                post={post}
+                saved={savedPostIds.has(post.id)}
+                liked={likedPostIds.has(post.id)}
+                onToggleSave={() => toggleSavePost(post.id)}
+                onToggleLike={() => toggleLikePost(post.id)}
+                onShare={() => sharePost(post)}
+              />
+            ))
           )}
         </div>
       </div>
@@ -257,9 +301,28 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
   )
 }
 
-function FeedCard({ post, saved, onToggleSave }: { post: FeedPost; saved: boolean; onToggleSave: () => void }) {
+function FeedCard({
+  post, saved, liked, onToggleSave, onToggleLike, onShare,
+}: {
+  post: FeedPost
+  saved: boolean
+  liked: boolean
+  onToggleSave: () => void
+  onToggleLike: () => void
+  onShare: () => Promise<boolean>
+}) {
   const navigate = useNavigate()
   const author = post.profiles
+  const [copied, setCopied] = useState(false)
+
+  const handleShare = async () => {
+    const didCopy = await onShare()
+    if (didCopy) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
+  }
+
   return (
     <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
       <div onClick={() => author?.username && navigate(`/u/${author.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', cursor: author?.username ? 'pointer' : 'default' }}>
@@ -276,12 +339,15 @@ function FeedCard({ post, saved, onToggleSave }: { post: FeedPost; saved: boolea
 
       <div style={{ marginBottom: '10px' }}><PostImages images={post.images} /></div>
 
-      <div style={{ display: 'flex', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
-          <Icon name="heart" size={15} color={COLORS.textMuted} /> {post.likes_count}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
+        <span onClick={onToggleLike} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: liked ? '#DC2626' : COLORS.textMuted, cursor: 'pointer' }}>
+          <Icon name="heart" size={15} color={liked ? '#DC2626' : COLORS.textMuted} /> {post.likes_count}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
           <Icon name="comment" size={15} color={COLORS.textMuted} /> {post.comments_count}
+        </span>
+        <span onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
+          <Icon name="share" size={15} color={COLORS.textMuted} /> {copied ? 'Copied!' : ''}
         </span>
         <span onClick={onToggleSave} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, marginLeft: 'auto', cursor: 'pointer' }}>
           <Icon name="bookmark" size={15} color={saved ? COLORS.orange : COLORS.textMuted} />
