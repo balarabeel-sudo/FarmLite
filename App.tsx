@@ -24,6 +24,7 @@ import CompanyDetailsPage from './pages/CompanyDetailsPage'
 import CompanyRegisterPage from './pages/CompanyRegisterPage'
 import CommunityDetailsPage from './pages/CommunityDetailsPage'
 import UserProfilePage from './pages/UserProfilePage'
+import AdminDebug from './pages/AdminDebug'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -50,6 +51,7 @@ function App() {
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/admin-debug" element={<AdminDebug />} />
 
             {/* Protected routes: redirect to /login if there is no session */}
             <Route
