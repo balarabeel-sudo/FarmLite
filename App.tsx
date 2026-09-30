@@ -23,6 +23,9 @@ import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
 import CompanyRegisterPage from './pages/CompanyRegisterPage'
 import CommunityDetailsPage from './pages/CommunityDetailsPage'
+import FarmDeskPage from './pages/FarmDeskPage'
+import FarmDeskNewPage from './pages/FarmDeskNewPage'
+import FarmDeskRequestPage from './pages/FarmDeskRequestPage'
 import UserProfilePage from './pages/UserProfilePage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
@@ -33,6 +36,8 @@ import AdminCompaniesPage from './admin/pages/CompaniesPage'
 import UsersPage from './admin/pages/UsersPage'
 import AdminMarketplacePage from './admin/pages/MarketplacePage'
 import AdminEquipmentPage from './admin/pages/EquipmentPage'
+import AdminFarmDeskPage from './admin/pages/FarmDeskPage'
+import AdminFarmDeskRequestPage from './admin/pages/FarmDeskRequestPage'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -189,6 +194,32 @@ function App() {
               }
             />
 
+            {/* Farm Desk (customer side). "new" must come before ":id" */}
+            <Route
+              path="/farm-desk"
+              element={
+                <ProtectedRoute>
+                  <FarmDeskPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/farm-desk/new"
+              element={
+                <ProtectedRoute>
+                  <FarmDeskNewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/farm-desk/:id"
+              element={
+                <ProtectedRoute>
+                  <FarmDeskRequestPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Unknown routes fall back to Home (which itself redirects to /login if needed) */}
             {/* FarmLite Admin - a signed-in user still needs an active staff row to see anything here */}
             <Route
@@ -267,6 +298,27 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="equipment.view">
                     <AdminEquipmentPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/farm-desk"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="trade_desk.view">
+                    <AdminFarmDeskPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/farm-desk/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="trade_desk.view">
+                    <AdminFarmDeskRequestPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
