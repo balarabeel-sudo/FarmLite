@@ -197,6 +197,22 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Farm Desk entry point */}
+        {!loading && (
+          <div
+            onClick={() => navigate('/farm-desk')}
+            style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginTop: '-8px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="leaf" size={19} color="white" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Farm Desk</p>
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Tell FarmLite what you need. We'll help you find it.</p>
+            </div>
+            <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <SectionTitle title={t('featuredToday')} />
           <Link to="/marketplace" style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green, textDecoration: 'none' }}>{t('viewAll')}</Link>
