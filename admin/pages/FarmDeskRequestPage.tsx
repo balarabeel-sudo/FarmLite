@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../AuthContext'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
+import { PhotoPreviews, PhotoButton, MessagePhotos, uploadMessagePhotos } from '../../FarmDeskPhotos'
 import {
   STATUS_META, PAYMENT_LABELS, CURRENCIES, UNITS, DEADLINES, money, fmtDate, fmtDateTime,
   destinationText, sourceText, quantityText,
@@ -49,6 +50,7 @@ export default function AdminFarmDeskRequestPage() {
   const [savingCtl, setSavingCtl] = useState(false)
 
   const [msgDraft, setMsgDraft] = useState('')
+  const [msgPhotos, setMsgPhotos] = useState<File[]>([])
   const [noteDraft, setNoteDraft] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -119,12 +121,22 @@ export default function AdminFarmDeskRequestPage() {
 
   const sendMessage = async () => {
     const body = msgDraft.trim()
-    if (!body || !user || !req || busy) return
+    if ((!body && msgPhotos.length === 0) || !user || !req || busy) return
     setBusy(true)
-    const { error: err } = await supabase.from('farm_desk_messages').insert({ request_id: req.id, sender_id: user.id, sender_type: 'staff', body })
+    let images: string[] = []
+    if (msgPhotos.length > 0) {
+      try {
+        images = await uploadMessagePhotos(msgPhotos, user.id, req.id)
+      } catch {
+        setBusy(false)
+        return flash(false, 'Could not upload the photos.')
+      }
+    }
+    const { error: err } = await supabase.from('farm_desk_messages').insert({ request_id: req.id, sender_id: user.id, sender_type: 'staff', body, images })
     setBusy(false)
     if (err) return flash(false, 'Could not send the message.')
     setMsgDraft('')
+    setMsgPhotos([])
     load(true)
   }
 
@@ -340,7 +352,10 @@ export default function AdminFarmDeskRequestPage() {
                   const mine = m.sender_type === 'staff'
                   return (
                     <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                      <div style={{ background: mine ? A.green : A.bg, color: mine ? 'white' : A.text, padding: '9px 13px', borderRadius: '10px', fontSize: '13px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</div>
+                      <div style={{ background: mine ? A.green : A.bg, color: mine ? 'white' : A.text, padding: '9px 13px', borderRadius: '10px', fontSize: '13px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        <MessagePhotos images={m.images || []} />
+                        {m.body}
+                      </div>
                       <p style={{ fontSize: '10.5px', color: A.textMuted, marginTop: '3px', textAlign: mine ? 'right' : 'left' }}>{mine ? 'FarmLite' : 'Customer'} · {fmtDateTime(m.created_at)}</p>
                     </div>
                   )
@@ -348,9 +363,13 @@ export default function AdminFarmDeskRequestPage() {
               </div>
             )}
             {canManage ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <textarea value={msgDraft} onChange={(e) => setMsgDraft(e.target.value)} rows={2} maxLength={2000} placeholder="Write to the customer (they will be notified)..." style={{ ...inputStyle, flex: 1, resize: 'vertical' }} />
-                <Btn onClick={sendMessage} disabled={!msgDraft.trim() || busy}>Send</Btn>
+              <div>
+                <PhotoPreviews files={msgPhotos} onChange={setMsgPhotos} />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <PhotoButton files={msgPhotos} onChange={setMsgPhotos} disabled={busy} />
+                  <textarea value={msgDraft} onChange={(e) => setMsgDraft(e.target.value)} rows={2} maxLength={2000} placeholder="Write to the customer (they will be notified)..." style={{ ...inputStyle, flex: 1, resize: 'vertical' }} />
+                  <Btn onClick={sendMessage} disabled={(!msgDraft.trim() && msgPhotos.length === 0) || busy}>{busy ? 'Sending...' : 'Send'}</Btn>
+                </div>
               </div>
             ) : (
               <p style={{ fontSize: '12px', color: A.textMuted }}>You have view-only access.</p>
