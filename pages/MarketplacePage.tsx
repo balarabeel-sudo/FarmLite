@@ -49,6 +49,7 @@ type Listing = {
   negotiable: boolean
   images: string[] | null
   status: Status
+  is_hidden_by_admin: boolean
   seller: Seller | null
 }
 
@@ -90,7 +91,7 @@ const EMPTY_FORM: Form = {
 }
 
 const LISTING_COLUMNS =
-  'id, seller_id, category, title, description, price, currency, unit, quantity, location, whatsapp, negotiable, images, status, seller:profiles!marketplace_listings_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
+  'id, seller_id, category, title, description, price, currency, unit, quantity, location, whatsapp, negotiable, images, status, is_hidden_by_admin, seller:profiles!marketplace_listings_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
 
 export default function MarketplacePage() {
   const navigate = useNavigate()
@@ -127,6 +128,7 @@ export default function MarketplacePage() {
       q = q.eq('seller_id', user!.id)
     } else {
       q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+      q = q.eq('is_hidden_by_admin', false)
     }
     if (filter !== 'all') q = q.eq('category', filter)
     const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
@@ -443,6 +445,17 @@ export default function MarketplacePage() {
               <Icon name="package" size={28} color={COLORS.textMuted} />
             </div>
             {listings.length === 0 ? 'No listings yet. Tap + to add the first one.' : 'No listings match your search or filter.'}
+            {!mineOnly && (
+              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${COLORS.bg}` }}>
+                <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Can't find what you need?</p>
+                <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: 1.5 }}>Let FarmLite find it for you through Farm Desk.</p>
+                <div
+                  onClick={() => navigate(`/farm-desk/new${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''}`)}
+                  style={{ display: 'inline-block', marginTop: '12px', background: COLORS.green, color: 'white', borderRadius: '12px', padding: '11px 20px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}>
+                  Ask FarmLite to Find It
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -478,7 +491,7 @@ export default function MarketplacePage() {
                     </p>
                   )}
                   {l.seller_id === user?.id && (
-                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing</p>
+                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing{l.is_hidden_by_admin ? ' · Hidden by FarmLite' : ''}</p>
                   )}
                 </div>
               </div>
@@ -487,6 +500,19 @@ export default function MarketplacePage() {
         )}
 
         <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
+
+        {/* Farm Desk entry point under the results */}
+        {!mineOnly && !loading && !netError && filtered.length > 0 && (
+          <div
+            onClick={() => navigate(`/farm-desk/new${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''}`)}
+            style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Can't find what you're looking for?</p>
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '3px' }}>Request it through Farm Desk.</p>
+            </div>
+            <Icon name="chevronRight" size={18} color={COLORS.green} />
+          </div>
+        )}
       </div>
 
       {detail && (
