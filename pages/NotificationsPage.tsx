@@ -18,9 +18,10 @@ const COLORS = {
 
 type Notification = {
   id: string
-  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general'
+  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general' | 'farm_desk'
   title: string
   body: string | null
+  link: string | null
   is_read: boolean
   created_at: string
 }
@@ -32,6 +33,7 @@ const CATEGORY_ICON: Record<string, string> = {
   follow: 'users',
   marketplace: 'cart',
   general: 'bell',
+  farm_desk: 'leaf',
 }
 
 export default function NotificationsPage() {
@@ -49,7 +51,7 @@ export default function NotificationsPage() {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('id, category, title, body, is_read, created_at')
+      .select('id, category, title, body, link, is_read, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -74,6 +76,12 @@ export default function NotificationsPage() {
     if (!user) return
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
     await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false)
+  }
+
+  const openNotification = (n: Notification) => {
+    if (!n.is_read) markRead(n.id)
+    // Only follow in-app links (e.g. /farm-desk/<id>).
+    if (n.link && n.link.startsWith('/')) navigate(n.link)
   }
 
   const hasUnread = notifications.some((n) => !n.is_read)
@@ -103,10 +111,10 @@ export default function NotificationsPage() {
           notifications.map((n) => (
             <div
               key={n.id}
-              onClick={() => !n.is_read && markRead(n.id)}
+              onClick={() => openNotification(n)}
               style={{
                 background: n.is_read ? COLORS.card : '#F0FDF4', borderRadius: '14px', padding: '13px', marginBottom: '10px',
-                display: 'flex', gap: '12px', cursor: n.is_read ? 'default' : 'pointer',
+                display: 'flex', gap: '12px', cursor: n.is_read && !n.link ? 'default' : 'pointer',
                 border: n.is_read ? 'none' : `1px solid #BBF7D0`,
               }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
