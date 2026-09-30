@@ -64,7 +64,7 @@ export default function FarmBotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
-  const [error, setError] = useState('')
+  const [notice, setNotice] = useState<{ kind: 'network' | 'limit' | 'generic'; text: string; retry?: string } | null>(null)
 
   const [chatId, setChatId] = useState<string | null>(null)
   const [chats, setChats] = useState<Chat[]>([])
@@ -144,7 +144,7 @@ export default function FarmBotPage() {
     if (sending) return
     setChatId(null)
     setMessages([])
-    setError('')
+    setNotice(null)
     setDraft('')
     setDrawerOpen(false)
   }
@@ -155,7 +155,7 @@ export default function FarmBotPage() {
     if (id === chatId) return
     setChatId(id)
     setMessages([])
-    setError('')
+    setNotice(null)
     await loadMessages(id)
   }
 
@@ -171,20 +171,30 @@ export default function FarmBotPage() {
     if (id === chatId) {
       setChatId(null)
       setMessages([])
-      setError('')
+      setNotice(null)
     }
   }
 
-  const send = async (text?: string) => {
+  const send = async (text?: string, isRetry = false) => {
     const content = (text ?? draft).trim()
     if (!content || sending) return
 
-    setError('')
-    setDraft('')
+    setNotice(null)
     setSending(true)
 
-    // Show the user's message immediately; the edge function persists it.
-    setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content }])
+    // Show the user's message immediately (a resend reuses the bubble that is already there).
+    if (!isRetry) {
+      setDraft('')
+      setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content }])
+    }
+
+    const networkNotice = { kind: 'network' as const, text: 'No internet connection. Check your network, then tap Resend.', retry: content }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setSending(false)
+      setNotice(networkNotice)
+      return
+    }
 
     const { data, error: fnError } = await supabase.functions.invoke('farmbot-chat', {
       body: { message: content, conversation_id: chatId, new_chat: !chatId },
@@ -192,9 +202,24 @@ export default function FarmBotPage() {
 
     setSending(false)
 
+    // Daily AI limit reached: friendly message, nothing technical shown.
+    if (data?.code === 'daily_limit') {
+      setNotice({ kind: 'limit', text: data.error })
+      return
+    }
+
     if (fnError || data?.error) {
-      setError(data?.error || fnError?.message || 'FarmBot could not reply. Please try again.')
-      loadChats()
+      const msg = fnError?.message || ''
+      const isNetwork = fnError?.name === 'FunctionsFetchError' || /failed to (send|fetch)|network|load failed/i.test(msg)
+      if (isNetwork) {
+        setNotice(networkNotice)
+      } else {
+        setNotice({
+          kind: 'generic',
+          text: data?.code && data?.error ? data.error : 'Something went wrong. Please try again.',
+          retry: content,
+        })
+      }
       return
     }
 
@@ -260,9 +285,20 @@ export default function FarmBotPage() {
 
         {sending && <TypingBubble />}
 
-        {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px' }}>
-            <p style={{ fontSize: '11.5px', color: '#DC2626' }}>{error}</p>
+        {notice && (
+          <div style={{
+            background: notice.kind === 'limit' ? '#F0FDF4' : '#FFFBEB',
+            border: `1px solid ${notice.kind === 'limit' ? COLORS.border : '#FDE68A'}`,
+            borderRadius: '12px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px',
+          }}>
+            <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: notice.kind === 'limit' ? COLORS.greenDark : '#92400E' }}>{notice.text}</p>
+            {notice.retry && (
+              <div
+                onClick={() => send(notice.retry, true)}
+                style={{ background: COLORS.green, color: 'white', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                Resend
+              </div>
+            )}
           </div>
         )}
       </div>
