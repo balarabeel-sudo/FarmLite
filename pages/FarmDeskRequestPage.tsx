@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
+import { PhotoPreviews, PhotoButton, MessagePhotos, uploadMessagePhotos } from '../FarmDeskPhotos'
 import {
   FD, STATUS_META, PAYMENT_LABELS, money, fmtDate, fmtDateTime, destinationText, sourceText, quantityText,
   DEADLINES, type FarmDeskRequest,
@@ -27,7 +28,7 @@ type Option = {
   status: 'offered' | 'accepted' | 'declined' | 'not_selected'
 }
 
-type Msg = { id: string; sender_type: 'customer' | 'staff'; body: string; created_at: string }
+type Msg = { id: string; sender_type: 'customer' | 'staff'; body: string; images: string[]; created_at: string }
 type Activity = { id: string; action: string; detail: string | null; created_at: string }
 
 const CLOSED = ['completed', 'cancelled']
@@ -47,6 +48,7 @@ export default function FarmDeskRequestPage() {
 
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [photos, setPhotos] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
 
@@ -60,7 +62,7 @@ export default function FarmDeskRequestPage() {
     const [r, o, m, a] = await Promise.all([
       supabase.from('farm_desk_requests').select('*').eq('id', id).maybeSingle(),
       supabase.from('farm_desk_options').select('*').eq('request_id', id).order('created_at', { ascending: true }),
-      supabase.from('farm_desk_messages').select('id, sender_type, body, created_at').eq('request_id', id).order('created_at', { ascending: true }),
+      supabase.from('farm_desk_messages').select('id, sender_type, body, images, created_at').eq('request_id', id).order('created_at', { ascending: true }),
       supabase.from('farm_desk_activity').select('id, action, detail, created_at').eq('request_id', id).order('created_at', { ascending: true }),
     ])
 
@@ -117,13 +119,25 @@ export default function FarmDeskRequestPage() {
 
   const send = async () => {
     const body = draft.trim()
-    if (!body || !user || !id || sending) return
+    if ((!body && photos.length === 0) || !user || !id || sending) return
     setSending(true)
     setNotice('')
+
+    let images: string[] = []
+    if (photos.length > 0) {
+      try {
+        images = await uploadMessagePhotos(photos, user.id, id)
+      } catch (e: any) {
+        setSending(false)
+        setNotice(/network|failed to fetch/i.test(e?.message || '') ? 'No internet connection. Your photos were not sent.' : 'Could not upload your photos. Please try again.')
+        return
+      }
+    }
+
     const { data, error } = await supabase
       .from('farm_desk_messages')
-      .insert({ request_id: id, sender_id: user.id, sender_type: 'customer', body })
-      .select('id, sender_type, body, created_at')
+      .insert({ request_id: id, sender_id: user.id, sender_type: 'customer', body, images })
+      .select('id, sender_type, body, images, created_at')
       .single()
     setSending(false)
     if (error || !data) {
@@ -132,6 +146,7 @@ export default function FarmDeskRequestPage() {
     }
     setMessages((prev) => [...prev, data as any])
     setDraft('')
+    setPhotos([])
   }
 
   if (netError) {
@@ -295,6 +310,7 @@ export default function FarmDeskRequestPage() {
                     <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
                       {!mine && <p style={{ fontSize: '10.5px', fontWeight: 800, color: FD.green, marginBottom: '3px' }}>FarmLite</p>}
                       <div style={{ background: mine ? FD.green : FD.bg, color: mine ? 'white' : FD.text, padding: '9px 13px', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: '13px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        <MessagePhotos images={m.images} />
                         {m.body}
                       </div>
                       <p style={{ fontSize: '10px', color: FD.textMuted, marginTop: '3px', textAlign: mine ? 'right' : 'left' }}>{fmtDateTime(m.created_at)}</p>
@@ -304,7 +320,10 @@ export default function FarmDeskRequestPage() {
               </div>
             )}
             {req.status !== 'cancelled' && (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+              <div>
+                <PhotoPreviews files={photos} onChange={setPhotos} />
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+                <PhotoButton files={photos} onChange={setPhotos} disabled={sending} />
                 <textarea
                   ref={inputRef}
                   rows={1}
@@ -315,8 +334,9 @@ export default function FarmDeskRequestPage() {
                   placeholder="Write a message..."
                   style={{ flex: 1, resize: 'none', padding: '10px 14px', borderRadius: '18px', border: `1px solid ${FD.border}`, background: FD.bg, fontSize: '13px', color: FD.text, outline: 'none', fontFamily: 'inherit', maxHeight: '100px' }}
                 />
-                <div onClick={send} style={{ width: '40px', height: '40px', borderRadius: '20px', background: draft.trim() && !sending ? FD.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: draft.trim() && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
+                <div onClick={send} style={{ width: '40px', height: '40px', borderRadius: '20px', background: (draft.trim() || photos.length > 0) && !sending ? FD.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (draft.trim() || photos.length > 0) && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
                   <Icon name="send" size={16} color="white" />
+                </div>
                 </div>
               </div>
             )}
