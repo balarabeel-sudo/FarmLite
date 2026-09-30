@@ -14,6 +14,8 @@ type Counts = {
   groups: number
   equipment: number
   pendingCompanies: number
+  farmDesk: number
+  newFarmDesk: number
 }
 
 export default function OverviewPage() {
@@ -35,14 +37,16 @@ export default function OverviewPage() {
       supabase.from('communities').select('id', head),
       supabase.from('equipment').select('id', head),
       supabase.from('companies').select('id', head).eq('status', 'pending'),
+      supabase.from('farm_desk_requests').select('id', head),
+      supabase.from('farm_desk_requests').select('id', head).eq('status', 'new'),
     ])
     if (results.some((r) => r.error)) {
       setError(true)
       setLoading(false)
       return
     }
-    const [users, companies, listings, posts, groups, equipment, pendingCompanies] = results.map((r) => r.count || 0)
-    setCounts({ users, companies, listings, posts, groups, equipment, pendingCompanies })
+    const [users, companies, listings, posts, groups, equipment, pendingCompanies, farmDesk, newFarmDesk] = results.map((r) => r.count || 0)
+    setCounts({ users, companies, listings, posts, groups, equipment, pendingCompanies, farmDesk, newFarmDesk })
     setLoading(false)
   }
 
@@ -66,6 +70,7 @@ export default function OverviewPage() {
             <Kpi label="Community Posts" value={counts!.posts} onClick={() => navigate('/admin/community')} />
             <Kpi label="Groups" value={counts!.groups} onClick={() => navigate('/admin/groups')} />
             <Kpi label="Equipment Listings" value={counts!.equipment} onClick={() => navigate('/admin/equipment')} />
+            <Kpi label="Farm Desk Requests" value={counts!.farmDesk} onClick={() => navigate('/admin/farm-desk')} />
           </div>
 
           <p style={{ fontSize: '13px', fontWeight: 700, color: A.text, marginBottom: '10px' }}>Needs attention</p>
@@ -80,6 +85,14 @@ export default function OverviewPage() {
             ) : (
               <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', padding: '14px 16px', fontSize: '13px', color: A.textMuted }}>
                 No pending company verifications.
+              </div>
+            )}
+            {counts!.newFarmDesk > 0 && (
+              <div
+                onClick={() => navigate('/admin/farm-desk')}
+                style={{ background: A.amberBg, border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: A.amber }}>New Farm Desk requests</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: A.amber }}>{counts!.newFarmDesk}</span>
               </div>
             )}
           </div>
