@@ -303,6 +303,8 @@ function App() {
               }
             />
 
+            {/* Old name: keeps any saved Trade Desk link working */}
+            <Route path="/admin/trade-desk" element={<Navigate to="/admin/farm-desk" replace />} />
             <Route
               path="/admin/farm-desk"
               element={
