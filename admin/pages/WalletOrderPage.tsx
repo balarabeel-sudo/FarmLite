@@ -4,8 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
-import { ORDER_COLUMNS, STATUS_INFO, TX_LABELS } from '../../walletShared'
-import type { Order } from '../../walletShared'
+import { ORDER_COLUMNS, EVIDENCE_COLUMNS, STATUS_INFO, TX_LABELS } from '../../walletShared'
+import type { Order, DisputeEvidence } from '../../walletShared'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', bg: '#F7F8F7', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', red: '#DC2626' }
 
@@ -34,6 +34,7 @@ export default function WalletOrderPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [people, setPeople] = useState<Record<string, Person>>({})
   const [ledger, setLedger] = useState<LedgerRow[]>([])
+  const [evidence, setEvidence] = useState<DisputeEvidence[]>([])
 
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,16 +43,18 @@ export default function WalletOrderPage() {
   const load = async () => {
     if (!id) return
     setError(false)
-    const [orderRes, ledgerRes] = await Promise.all([
+    const [orderRes, ledgerRes, evidenceRes] = await Promise.all([
       supabase.from('orders').select(ORDER_COLUMNS).eq('id', id).maybeSingle(),
       supabase.from('wallet_transactions').select('id, user_id, type, available_delta, held_delta, created_at, note').eq('order_id', id).order('created_at', { ascending: true }),
+      supabase.from('order_dispute_evidence').select(EVIDENCE_COLUMNS).eq('order_id', id).order('created_at', { ascending: true }),
     ])
-    if (orderRes.error || ledgerRes.error) { setError(true); setLoading(false); return }
+    if (orderRes.error || ledgerRes.error || evidenceRes.error) { setError(true); setLoading(false); return }
     if (!orderRes.data) { setNotFound(true); setLoading(false); return }
 
     const o = orderRes.data as any
     const parsed: Order = { ...o, quantity: Number(o.quantity), unit_price: Number(o.unit_price), amount: Number(o.amount) }
     setOrder(parsed)
+    setEvidence((evidenceRes.data || []) as DisputeEvidence[])
     setLedger((ledgerRes.data || []).map((t: any) => ({ ...t, available_delta: Number(t.available_delta), held_delta: Number(t.held_delta) })))
 
     const { data } = await supabase.from('profiles').select('user_id, full_name, username').in('user_id', [parsed.buyer_id, parsed.seller_id])
@@ -129,9 +132,44 @@ export default function WalletOrderPage() {
       </div>
 
       {order.dispute_reason && (
-        <Panel title="Dispute reason" style={{ marginTop: '16px' }}>
+        <>
+        <Panel title="Dispute" style={{ marginTop: '16px' }}>
+          {order.disputed_by && (
+            <p style={{ fontSize: '12px', color: A.textMuted, marginBottom: '6px' }}>
+              Opened by {nameOf(order.disputed_by)} ({order.disputed_by === order.buyer_id ? 'buyer' : 'seller'})
+            </p>
+          )}
           <p style={{ fontSize: '13px', color: A.text, lineHeight: 1.6 }}>{order.dispute_reason}</p>
         </Panel>
+
+        <Panel title={`Evidence (${evidence.length})`} style={{ marginTop: '16px' }}>
+          {evidence.length === 0 ? (
+            <p style={{ fontSize: '12.5px', color: A.textMuted }}>No notes or photos were added by either side.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {evidence.map((ev) => (
+                <div key={ev.id} style={{ borderBottom: `1px solid ${A.border}`, paddingBottom: '12px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: A.text }}>
+                    {nameOf(ev.user_id)} <span style={{ fontWeight: 500, color: A.textMuted }}>
+                      ({ev.user_id === order.buyer_id ? 'buyer' : 'seller'}) · {new Date(ev.created_at).toLocaleString()}
+                    </span>
+                  </p>
+                  {ev.note && <p style={{ fontSize: '13px', color: A.text, marginTop: '4px', lineHeight: 1.6 }}>{ev.note}</p>}
+                  {ev.images.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                      {ev.images.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                          <img src={url} alt="Evidence" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '8px', border: `1px solid ${A.border}`, display: 'block' }} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+        </>
       )}
 
       {order.resolution_note && (
