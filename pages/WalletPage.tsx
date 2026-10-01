@@ -9,7 +9,7 @@ import Icon from '../Icons'
 import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
 import {
-  getMyWallet, startTopup, verifyTopup, verifyOrderCode, verifyErrorMessage, useMoney,
+  getMyWallet, startTopup, verifyTopup, verifyOrderCode, verifyErrorMessage, useMoney, payFarmDeskFromWallet,
   TX_LABELS,
 } from '../walletShared'
 import type { Wallet, WalletTx } from '../walletShared'
@@ -37,7 +37,9 @@ export default function WalletPage() {
   const [hidden, setHidden] = useState(readHidden)
   const [banner, setBanner] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
 
-  const [sheet, setSheet] = useState<'topup' | 'verify' | null>(null)
+  // ?pay=<farm_desk_payment_id> comes from the Pay with wallet button in a Farm Desk request
+  const [payId, setPayId] = useState<string | null>(() => searchParams.get('pay'))
+  const [sheet, setSheet] = useState<'topup' | 'verify' | 'pay' | null>(() => (searchParams.get('pay') ? 'pay' : null))
 
   const load = async () => {
     if (!user) return
@@ -184,6 +186,14 @@ export default function WalletPage() {
         </div>
       </div>
 
+      {sheet === 'pay' && payId && (
+        <PayFarmDeskSheet
+          paymentId={payId}
+          available={wallet ? wallet.available : null}
+          onClose={() => { setSheet(null); setPayId(null); setSearchParams({}, { replace: true }); load() }}
+          onTopUp={() => { setSheet('topup'); setPayId(null); setSearchParams({}, { replace: true }) }}
+        />
+      )}
       {sheet === 'topup' && <TopUpSheet onClose={() => setSheet(null)} />}
       {sheet === 'verify' && (
         <VerifySheet
@@ -196,6 +206,103 @@ export default function WalletPage() {
         />
       )}
     </div>
+  )
+}
+
+function PayFarmDeskSheet({ paymentId, available, onClose, onTopUp }: {
+  paymentId: string
+  available: number | null
+  onClose: () => void
+  onTopUp: () => void
+}) {
+  const navigate = useNavigate()
+  const money = useMoney()
+  const [info, setInfo] = useState<{ request_id: string; amount: number; currency: string; status: string; code: string; title: string } | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [paid, setPaid] = useState(false)
+
+  useEffect(() => {
+    ;(async () => {
+      const { data: p, error: pe } = await supabase
+        .from('farm_desk_payments').select('id, request_id, amount, currency, status').eq('id', paymentId).maybeSingle()
+      if (pe || !p) { setLoadError('This payment could not be found.'); return }
+      const { data: r } = await supabase
+        .from('farm_desk_requests').select('request_code, title').eq('id', (p as any).request_id).maybeSingle()
+      setInfo({
+        request_id: (p as any).request_id, amount: Number((p as any).amount), currency: (p as any).currency || 'NGN', status: (p as any).status,
+        code: (r as any)?.request_code || '', title: (r as any)?.title || 'Farm Desk request',
+      })
+    })()
+  }, [paymentId])
+
+  const pay = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await payFarmDeskFromWallet(paymentId)
+      setPaid(true)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+    setBusy(false)
+  }
+
+  const enough = info && available != null ? available >= info.amount : false
+  const alreadyPaid = info?.status === 'paid'
+
+  return (
+    <Sheet title="Farm Desk payment" onClose={onClose}>
+      {loadError ? (
+        <p style={{ fontSize: '12.5px', color: '#B91C1C' }}>{loadError}</p>
+      ) : !info ? (
+        <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>Loading...</p>
+      ) : paid || alreadyPaid ? (
+        <>
+          <div style={{ textAlign: 'center', padding: '8px 0 14px' }}>
+            <Icon name="checkCircle" size={38} color={COLORS.green} />
+            <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, marginTop: '10px' }}>You have paid</p>
+            <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '4px' }}>{money.formatNgn(info.amount)} · {info.code}</p>
+          </div>
+          <PrimaryButton label="Back to my request" onClick={() => navigate(`/farm-desk/${info.request_id}`, { replace: true })} />
+        </>
+      ) : info.status !== 'pending' ? (
+        <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>This payment is no longer awaiting payment.</p>
+      ) : (
+        <>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>{info.title}</p>
+          <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{info.code}</p>
+          <div style={{ background: COLORS.bg, borderRadius: '12px', padding: '12px', margin: '14px 0', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: COLORS.textMuted }}>Amount due</span>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text }}>{money.formatNgn(info.amount)}</span>
+            </div>
+            {money.isForeign && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '12px', color: COLORS.textMuted }}>In {money.currency}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>≈ {money.format(info.amount)}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: COLORS.textMuted }}>Your wallet</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>{available == null ? '...' : money.formatNgn(available)}</span>
+            </div>
+          </div>
+          {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+          {available != null && !enough ? (
+            <>
+              <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, marginBottom: '10px' }}>
+                You need {money.formatNgn(info.amount - available)} more in your wallet.
+              </p>
+              <PrimaryButton label="Top up wallet" onClick={onTopUp} />
+            </>
+          ) : (
+            <PrimaryButton label={busy ? 'Paying...' : `Pay ${money.formatNgn(info.amount)} from wallet`} onClick={pay} disabled={busy || available == null} />
+          )}
+        </>
+      )}
+    </Sheet>
   )
 }
 
