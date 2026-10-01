@@ -20,10 +20,22 @@ export type Order = {
   currency: string
   status: OrderStatus
   dispute_reason: string | null
+  disputed_by: string | null
   resolution_note: string | null
   created_at: string
   completed_at: string | null
 }
+
+export type DisputeEvidence = {
+  id: string
+  user_id: string
+  note: string | null
+  images: string[]
+  created_at: string
+}
+
+export const EVIDENCE_COLUMNS = 'id, user_id, note, images, created_at'
+export const MAX_EVIDENCE_PHOTOS = 4
 
 export type WalletTx = {
   id: string
@@ -37,7 +49,7 @@ export type WalletTx = {
 }
 
 export const ORDER_COLUMNS =
-  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, resolution_note, created_at, completed_at'
+  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at'
 
 export const STATUS_INFO: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   escrow_held: { label: 'In escrow', color: '#B45309', bg: '#FEF3C7' },
@@ -54,6 +66,8 @@ export const TX_LABELS: Record<string, string> = {
   escrow_received: 'Payment received',
   escrow_refund: 'Escrow refunded',
   adjustment: 'Adjustment',
+  farm_desk_payment: 'Farm Desk payment',
+  farm_desk_refund: 'Farm Desk refund',
 }
 
 // ---------- Display currency conversion ----------
@@ -138,9 +152,20 @@ export async function verifyOrderCode(rawCode: string): Promise<{ ok: boolean; e
   return data as any
 }
 
-export async function openOrderDispute(orderId: string, reason: string) {
-  const { error } = await supabase.rpc('open_order_dispute', { p_order_id: orderId, p_reason: reason })
+export async function openOrderDispute(orderId: string, reason: string, images: string[] = []) {
+  const { error } = await supabase.rpc('open_order_dispute', { p_order_id: orderId, p_reason: reason, p_images: images })
   if (error) throw new Error(error.message)
+}
+
+export async function addDisputeEvidence(orderId: string, note: string, images: string[] = []) {
+  const { error } = await supabase.rpc('add_dispute_evidence', { p_order_id: orderId, p_note: note, p_images: images })
+  if (error) throw new Error(error.message)
+}
+
+export async function payFarmDeskFromWallet(paymentId: string): Promise<{ ok: boolean; amount: number; request_id: string }> {
+  const { data, error } = await supabase.rpc('farm_desk_pay_from_wallet', { p_payment_id: paymentId })
+  if (error) throw new Error(error.message)
+  return data as any
 }
 
 export async function startTopup(amount: number): Promise<{ authorization_url: string; reference: string }> {
