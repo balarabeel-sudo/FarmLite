@@ -14,8 +14,7 @@ type Counts = {
   groups: number
   equipment: number
   pendingCompanies: number
-  farmDesk: number
-  newFarmDesk: number
+  disputes: number
 }
 
 export default function OverviewPage() {
@@ -37,16 +36,16 @@ export default function OverviewPage() {
       supabase.from('communities').select('id', head),
       supabase.from('equipment').select('id', head),
       supabase.from('companies').select('id', head).eq('status', 'pending'),
-      supabase.from('farm_desk_requests').select('id', head),
-      supabase.from('farm_desk_requests').select('id', head).eq('status', 'new'),
+      // Staff without wallet.view get 0 here (row security), so this never errors for them
+      supabase.from('orders').select('id', head).eq('status', 'disputed'),
     ])
-    if (results.some((r) => r.error)) {
+    if (results.slice(0, 7).some((r) => r.error)) {
       setError(true)
       setLoading(false)
       return
     }
-    const [users, companies, listings, posts, groups, equipment, pendingCompanies, farmDesk, newFarmDesk] = results.map((r) => r.count || 0)
-    setCounts({ users, companies, listings, posts, groups, equipment, pendingCompanies, farmDesk, newFarmDesk })
+    const [users, companies, listings, posts, groups, equipment, pendingCompanies, disputes] = results.map((r) => r.count || 0)
+    setCounts({ users, companies, listings, posts, groups, equipment, pendingCompanies, disputes })
     setLoading(false)
   }
 
@@ -70,7 +69,6 @@ export default function OverviewPage() {
             <Kpi label="Community Posts" value={counts!.posts} onClick={() => navigate('/admin/community')} />
             <Kpi label="Groups" value={counts!.groups} onClick={() => navigate('/admin/groups')} />
             <Kpi label="Equipment Listings" value={counts!.equipment} onClick={() => navigate('/admin/equipment')} />
-            <Kpi label="Farm Desk Requests" value={counts!.farmDesk} onClick={() => navigate('/admin/farm-desk')} />
           </div>
 
           <p style={{ fontSize: '13px', fontWeight: 700, color: A.text, marginBottom: '10px' }}>Needs attention</p>
@@ -87,12 +85,12 @@ export default function OverviewPage() {
                 No pending company verifications.
               </div>
             )}
-            {counts!.newFarmDesk > 0 && (
+            {staff.permissions.has('wallet.view') && counts!.disputes > 0 && (
               <div
-                onClick={() => navigate('/admin/farm-desk')}
-                style={{ background: A.amberBg, border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13.5px', fontWeight: 600, color: A.amber }}>New Farm Desk requests</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: A.amber }}>{counts!.newFarmDesk}</span>
+                onClick={() => navigate('/admin/wallet')}
+                style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#B91C1C' }}>Escrow orders in dispute</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#B91C1C' }}>{counts!.disputes}</span>
               </div>
             )}
           </div>
