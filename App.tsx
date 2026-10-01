@@ -27,6 +27,9 @@ import FarmDeskPage from './pages/FarmDeskPage'
 import FarmDeskNewPage from './pages/FarmDeskNewPage'
 import FarmDeskRequestPage from './pages/FarmDeskRequestPage'
 import UserProfilePage from './pages/UserProfilePage'
+import WalletPage from './pages/WalletPage'
+import OrdersPage from './pages/OrdersPage'
+import OrderPage from './pages/OrderPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -38,6 +41,8 @@ import AdminMarketplacePage from './admin/pages/MarketplacePage'
 import AdminEquipmentPage from './admin/pages/EquipmentPage'
 import AdminFarmDeskPage from './admin/pages/FarmDeskPage'
 import AdminFarmDeskRequestPage from './admin/pages/FarmDeskRequestPage'
+import AdminWalletOrdersPage from './admin/pages/WalletOrdersPage'
+import AdminWalletOrderPage from './admin/pages/WalletOrderPage'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -220,6 +225,32 @@ function App() {
               }
             />
 
+            {/* Wallet and escrow orders. The list route has no param, so order does not matter here */}
+            <Route
+              path="/wallet"
+              element={
+                <ProtectedRoute>
+                  <WalletPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute>
+                  <OrdersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders/:id"
+              element={
+                <ProtectedRoute>
+                  <OrderPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Unknown routes fall back to Home (which itself redirects to /login if needed) */}
             {/* FarmLite Admin - a signed-in user still needs an active staff row to see anything here */}
             <Route
@@ -321,6 +352,27 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="trade_desk.view">
                     <AdminFarmDeskRequestPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/wallet"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="wallet.view">
+                    <AdminWalletOrdersPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/wallet/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="wallet.view">
+                    <AdminWalletOrderPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
