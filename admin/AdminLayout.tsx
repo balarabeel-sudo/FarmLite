@@ -36,6 +36,7 @@ const NAV: NavGroup[] = [
       { label: 'Equipment', path: '/admin/equipment', permission: 'equipment.view' },
       { label: 'FarmBot', path: '/admin/farmbot', permission: 'farmbot.view_analytics' },
       { label: 'Farm Desk', path: '/admin/farm-desk', permission: 'trade_desk.view' },
+      { label: 'Wallet & Escrow', path: '/admin/wallet', permission: 'wallet.view' },
     ],
   },
   {
