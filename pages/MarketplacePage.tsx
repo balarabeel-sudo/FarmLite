@@ -9,6 +9,7 @@ import NetworkError from '../NetworkError'
 import ImageUploader from '../ImageUploader'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
 import { PremiumBadge } from '../shared'
+import BuyEscrowSheet from '../BuyEscrowSheet'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
@@ -118,6 +119,7 @@ export default function MarketplacePage() {
   const [formError, setFormError] = useState('')
 
   const [detail, setDetail] = useState<Listing | null>(null)
+  const [buyListing, setBuyListing] = useState<Listing | null>(null)
 
   const setField = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
 
@@ -522,19 +524,28 @@ export default function MarketplacePage() {
           saved={savedIds.has(detail.id)}
           onToggleSave={() => toggleSave(detail.id)}
           onEdit={() => openEdit(detail)}
+          onBuy={() => setBuyListing(detail)}
           onClose={() => setDetail(null)}
+        />
+      )}
+
+      {buyListing && (
+        <BuyEscrowSheet
+          listing={{ id: buyListing.id, title: buyListing.title, price: Number(buyListing.price), currency: buyListing.currency, unit: buyListing.unit, quantity: buyListing.quantity == null ? null : Number(buyListing.quantity) }}
+          onClose={() => setBuyListing(null)}
         />
       )}
     </div>
   )
 }
 
-function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onClose }: {
+function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onBuy, onClose }: {
   listing: Listing
   isMine: boolean
   saved: boolean
   onToggleSave: () => void
   onEdit: () => void
+  onBuy: () => void
   onClose: () => void
 }) {
   const images = l.images || []
@@ -601,6 +612,12 @@ function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onClose 
                 </div>
                 {l.seller.username && <p style={{ fontSize: '11px', color: COLORS.textMuted }}>@{l.seller.username}</p>}
               </div>
+            </div>
+          )}
+
+          {!isMine && l.status === 'available' && (
+            <div onClick={onBuy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: COLORS.greenDark, color: 'white', padding: '13px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', marginTop: '16px' }}>
+              <Icon name="shield" size={16} color="white" /> Buy with Escrow
             </div>
           )}
 
