@@ -28,6 +28,7 @@ type Option = {
   status: 'offered' | 'accepted' | 'declined' | 'not_selected'
 }
 
+type Payment = { id: string; amount: number; currency: string; status: 'pending' | 'paid' | 'partially_paid' | 'refunded' | 'cancelled'; method: string | null }
 type Msg = { id: string; sender_type: 'customer' | 'staff'; body: string; images: string[]; created_at: string }
 type Activity = { id: string; action: string; detail: string | null; created_at: string }
 
@@ -42,6 +43,7 @@ export default function FarmDeskRequestPage() {
   const [options, setOptions] = useState<Option[]>([])
   const [messages, setMessages] = useState<Msg[]>([])
   const [activity, setActivity] = useState<Activity[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -59,11 +61,12 @@ export default function FarmDeskRequestPage() {
     if (!user || !id) return
     if (!silent) { setNetError(false); setLoading(true) }
 
-    const [r, o, m, a] = await Promise.all([
+    const [r, o, m, a, pay] = await Promise.all([
       supabase.from('farm_desk_requests').select('*').eq('id', id).maybeSingle(),
       supabase.from('farm_desk_options').select('*').eq('request_id', id).order('created_at', { ascending: true }),
       supabase.from('farm_desk_messages').select('id, sender_type, body, images, created_at').eq('request_id', id).order('created_at', { ascending: true }),
       supabase.from('farm_desk_activity').select('id, action, detail, created_at').eq('request_id', id).order('created_at', { ascending: true }),
+      supabase.from('farm_desk_payments').select('id, amount, currency, status, method').eq('request_id', id).order('created_at', { ascending: true }),
     ])
 
     if (r.error || o.error || m.error || a.error) {
@@ -76,6 +79,8 @@ export default function FarmDeskRequestPage() {
     setOptions((o.data || []) as any)
     setMessages((m.data || []) as any)
     setActivity((a.data || []) as any)
+    // Payments are optional context: if they fail to load the rest of the page still works
+    setPayments(((pay.data || []) as any[]).map((p) => ({ ...p, amount: Number(p.amount) })) as Payment[])
     setLoading(false)
   }
 
@@ -298,6 +303,9 @@ export default function FarmDeskRequestPage() {
         {/* Messages */}
         <div ref={msgRef}>
           <Card title="Messages with FarmLite">
+            {payments.filter((p) => p.status !== 'cancelled').map((p) => (
+              <PaymentStrip key={p.id} payment={p} onPay={() => navigate(`/wallet?pay=${p.id}`)} />
+            ))}
             {messages.length === 0 ? (
               <p style={{ fontSize: '12.5px', color: FD.textMuted, textAlign: 'center', padding: '12px 0' }}>
                 No messages yet. Ask FarmLite anything about this request.
@@ -368,6 +376,39 @@ export default function FarmDeskRequestPage() {
         )}
       </div>
     </Shell>
+  )
+}
+
+function PaymentStrip({ payment: p, onPay }: { payment: Payment; onPay: () => void }) {
+  const amount = `${p.currency} ${Number(p.amount).toLocaleString()}`
+  const paid = p.status === 'paid'
+  const refunded = p.status === 'refunded'
+  const canPayFromWallet = p.status === 'pending' && p.currency === 'NGN'
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px',
+      background: paid ? '#F0FDF4' : refunded ? '#EFF6FF' : '#FFFBEB',
+      border: `1px solid ${paid ? '#BBF7D0' : refunded ? '#BFDBFE' : '#FDE68A'}`,
+    }}>
+      <Icon name={paid ? 'checkCircle' : 'wallet'} size={18} color={paid ? FD.green : refunded ? '#1D4ED8' : '#B45309'} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '12.5px', fontWeight: 800, color: FD.text }}>
+          {paid ? 'You have paid' : refunded ? 'Payment refunded' : p.status === 'partially_paid' ? 'Part payment received' : 'Payment due'}
+        </p>
+        <p style={{ fontSize: '12px', color: FD.textMuted, marginTop: '1px' }}>
+          {amount}{paid && p.method === 'wallet' ? ' · paid from wallet' : ''}{refunded && p.method === 'wallet' ? ' · returned to your wallet' : ''}
+        </p>
+        {p.status === 'pending' && p.currency !== 'NGN' && (
+          <p style={{ fontSize: '11px', color: FD.textMuted, marginTop: '2px' }}>Message FarmLite below to arrange this payment.</p>
+        )}
+      </div>
+      {canPayFromWallet && (
+        <div onClick={onPay} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: FD.green, color: 'white', borderRadius: '999px', padding: '7px 12px', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <Icon name="wallet" size={14} color="white" /> Pay with wallet
+        </div>
+      )}
+    </div>
   )
 }
 
