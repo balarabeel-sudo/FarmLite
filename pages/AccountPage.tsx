@@ -7,7 +7,8 @@ import Icon from '../Icons'
 import { ProfileHeaderSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
-import LanguageCurrencyBar from '../LanguageCurrencyBar'
+import { useLocale } from '../LocaleContext'
+import type { Language, Currency } from '../LocaleContext'
 
 const ROLE_LABELS: Record<string, string> = { farmer: 'Farmer', buyer: 'Buyer', agribusiness: 'Agribusiness' }
 
@@ -29,6 +30,7 @@ type Profile = {
 export default function AccountPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  const { language, currency, currencies, setLanguage, setCurrency } = useLocale()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -124,7 +126,8 @@ export default function AccountPage() {
             <Section title="My Marketplace">
               <Row icon="package" label="My Listings" onClick={() => navigate('/marketplace?mine=1')} />
               <Row icon="bookmark" label="Saved Products" onClick={() => navigate('/saved')} />
-              <Row icon="fileText" label="Orders" comingSoon />
+              <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
+              <Row icon="fileText" label="Orders" onClick={() => navigate('/orders')} />
             </Section>
 
             {showFarmSection && (
@@ -153,10 +156,15 @@ export default function AccountPage() {
                 onClick={() => {}}
               />
               <Row icon="shield" label="Privacy & Security" comingSoon />
-              <div style={{ borderBottom: `1px solid ${COLORS.bg}`, paddingTop: '13px' }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: COLORS.text, padding: '0 14px 10px' }}>Language & Currency</p>
-                <LanguageCurrencyBar />
-              </div>
+              <SelectRow icon="globe" label="Language" value={language} onChange={(v) => setLanguage(v as Language)}>
+                <option value="ha">Hausa</option>
+                <option value="en">English</option>
+              </SelectRow>
+              <SelectRow icon="currency" label="Currency" value={currency} onChange={(v) => setCurrency(v as Currency)}>
+                {currencies.map((c: { code: string; flag?: string }) => (
+                  <option key={c.code} value={c.code}>{c.flag ? `${c.flag} ` : ''}{c.code}</option>
+                ))}
+              </SelectRow>
               <Row icon="helpCircle" label="Help & Support" comingSoon />
               <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
             </Section>
@@ -198,6 +206,27 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
       {comingSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: COLORS.textMuted }}>Coming soon</span>}
       {!comingSoon && rightText && <span style={{ fontSize: '11px', color: COLORS.textMuted }}>{rightText}</span>}
       {!comingSoon && !rightText && onClick && <Icon name="chevronRight" size={15} color={COLORS.textMuted} />}
+    </div>
+  )
+}
+
+function SelectRow({ icon, label, value, onChange, children }: {
+  icon: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  children: ReactNode
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
+      <Icon name={icon} size={17} color={COLORS.textMuted} />
+      <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>{label}</p>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ border: 'none', background: 'transparent', fontSize: '12px', fontWeight: 700, color: COLORS.green, outline: 'none', cursor: 'pointer', textAlign: 'right' }}>
+        {children}
+      </select>
     </div>
   )
 }
