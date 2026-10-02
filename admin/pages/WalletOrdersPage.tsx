@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { ORDER_COLUMNS, STATUS_INFO } from '../../walletShared'
+import { Tabs } from './WithdrawalsPage'
 import type { Order, OrderStatus } from '../../walletShared'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', bg: '#F7F8F7', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280' }
@@ -74,6 +75,8 @@ export default function WalletOrdersPage() {
 
   return (
     <AdminLayout title="Wallet & Escrow">
+      <Tabs active="orders" />
+
       {error ? (
         <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
           <p style={{ fontSize: '13px', color: A.textMuted, marginBottom: '10px' }}>Could not load orders. You may not have permission to view them.</p>
