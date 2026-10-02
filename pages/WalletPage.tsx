@@ -10,9 +10,10 @@ import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
 import {
   getMyWallet, startTopup, verifyTopup, verifyOrderCode, verifyErrorMessage, useMoney, payFarmDeskFromWallet,
+  fetchBanks, resolveAccount, requestWithdrawal, cancelWithdrawal, WITHDRAWAL_STATUS, WITHDRAWAL_COLUMNS,
   TX_LABELS,
 } from '../walletShared'
-import type { Wallet, WalletTx } from '../walletShared'
+import type { Wallet, WalletTx, Withdrawal, Bank } from '../walletShared'
 
 const HIDE_KEY = 'fl_wallet_hidden'
 const PENDING_REF_KEY = 'fl_pending_topup_ref'
@@ -34,25 +35,29 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [incoming, setIncoming] = useState(0)
   const [txs, setTxs] = useState<WalletTx[]>([])
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
   const [hidden, setHidden] = useState(readHidden)
   const [banner, setBanner] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
 
   // ?pay=<farm_desk_payment_id> comes from the Pay with wallet button in a Farm Desk request
   const [payId, setPayId] = useState<string | null>(() => searchParams.get('pay'))
-  const [sheet, setSheet] = useState<'topup' | 'verify' | 'pay' | null>(() => (searchParams.get('pay') ? 'pay' : null))
+  const [sheet, setSheet] = useState<'topup' | 'verify' | 'pay' | 'withdraw' | null>(() => (searchParams.get('pay') ? 'pay' : null))
 
   const load = async () => {
     if (!user) return
     setNetError(false)
     try {
-      const [w, txRes, incomingRes] = await Promise.all([
+      const [w, txRes, incomingRes, wdRes] = await Promise.all([
         getMyWallet(),
         supabase.from('wallet_transactions')
           .select('id, type, available_delta, held_delta, order_id, reference, note, created_at')
           .eq('user_id', user.id).order('created_at', { ascending: false }).limit(30),
         supabase.from('orders').select('amount').eq('seller_id', user.id).in('status', ['escrow_held', 'disputed']),
+        supabase.from('withdrawal_requests').select(WITHDRAWAL_COLUMNS).eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
       ])
       if (txRes.error || incomingRes.error) throw new Error('load failed')
+      if (wdRes.error) throw new Error('load failed')
+      setWithdrawals((wdRes.data || []).map((x: any) => ({ ...x, amount: Number(x.amount) })) as Withdrawal[])
       setWallet(w)
       setTxs((txRes.data || []).map((t: any) => ({
         ...t, available_delta: Number(t.available_delta), held_delta: Number(t.held_delta),
@@ -161,6 +166,7 @@ export default function WalletPage() {
         <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
           <ActionButton icon="plus" label="Top up" onClick={() => setSheet('topup')} primary />
           <ActionButton icon="qr" label="Verify QR" onClick={() => setSheet('verify')} />
+          <ActionButton icon="arrowUp" label="Withdraw" onClick={() => setSheet('withdraw')} />
         </div>
         <div onClick={() => navigate('/orders')} style={{
           marginTop: '10px', background: COLORS.card, borderRadius: '12px', padding: '13px 14px',
@@ -170,6 +176,44 @@ export default function WalletPage() {
           <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>My Orders</p>
           <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
         </div>
+
+        {/* Withdrawals */}
+        {withdrawals.length > 0 && (
+          <>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '20px 0 8px' }}>
+              Withdrawals
+            </p>
+            <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>
+              {withdrawals.map((w) => {
+                const st = WITHDRAWAL_STATUS[w.status]
+                return (
+                  <div key={w.id} style={{ padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text }}>{hidden ? '••••' : money.formatNgn(w.amount)}</p>
+                      <span style={{ fontSize: '10.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '999px', background: st.bg, color: st.color }}>{st.label}</span>
+                    </div>
+                    <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '3px' }}>
+                      {w.bank_name} ••••{w.account_number.slice(-4)} · {new Date(w.created_at).toLocaleDateString()}
+                    </p>
+                    {w.status === 'rejected' && w.admin_note && (
+                      <p style={{ fontSize: '11px', color: '#B91C1C', marginTop: '4px' }}>Reason: {w.admin_note}</p>
+                    )}
+                    {w.status === 'pending' && (
+                      <p
+                        onClick={async () => {
+                          try { await cancelWithdrawal(w.id); setBanner({ type: 'ok', text: 'Withdrawal cancelled. The money is back in your wallet.' }); load() }
+                          catch (e) { setBanner({ type: 'error', text: (e as Error).message }) }
+                        }}
+                        style={{ fontSize: '11.5px', fontWeight: 700, color: '#B91C1C', marginTop: '6px', cursor: 'pointer' }}>
+                        Cancel withdrawal
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         {/* Activity */}
         <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '20px 0 8px' }}>
@@ -195,6 +239,17 @@ export default function WalletPage() {
         />
       )}
       {sheet === 'topup' && <TopUpSheet onClose={() => setSheet(null)} />}
+      {sheet === 'withdraw' && (
+        <WithdrawSheet
+          available={wallet ? wallet.available : 0}
+          onClose={() => setSheet(null)}
+          onDone={() => {
+            setSheet(null)
+            setBanner({ type: 'ok', text: 'Withdrawal requested. FarmLite will review and send it to your bank.' })
+            load()
+          }}
+        />
+      )}
       {sheet === 'verify' && (
         <VerifySheet
           onClose={() => setSheet(null)}
@@ -302,6 +357,99 @@ function PayFarmDeskSheet({ paymentId, available, onClose, onTopUp }: {
           )}
         </>
       )}
+    </Sheet>
+  )
+}
+
+function WithdrawSheet({ available, onClose, onDone }: { available: number; onClose: () => void; onDone: () => void }) {
+  const money = useMoney()
+  const [banks, setBanks] = useState<Bank[]>([])
+  const [banksError, setBanksError] = useState('')
+  const [amount, setAmount] = useState('')
+  const [bankCode, setBankCode] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [accountName, setAccountName] = useState('')
+  const [verified, setVerified] = useState(false)
+  const [manualName, setManualName] = useState(false)
+  const [resolving, setResolving] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchBanks().then(setBanks).catch((e) => setBanksError((e as Error).message))
+  }, [])
+
+  // As soon as the account number is complete and a bank is chosen, look up the account name
+  useEffect(() => {
+    setAccountName('')
+    setVerified(false)
+    setManualName(false)
+    setError('')
+    if (!/^\d{10}$/.test(accountNumber) || !bankCode) return
+    let cancelled = false
+    setResolving(true)
+    resolveAccount(accountNumber, bankCode)
+      .then((r) => {
+        if (cancelled) return
+        if (r.name) { setAccountName(r.name); setVerified(true) }
+        else if (r.testMode) setManualName(true)
+      })
+      .catch((e) => { if (!cancelled) setError((e as Error).message) })
+      .finally(() => { if (!cancelled) setResolving(false) })
+    return () => { cancelled = true }
+  }, [accountNumber, bankCode])
+
+  const submit = async () => {
+    const n = Number(amount)
+    const bank = banks.find((b) => b.code === bankCode)
+    if (!Number.isFinite(n) || n < 1000) { setError('Minimum withdrawal is NGN 1,000.'); return }
+    if (n > available) { setError('This is more than your available balance.'); return }
+    if (!bank) { setError('Choose your bank.'); return }
+    if (!/^\d{10}$/.test(accountNumber)) { setError('Account number must be 10 digits.'); return }
+    if (!accountName.trim()) { setError('Account name is required.'); return }
+    setBusy(true)
+    setError('')
+    try {
+      await requestWithdrawal(n, bank, accountNumber, accountName.trim())
+      onDone()
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Sheet title="Withdraw to bank" onClose={onClose}>
+      <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>
+        Available: {money.formatNgn(available)}. The amount leaves your wallet now and is sent to your bank after FarmLite approves it.
+      </p>
+      <input type="number" inputMode="numeric" placeholder="Amount (NGN, minimum 1,000)" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} />
+
+      {banksError ? (
+        <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{banksError}</p>
+      ) : (
+        <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} style={inputStyle}>
+          <option value="">{banks.length ? 'Choose bank' : 'Loading banks...'}</option>
+          {banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}
+        </select>
+      )}
+
+      <input inputMode="numeric" maxLength={10} placeholder="Account number (10 digits)" value={accountNumber}
+        onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))} style={inputStyle} />
+
+      {resolving && <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>Checking account...</p>}
+      {verified && (
+        <p style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', marginBottom: '10px' }}>{accountName}</p>
+      )}
+      {manualName && (
+        <>
+          <p style={{ fontSize: '11px', color: '#B45309', marginBottom: '6px' }}>Test mode cannot verify accounts. Type the account name.</p>
+          <input placeholder="Account name" value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inputStyle} />
+        </>
+      )}
+
+      {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+      <PrimaryButton label={busy ? 'Sending request...' : 'Request withdrawal'} onClick={submit} disabled={busy || resolving || !accountName} />
     </Sheet>
   )
 }
