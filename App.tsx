@@ -28,6 +28,7 @@ import FarmDeskNewPage from './pages/FarmDeskNewPage'
 import FarmDeskRequestPage from './pages/FarmDeskRequestPage'
 import UserProfilePage from './pages/UserProfilePage'
 import WalletPage from './pages/WalletPage'
+import StaffInvitePage from './pages/StaffInvitePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderPage from './pages/OrderPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
@@ -43,6 +44,8 @@ import AdminFarmDeskPage from './admin/pages/FarmDeskPage'
 import AdminFarmDeskRequestPage from './admin/pages/FarmDeskRequestPage'
 import AdminWalletOrdersPage from './admin/pages/WalletOrdersPage'
 import AdminWalletOrderPage from './admin/pages/WalletOrderPage'
+import AdminWithdrawalsPage from './admin/pages/WithdrawalsPage'
+import AdminAuditLogsPage from './admin/pages/AuditLogsPage'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -225,6 +228,9 @@ function App() {
               }
             />
 
+            {/* Public on purpose: the invited person may not be signed in yet. The page checks the invitation itself */}
+            <Route path="/staff-invite" element={<StaffInvitePage />} />
+
             {/* Wallet and escrow orders. The list route has no param, so order does not matter here */}
             <Route
               path="/wallet"
@@ -363,6 +369,26 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="wallet.view">
                     <AdminWalletOrdersPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/audit-logs"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="audit_logs.view">
+                    <AdminAuditLogsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/wallet/withdrawals"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="wallet.view">
+                    <AdminWithdrawalsPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
