@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
 import { logAdminAction } from '../adminAuth'
+import { sendStaffInvite } from '../staffInvite'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', red: '#DC2626', bg: '#F7F8F7' }
 
@@ -30,6 +32,9 @@ export default function StaffPage() {
   const [inviteRoleId, setInviteRoleId] = useState('')
   const [inviteError, setInviteError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<{ type: 'ok' | 'warn' | 'error'; text: string; link?: string } | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const load = async () => {
     setError(false)
@@ -51,6 +56,39 @@ export default function StaffPage() {
 
   useEffect(() => { load() }, [])
 
+  const inviteLink = `${window.location.origin}/staff-invite`
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch { /* clipboard unavailable: the link is shown in the notice so it can be copied by hand */ }
+  }
+
+  // Sends the invitation email and in-app notification, then tells the admin exactly what happened
+  const deliverInvite = async (staffId: string, email: string) => {
+    setSendingId(staffId)
+    try {
+      const r = await sendStaffInvite(staffId)
+      const parts: string[] = []
+      if (r.email_sent) parts.push(`Invitation emailed to ${email}.`)
+      if (r.notified) parts.push('They were also notified inside FarmLite.')
+      if (r.email_sent || r.notified) {
+        setNotice({ type: 'ok', text: parts.join(' '), link: r.link || inviteLink })
+      } else {
+        setNotice({
+          type: 'warn',
+          text: `The invitation is saved, but no email could be sent${r.email_error ? ` (${r.email_error})` : ''}. Share this link with ${email} yourself:`,
+          link: r.link || inviteLink,
+        })
+      }
+    } catch (e) {
+      setNotice({ type: 'warn', text: `The invitation is saved, but sending failed (${(e as Error).message}). Use Resend, or share this link yourself:`, link: inviteLink })
+    }
+    setSendingId(null)
+  }
+
   const sendInvite = async () => {
     setInviteError('')
     if (!inviteEmail.trim() || !/^\S+@\S+\.\S+$/.test(inviteEmail.trim())) return setInviteError('Enter a valid email address.')
@@ -58,21 +96,32 @@ export default function StaffPage() {
     if (!inviteRoleId) return setInviteError('Choose a role.')
 
     setSaving(true)
+    const email = inviteEmail.trim().toLowerCase()
+    const { data: auth } = await supabase.auth.getUser()
     const { error } = await supabase.from('staff').insert({
-      email: inviteEmail.trim().toLowerCase(),
+      email,
       full_name: inviteName.trim(),
       role_id: inviteRoleId,
       status: 'invited',
+      invited_by: auth.user?.id ?? null,
     })
+
+    if (error) {
+      setSaving(false)
+      return setInviteError(error.message.includes('duplicate') ? 'This email is already staff.' : 'Could not send the invite. Try again.')
+    }
+
+    const { data: created } = await supabase.from('staff').select('id').eq('email', email).maybeSingle()
     setSaving(false)
 
-    if (error) return setInviteError(error.message.includes('duplicate') ? 'This email is already staff.' : 'Could not send the invite. Try again.')
-
-    await logAdminAction('Invited staff member', { type: 'staff', id: '', label: inviteEmail.trim() })
+    await logAdminAction('Invited staff member', { type: 'staff', id: created?.id ?? '', label: email })
     setShowInvite(false)
     setInviteEmail('')
     setInviteName('')
     load()
+
+    if (created?.id) await deliverInvite(created.id, email)
+    else setNotice({ type: 'warn', text: 'The invitation is saved, but it could not be sent from here. Use Resend on the row below, or share this link yourself:', link: inviteLink })
   }
 
   const setStatus = async (row: StaffRow, status: 'active' | 'disabled') => {
@@ -101,6 +150,25 @@ export default function StaffPage() {
         </div>
       )}
 
+      {notice && (
+        <div style={{
+          padding: '12px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', lineHeight: 1.5,
+          background: notice.type === 'ok' ? '#DCFCE7' : notice.type === 'warn' ? '#FEF3C7' : '#FEE2E2',
+          color: notice.type === 'ok' ? '#166534' : notice.type === 'warn' ? '#92400E' : '#991B1B',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+            <span style={{ fontWeight: 600 }}>{notice.text}</span>
+            <span onClick={() => setNotice(null)} style={{ cursor: 'pointer', fontWeight: 700 }}>Close</span>
+          </div>
+          {notice.link && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <code style={{ fontSize: '12px', background: 'rgba(255,255,255,0.7)', padding: '4px 8px', borderRadius: '6px', wordBreak: 'break-all' }}>{notice.link}</code>
+              <span onClick={copyLink} style={{ fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>{copied ? 'Copied' : 'Copy link'}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {showInvite && (
         <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', padding: '18px', marginBottom: '20px', maxWidth: '420px' }}>
           <p style={{ fontSize: '14px', fontWeight: 700, color: A.text, marginBottom: '12px' }}>Add Staff</p>
@@ -112,7 +180,7 @@ export default function StaffPage() {
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
           <p style={{ fontSize: '11.5px', color: A.textMuted, margin: '10px 0 14px' }}>
-            The staff member gets access once they sign up or log in to FarmLite with this exact email address.
+            We email them an invitation. They sign in (or create an account) with this exact email, open the link, and tap Accept invitation.
           </p>
           <div onClick={saving ? undefined : sendInvite} style={{ background: A.green, color: 'white', textAlign: 'center', padding: '9px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Sending...' : 'Send Invitation'}
@@ -160,6 +228,14 @@ export default function StaffPage() {
                       <span style={{ background: sc.bg, color: sc.text, fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px' }}>{row.status}</span>
                     </td>
                     <td style={{ padding: '10px 16px', textAlign: 'right' }}>
+                      {canManage && row.status === 'invited' && (
+                        <span style={{ display: 'inline-flex', gap: '14px' }}>
+                          <span onClick={sendingId === row.id ? undefined : () => deliverInvite(row.id, row.email)} style={{ fontSize: '12px', fontWeight: 700, color: A.green, cursor: 'pointer', opacity: sendingId === row.id ? 0.6 : 1 }}>
+                            {sendingId === row.id ? 'Sending...' : 'Resend invitation'}
+                          </span>
+                          <span onClick={() => setNotice({ type: 'ok', text: `Share this link with ${row.email}:`, link: inviteLink })} style={{ fontSize: '12px', fontWeight: 700, color: A.textMuted, cursor: 'pointer' }}>Get link</span>
+                        </span>
+                      )}
                       {canManage && !isSelf && row.status !== 'invited' && (
                         row.status === 'active' ? (
                           <span onClick={() => setStatus(row, 'disabled')} style={{ fontSize: '12px', fontWeight: 700, color: A.red, cursor: 'pointer' }}>Disable</span>
@@ -188,7 +264,7 @@ function Input({ label, value, onChange, placeholder }: { label: string; value: 
   )
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%', padding: '9px 11px', borderRadius: '8px', border: `1px solid ${A.border}`,
   fontSize: '13px', boxSizing: 'border-box', marginBottom: '12px',
 }
