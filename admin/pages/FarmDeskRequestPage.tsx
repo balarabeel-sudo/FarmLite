@@ -55,6 +55,9 @@ export default function AdminFarmDeskRequestPage() {
   const [busy, setBusy] = useState(false)
 
   const [showSourceForm, setShowSourceForm] = useState(false)
+  const [payments, setPayments] = useState<{ id: string; amount: number; currency: string; status: string; method: string | null; note: string | null; created_at: string }[]>([])
+  const [payForm, setPayForm] = useState<{ amount: string; currency: string; note: string } | null>(null)
+  const [payBusy, setPayBusy] = useState(false)
   const [optionForm, setOptionForm] = useState<OptionDraft | null>(null)
 
   const flash = (ok: boolean, text: string) => {
@@ -86,6 +89,8 @@ export default function AdminFarmDeskRequestPage() {
     setNotes(n.data || [])
     setActivity(a.data || [])
     if (!st.error) setStaffList((st.data || []) as any)
+    const pay = await supabase.from('farm_desk_payments').select('id, amount, currency, status, method, note, created_at').eq('request_id', id).order('created_at', { ascending: true })
+    if (!pay.error) setPayments((pay.data || []).map((x: any) => ({ ...x, amount: Number(x.amount) })))
     if (!silent) {
       setStatusSel(r.data.status)
       setPaymentSel(r.data.payment_status)
@@ -95,6 +100,37 @@ export default function AdminFarmDeskRequestPage() {
   }
 
   useEffect(() => { load() }, [id])
+
+  const requestPayment = async () => {
+    if (!req || !payForm || payBusy) return
+    const amount = Number(payForm.amount)
+    if (!Number.isFinite(amount) || amount <= 0) { flash(false, 'Enter a valid amount'); return }
+    setPayBusy(true)
+    const { error: e } = await supabase.rpc('farm_desk_request_payment', {
+      p_request: req.id, p_amount: amount, p_currency: payForm.currency, p_note: payForm.note.trim() || null,
+    })
+    setPayBusy(false)
+    if (e) { flash(false, e.message); return }
+    flash(true, 'Payment requested. The customer was notified.')
+    setPayForm(null)
+    load(true)
+  }
+
+  const cancelPayment = async (paymentId: string) => {
+    if (!window.confirm('Cancel this payment request?')) return
+    const { error: e } = await supabase.rpc('farm_desk_cancel_payment', { p_payment_id: paymentId })
+    if (e) { flash(false, e.message); return }
+    flash(true, 'Payment request cancelled')
+    load(true)
+  }
+
+  const refundPayment = async (paymentId: string, label: string) => {
+    if (!window.confirm(`Return ${label} to the customer's wallet? This cannot be undone.`)) return
+    const { error: e } = await supabase.rpc('farm_desk_refund_to_wallet', { p_payment_id: paymentId, p_note: null })
+    if (e) { flash(false, e.message); return }
+    flash(true, 'Refunded to the customer wallet')
+    load(true)
+  }
 
   const saveControls = async () => {
     if (!req || savingCtl) return
@@ -339,6 +375,41 @@ export default function AdminFarmDeskRequestPage() {
                 onSaved={() => { setShowSourceForm(false); flash(true, 'Source recorded.'); load(true) }}
                 onError={(t) => flash(false, t)}
               />
+            )}
+          </Card>
+
+          {/* Payments */}
+          <Card title="Payments" action={canManage ? <LinkBtn onClick={() => setPayForm(payForm ? null : { amount: '', currency: 'NGN', note: '' })}>{payForm ? 'Close' : '+ Request payment'}</LinkBtn> : undefined}>
+            {payments.length === 0 && !payForm && (
+              <p style={{ fontSize: '12.5px', color: A.textMuted }}>No payments requested. Request a payment and the customer will see a Pay with wallet button in their chat.</p>
+            )}
+            {payments.map((p) => {
+              const tone = p.status === 'paid' ? '#166534' : p.status === 'pending' ? '#B45309' : p.status === 'refunded' ? '#1D4ED8' : A.textMuted
+              return (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '9px 0', borderBottom: `1px solid ${A.border}`, flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: A.text }}>{money(p.amount, p.currency)}</p>
+                    <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: '2px' }}>
+                      <span style={{ color: tone, fontWeight: 700 }}>{p.status}</span>{p.method ? ` · ${p.method}` : ''} · {fmtDate(p.created_at)}{p.note ? ` · ${p.note}` : ''}
+                    </p>
+                  </div>
+                  {canManage && p.status === 'pending' && <LinkBtn danger onClick={() => cancelPayment(p.id)}>Cancel</LinkBtn>}
+                  {canManage && p.status === 'paid' && p.method === 'wallet' && <LinkBtn danger onClick={() => refundPayment(p.id, money(p.amount, p.currency))}>Refund to wallet</LinkBtn>}
+                </div>
+              )
+            })}
+            {payForm && (
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input type="number" min="0" placeholder="Amount" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} style={{ ...inputStyle, flex: 1 }} />
+                  <select value={payForm.currency} onChange={(e) => setPayForm({ ...payForm, currency: e.target.value })} style={{ ...inputStyle, width: '90px' }}>
+                    {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <input placeholder="What is this payment for? (optional)" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} style={inputStyle} />
+                <p style={{ fontSize: '11.5px', color: A.textMuted }}>Only NGN payments can be paid from the customer wallet.</p>
+                <Btn onClick={requestPayment} disabled={payBusy}>{payBusy ? 'Requesting...' : 'Request payment'}</Btn>
+              </div>
             )}
           </Card>
 
