@@ -48,6 +48,33 @@ export type WalletTx = {
   created_at: string
 }
 
+export type WithdrawalStatus = 'pending' | 'processing' | 'paid' | 'rejected' | 'failed' | 'cancelled'
+
+export type Withdrawal = {
+  id: string
+  user_id: string
+  amount: number
+  bank_name: string
+  account_number: string
+  account_name: string
+  status: WithdrawalStatus
+  admin_note: string | null
+  created_at: string
+  processed_at: string | null
+}
+
+export const WITHDRAWAL_COLUMNS =
+  'id, user_id, amount, bank_name, account_number, account_name, status, admin_note, created_at, processed_at'
+
+export const WITHDRAWAL_STATUS: Record<WithdrawalStatus, { label: string; color: string; bg: string }> = {
+  pending: { label: 'Awaiting approval', color: '#B45309', bg: '#FEF3C7' },
+  processing: { label: 'Sending', color: '#1D4ED8', bg: '#DBEAFE' },
+  paid: { label: 'Sent', color: '#166534', bg: '#DCFCE7' },
+  rejected: { label: 'Rejected', color: '#B91C1C', bg: '#FEE2E2' },
+  failed: { label: 'Failed', color: '#B91C1C', bg: '#FEE2E2' },
+  cancelled: { label: 'Cancelled', color: '#5B6B5B', bg: '#E5EFE5' },
+}
+
 export const ORDER_COLUMNS =
   'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at'
 
@@ -68,6 +95,8 @@ export const TX_LABELS: Record<string, string> = {
   adjustment: 'Adjustment',
   farm_desk_payment: 'Farm Desk payment',
   farm_desk_refund: 'Farm Desk refund',
+  withdrawal: 'Withdrawal',
+  withdrawal_refund: 'Withdrawal returned',
 }
 
 // ---------- Display currency conversion ----------
@@ -166,6 +195,35 @@ export async function payFarmDeskFromWallet(paymentId: string): Promise<{ ok: bo
   const { data, error } = await supabase.rpc('farm_desk_pay_from_wallet', { p_payment_id: paymentId })
   if (error) throw new Error(error.message)
   return data as any
+}
+
+export type Bank = { name: string; code: string }
+
+export async function fetchBanks(): Promise<Bank[]> {
+  const { data, error } = await supabase.functions.invoke('paystack-bank', { body: { action: 'banks' } })
+  if (error) throw new Error(error.message)
+  if (!data || data.error) throw new Error(data?.error || 'Could not load banks')
+  return data.banks as Bank[]
+}
+
+// Returns the verified account name, or { testMode: true } when Paystack test mode cannot verify the account
+export async function resolveAccount(accountNumber: string, bankCode: string): Promise<{ name?: string; testMode?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('paystack-bank', { body: { action: 'resolve', account_number: accountNumber, bank_code: bankCode } })
+  if (data?.account_name) return { name: data.account_name }
+  if (data?.test_mode) return { testMode: true }
+  throw new Error(data?.error || error?.message || 'Could not verify this account')
+}
+
+export async function requestWithdrawal(amount: number, bank: Bank, accountNumber: string, accountName: string) {
+  const { error } = await supabase.rpc('request_withdrawal', {
+    p_amount: amount, p_bank_code: bank.code, p_bank_name: bank.name, p_account_number: accountNumber, p_account_name: accountName,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function cancelWithdrawal(id: string) {
+  const { error } = await supabase.rpc('cancel_withdrawal', { p_id: id })
+  if (error) throw new Error(error.message)
 }
 
 export async function startTopup(amount: number): Promise<{ authorization_url: string; reference: string }> {
