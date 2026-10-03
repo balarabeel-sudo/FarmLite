@@ -51,6 +51,8 @@ import AdminReportsPage from './admin/pages/ReportsPage'
 import AdminFarmBotAnalyticsPage from './admin/pages/FarmBotAnalyticsPage'
 import AdminAnalyticsPage from './admin/pages/AnalyticsPage'
 import AdminNotificationsPage from './admin/pages/NotificationsPage'
+import AdminSettingsPage from './admin/pages/SettingsPage'
+import MaintenanceGate from './MaintenanceGate'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -64,6 +66,7 @@ function App() {
               <SplashScreen onFinish={() => setShowSplash(false)} />
             </div>
           )}
+          <MaintenanceGate>
           <Routes>
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
@@ -429,6 +432,16 @@ function App() {
               }
             />
             <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="settings.view">
+                    <AdminSettingsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/audit-logs"
               element={
                 <ProtectedRoute>
@@ -461,6 +474,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </MaintenanceGate>
         </AuthProvider>
       </LocaleProvider>
     </BrowserRouter>
