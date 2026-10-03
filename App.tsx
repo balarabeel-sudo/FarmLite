@@ -52,6 +52,7 @@ import AdminFarmBotAnalyticsPage from './admin/pages/FarmBotAnalyticsPage'
 import AdminAnalyticsPage from './admin/pages/AnalyticsPage'
 import AdminNotificationsPage from './admin/pages/NotificationsPage'
 import AdminSettingsPage from './admin/pages/SettingsPage'
+import AdminGroupsPage from './admin/pages/GroupsPage'
 import MaintenanceGate from './MaintenanceGate'
 
 function App() {
@@ -437,6 +438,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="settings.view">
                     <AdminSettingsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/groups"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="groups.view">
+                    <AdminGroupsPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
