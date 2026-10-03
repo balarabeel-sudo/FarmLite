@@ -46,6 +46,11 @@ import AdminWalletOrdersPage from './admin/pages/WalletOrdersPage'
 import AdminWalletOrderPage from './admin/pages/WalletOrderPage'
 import AdminWithdrawalsPage from './admin/pages/WithdrawalsPage'
 import AdminAuditLogsPage from './admin/pages/AuditLogsPage'
+import AdminCommunityPage from './admin/pages/CommunityPage'
+import AdminReportsPage from './admin/pages/ReportsPage'
+import AdminFarmBotAnalyticsPage from './admin/pages/FarmBotAnalyticsPage'
+import AdminAnalyticsPage from './admin/pages/AnalyticsPage'
+import AdminNotificationsPage from './admin/pages/NotificationsPage'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -369,6 +374,56 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="wallet.view">
                     <AdminWalletOrdersPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/community"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="community.view">
+                    <AdminCommunityPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="reports.view">
+                    <AdminReportsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/farmbot"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="farmbot.view_analytics">
+                    <AdminFarmBotAnalyticsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="analytics.view">
+                    <AdminAnalyticsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/notifications"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="notifications.view">
+                    <AdminNotificationsPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
