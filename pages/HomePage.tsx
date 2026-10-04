@@ -9,6 +9,7 @@ import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../Loa
 import NetworkError from '../NetworkError'
 import PostImages from '../PostImages'
 import CommentsSheet from '../CommentsSheet'
+import ReportSheet from '../ReportSheet'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -39,6 +40,7 @@ type Listing = {
 
 type FeedPost = {
   id: string
+  user_id: string
   content: string
   images: string[] | null
   likes_count: number
@@ -81,7 +83,7 @@ export default function HomePage() {
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
-        supabase.from('posts').select('id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
+        supabase.from('posts').select('id, user_id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
         supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
         supabase.from('post_likes').select('post_id').eq('user_id', user.id),
       ])
@@ -153,8 +155,6 @@ export default function HomePage() {
 
   useEffect(() => { load() }, [user])
 
-  const firstName = (profile?.full_name || 'Farmer').split(' ')[0]
-
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
@@ -168,16 +168,7 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '90px' }}>
       <Header unreadNotifications={unreadNotifications} profileImage={profile?.profile_image || null} />
 
-      <div style={{ padding: '0 16px 16px' }}>
-        <div style={{
-          background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, borderRadius: '18px',
-          padding: '22px', marginBottom: '20px', color: 'white',
-        }}>
-          <p style={{ fontSize: '13px', color: '#DCFCE7' }}>{t('welcomeBack')}</p>
-          <p style={{ fontSize: '22px', fontWeight: 800, marginTop: '2px' }}>{firstName}</p>
-          <p style={{ fontSize: '12.5px', color: '#DCFCE7', marginTop: '6px' }}>{t('welcomeSubtitle')}</p>
-        </div>
-
+      <div style={{ padding: '14px 16px 16px' }}>
         <SectionTitle title={t('quickActions')} />
         {loading ? (
           <QuickActionsSkeleton />
@@ -254,6 +245,7 @@ export default function HomePage() {
               <FeedCard
                 key={post.id}
                 post={post}
+                isOwn={post.user_id === user?.id}
                 saved={savedPostIds.has(post.id)}
                 liked={likedPostIds.has(post.id)}
                 onToggleSave={() => toggleSavePost(post.id)}
@@ -324,9 +316,10 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 }
 
 function FeedCard({
-  post, saved, liked, onToggleSave, onToggleLike, onShare, onCommentCountChange,
+  post, isOwn, saved, liked, onToggleSave, onToggleLike, onShare, onCommentCountChange,
 }: {
   post: FeedPost
+  isOwn: boolean
   saved: boolean
   liked: boolean
   onToggleSave: () => void
@@ -338,6 +331,8 @@ function FeedCard({
   const author = post.profiles
   const [copied, setCopied] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const handleShare = async () => {
     const didCopy = await onShare()
@@ -348,15 +343,35 @@ function FeedCard({
   }
 
   return (
-    <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-      <div onClick={() => author?.username && navigate(`/u/${author.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', cursor: author?.username ? 'pointer' : 'default' }}>
-        <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {author?.profile_image ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={16} color={COLORS.green} />}
+    <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
+        <div onClick={() => author?.username && navigate(`/u/${author.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, cursor: author?.username ? 'pointer' : 'default' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+            {author?.profile_image ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={16} color={COLORS.green} />}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{author?.full_name || author?.username || 'FarmLite user'}</p>
+            <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>{timeAgo(post.created_at)}</p>
+          </div>
         </div>
-        <div>
-          <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{author?.full_name || author?.username || 'FarmLite user'}</p>
-          <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>{timeAgo(post.created_at)}</p>
-        </div>
+        {!isOwn && (
+          <div>
+            <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ padding: '6px', cursor: 'pointer', display: 'flex' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={COLORS.textMuted} aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
+            </div>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+                <div style={{ position: 'absolute', right: 0, top: '32px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '150px', overflow: 'hidden' }}>
+                  <div onClick={() => { setMenuOpen(false); setReportOpen(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 14px', fontSize: '12.5px', fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
+                    Report post
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginBottom: '10px' }}>{post.content}</p>
@@ -377,6 +392,14 @@ function FeedCard({
           <Icon name="bookmark" size={15} color={saved ? COLORS.orange : COLORS.textMuted} />
         </span>
       </div>
+
+      <ReportSheet
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        type="post"
+        contentId={post.id}
+        targetLabel={post.content.slice(0, 80)}
+      />
 
       <CommentsSheet
         postId={post.id}
