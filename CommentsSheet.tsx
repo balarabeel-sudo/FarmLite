@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import Icon from './Icons'
 import { COLORS } from './shared'
+import ReportSheet from './ReportSheet'
 
 const PAGE_SIZE = 20
 const REPLIES_LIMIT = 50
@@ -59,6 +60,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
   const [loadingReplies, setLoadingReplies] = useState<Set<string>>(new Set())
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [replyTo, setReplyTo] = useState<ReplyTarget | null>(null)
+  const [reportTarget, setReportTarget] = useState<CommentRow | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -298,6 +300,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
             <span onClick={() => toggleLike(c)} style={{ cursor: 'pointer', color: liked ? '#DC2626' : COLORS.textMuted }}>Like</span>
             <span onClick={() => startReply(c)} style={{ cursor: 'pointer' }}>Reply</span>
             {user?.id === c.user_id && <span onClick={() => remove(c)} style={{ cursor: 'pointer', fontWeight: 500 }}>Delete</span>}
+            {user && user.id !== c.user_id && <span onClick={() => setReportTarget(c)} style={{ cursor: 'pointer', fontWeight: 500 }}>Report</span>}
           </div>
 
           {/* Replies (only under top-level comments) */}
@@ -321,6 +324,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
   const canSend = !!text.trim() && !sending
 
   return (
+    <>
     <div
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -407,5 +411,14 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
         </div>
       </div>
     </div>
+
+    <ReportSheet
+      open={!!reportTarget}
+      onClose={() => setReportTarget(null)}
+      type="comment"
+      contentId={reportTarget?.id}
+      targetLabel={reportTarget?.comment.slice(0, 80)}
+    />
+    </>
   )
 }
