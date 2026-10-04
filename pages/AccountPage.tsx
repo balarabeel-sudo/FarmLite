@@ -10,8 +10,6 @@ import { COLORS } from '../shared'
 import { useLocale } from '../LocaleContext'
 import type { Language, Currency } from '../LocaleContext'
 
-const ROLE_LABELS: Record<string, string> = { farmer: 'Farmer', buyer: 'Buyer', agribusiness: 'Agribusiness' }
-
 type Profile = {
   full_name: string | null
   username: string | null
@@ -88,33 +86,28 @@ export default function AccountPage() {
           <ProfileHeaderSkeleton />
         ) : (
           <>
-            {/* Identity summary */}
-            <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
-              <div style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={26} color={COLORS.green} />}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {profile.full_name || profile.username || 'FarmLite user'}
-                  </p>
-                  {profile.is_verified && <Icon name="checkCircle" size={14} color={COLORS.green} />}
+            {/* Profile: the full profile lives on its own page; it opens when this row is tapped */}
+            <Section title="Profile" first>
+              <div
+                onClick={() => navigate(profile.username ? `/u/${profile.username}` : '/profile/edit')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}`, cursor: 'pointer' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
                 </div>
-                <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>
-                  {ROLE_LABELS[profile.role] || profile.role}{profile.location ? ` · ${profile.location}` : ''}
-                </p>
-                {profile.farmlite_id && <p style={{ fontSize: '10px', color: COLORS.textMuted, marginTop: '3px' }}>{profile.farmlite_id}</p>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {profile.full_name || profile.username || 'FarmLite user'}
+                    </p>
+                    {profile.is_verified && <Icon name="checkCircle" size={13} color={COLORS.green} />}
+                  </div>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>View profile</p>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-              <div onClick={() => profile.username && navigate(`/u/${profile.username}`)} style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, background: COLORS.card, fontSize: '12.5px', fontWeight: 700, color: COLORS.text, cursor: 'pointer' }}>
-                View Profile
-              </div>
-              <div onClick={() => navigate('/profile/edit')} style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '10px', background: COLORS.green, fontSize: '12.5px', fontWeight: 700, color: 'white', cursor: 'pointer' }}>
-                Edit Profile
-              </div>
-            </div>
+              <Row icon="user" label="Edit Profile" onClick={() => navigate('/profile/edit')} />
+              {profile.farmlite_id && <Row icon="user" label="FarmLite ID" rightText={profile.farmlite_id} />}
+            </Section>
 
             {/* Account activity */}
             <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
@@ -175,9 +168,9 @@ export default function AccountPage() {
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
   return (
-    <div style={{ marginTop: '20px' }}>
+    <div style={{ marginTop: first ? 0 : 20 }}>
       <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>{title}</p>
       <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>{children}</div>
     </div>
