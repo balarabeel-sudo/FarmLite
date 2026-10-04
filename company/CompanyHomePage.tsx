@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Icon from '../Icons'
 import { isPremiumActive, formatDate } from '../premiumShared'
+import { NameWithTick } from '../PremiumTick'
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
@@ -41,7 +42,9 @@ export default function CompanyHomePage() {
   return (
     <div>
       <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Company Dashboard</p>
-      <h1 style={{ fontSize: '24px', fontWeight: 800, color: COLORS.text, margin: '4px 0 10px' }}>{company.name}</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 800, color: COLORS.text, margin: '4px 0 10px' }}>
+        <NameWithTick name={company.name} isPremium={company.is_premium} premiumUntil={company.premium_until} size={22} />
+      </h1>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '22px' }}>
         <Chip label={STATUS_LABEL[company.status] || company.status} tone={company.status === 'verified' ? 'good' : 'neutral'} />
         {premium && <Chip label="Premium" tone="premium" />}
