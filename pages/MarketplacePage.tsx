@@ -10,6 +10,7 @@ import ImageUploader from '../ImageUploader'
 import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
 import { PremiumBadge } from '../shared'
 import BuyEscrowSheet from '../BuyEscrowSheet'
+import ReportSheet from '../ReportSheet'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
@@ -548,6 +549,7 @@ function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onBuy, o
   onBuy: () => void
   onClose: () => void
 }) {
+  const [reportOpen, setReportOpen] = useState(false)
   const images = l.images || []
   const waNumber = l.whatsapp || ''
   const callNumber = l.seller?.phone || ''
@@ -644,8 +646,23 @@ function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onBuy, o
               </>
             )}
           </div>
+
+          {!isMine && (
+            <div onClick={() => setReportOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '14px', fontSize: '12px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
+              Report this listing
+            </div>
+          )}
         </div>
       </div>
+
+      <ReportSheet
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        type="marketplace"
+        contentId={l.id}
+        targetLabel={l.title}
+      />
     </div>
   )
 }
