@@ -28,16 +28,27 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 const STATUS_FILTERS = ['all', 'verified', 'pending', 'needs_review', 'rejected', 'suspended']
 
+// months: 0 = Lifetime
+const PREMIUM_DURATIONS = [
+  { label: '1 month', months: 1 },
+  { label: '3 months', months: 3 },
+  { label: '6 months', months: 6 },
+  { label: '1 year', months: 12 },
+  { label: 'Lifetime', months: 0 },
+]
+
 export default function AdminCompaniesPage() {
   const staff = useStaff()
   const canManage = staff.permissions.has('companies.manage')
   const canManageTrustedPartner = staff.permissions.has('companies.manage_trusted_partner')
+  const canManagePremium = staff.permissions.has('companies.manage_premium')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [premiumMenuFor, setPremiumMenuFor] = useState('')
 
   const load = async () => {
     setError(false)
@@ -78,6 +89,28 @@ export default function AdminCompaniesPage() {
     }
   }
 
+  // Premium changes go through the database (permission check, grant record, audit log, notification)
+  const grantPremium = async (c: Company, months: number) => {
+    const { error } = await supabase.rpc('admin_grant_premium', { p_audience: 'company', p_target: c.id, p_months: months, p_note: null })
+    if (error) {
+      window.alert(error.message)
+      return
+    }
+    setPremiumMenuFor('')
+    load()
+  }
+
+  const removePremium = async (c: Company) => {
+    if (!window.confirm(`Remove Premium from ${c.name}? This applies even if they paid for it.`)) return
+    const { error } = await supabase.rpc('admin_revoke_premium', { p_audience: 'company', p_target: c.id, p_note: null })
+    if (error) {
+      window.alert(error.message)
+      return
+    }
+    setPremiumMenuFor('')
+    load()
+  }
+
   return (
     <AdminLayout title="Companies">
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -102,7 +135,7 @@ export default function AdminCompaniesPage() {
         ))}
       </div>
 
-      <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px', overflow: 'visible' }}>
         {loading ? (
           <p style={{ padding: '20px', fontSize: '13px', color: A.textMuted }}>Loading companies...</p>
         ) : error ? (
@@ -131,8 +164,33 @@ export default function AdminCompaniesPage() {
                     <td style={{ padding: '10px 16px' }}>
                       <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px', textTransform: 'capitalize' }}>{c.status.replace('_', ' ')}</span>
                     </td>
-                    <td style={{ padding: '10px 16px', color: c.is_premium ? A.blue : A.textMuted, fontWeight: c.is_premium ? 700 : 400 }}>
-                      {c.is_premium ? (c.premium_until ? `Active · ${new Date(c.premium_until).toLocaleDateString()}` : 'Active') : '—'}
+                    <td style={{ padding: '10px 16px', position: 'relative' }}>
+                      <span style={{ color: c.is_premium ? A.blue : A.textMuted, fontWeight: c.is_premium ? 700 : 400, fontSize: '12px' }}>
+                        {c.is_premium ? (c.premium_until ? `Active · ${new Date(c.premium_until).toLocaleDateString()}` : 'Active · Lifetime') : '—'}
+                      </span>
+                      {canManagePremium && (
+                        <>
+                          <span
+                            onClick={() => setPremiumMenuFor(premiumMenuFor === c.id ? '' : c.id)}
+                            style={{ marginLeft: '10px', fontSize: '11.5px', fontWeight: 700, color: A.amber, cursor: 'pointer' }}>
+                            {c.is_premium ? 'Manage' : '+ Grant'}
+                          </span>
+                          {premiumMenuFor === c.id && (
+                            <div style={{ position: 'absolute', top: '100%', left: '16px', zIndex: 5, background: A.surface, border: `1px solid ${A.border}`, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '8px', minWidth: '140px' }}>
+                              {PREMIUM_DURATIONS.map((d) => (
+                                <div key={d.label} onClick={() => grantPremium(c, d.months)} style={{ padding: '6px 8px', fontSize: '12px', color: A.text, cursor: 'pointer', borderRadius: '5px' }}>
+                                  {d.label}
+                                </div>
+                              ))}
+                              {c.is_premium && (
+                                <div onClick={() => removePremium(c)} style={{ padding: '6px 8px', fontSize: '12px', color: A.red, cursor: 'pointer', borderTop: `1px solid ${A.border}`, marginTop: '4px' }}>
+                                  Remove Premium
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       {canManageTrustedPartner ? (
