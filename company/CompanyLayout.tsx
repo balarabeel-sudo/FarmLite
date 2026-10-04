@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { isPremiumActive } from '../premiumShared'
+import PremiumTick from '../PremiumTick'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -21,7 +22,6 @@ export type DashCompany = {
   name: string
   logo_url: string | null
   status: string
-  is_verified: boolean
   is_premium: boolean
   premium_until: string | null
   country: string | null
@@ -54,15 +54,17 @@ export default function CompanyLayout() {
   const [loading, setLoading] = useState(true)
   const [company, setCompany] = useState<DashCompany | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('companies')
-      .select('id, name, logo_url, status, is_verified, is_premium, premium_until, country, followers_count, rating, views_count')
+      .select('id, name, logo_url, status, is_premium, premium_until, country, followers_count, rating, views_count')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1)
+    if (error) setLoadError(error.message)
     setCompany(data && data.length ? ((data[0] as any) as DashCompany) : null)
     setLoading(false)
   }, [user])
@@ -80,7 +82,7 @@ export default function CompanyLayout() {
         <div style={{ background: COLORS.card, borderRadius: '16px', padding: '28px 22px', maxWidth: 380, textAlign: 'center' }}>
           <Icon name="building" size={30} color={COLORS.green} />
           <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text, margin: '10px 0 6px' }}>No company found</p>
-          <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>This account does not own a company yet.</p>
+          <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>{loadError ? `Could not load your company: ${loadError}` : 'This account does not own a company yet.'}</p>
           <div onClick={() => navigate('/profile')} style={{ marginTop: '16px', padding: '11px', borderRadius: '10px', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
             Back to Personal Account
           </div>
@@ -106,7 +108,10 @@ export default function CompanyLayout() {
           {company.logo_url ? <img src={company.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={20} color="white" />}
         </div>
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: '13.5px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <p style={{ fontSize: '13.5px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</p>
+            {premium && <PremiumTick size={14} />}
+          </div>
           <p style={{ fontSize: '10.5px', color: '#BBF7D0', marginTop: '2px' }}>{premium ? 'Company Premium' : 'Company Dashboard'}</p>
         </div>
       </div>
@@ -148,7 +153,7 @@ export default function CompanyLayout() {
           <div style={{ position: 'sticky', top: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: COLORS.greenDeep, color: 'white' }}>
             <div onClick={() => setMenuOpen(true)} style={{ fontSize: '20px', lineHeight: 1, cursor: 'pointer', padding: '2px 4px' }}>☰</div>
             <p style={{ fontSize: '14px', fontWeight: 800, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{company.name}</p>
-            {premium && <Icon name="crown" size={16} color="#FDE68A" />}
+            {premium && <PremiumTick size={16} />}
           </div>
           {menuOpen && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 40 }}>
