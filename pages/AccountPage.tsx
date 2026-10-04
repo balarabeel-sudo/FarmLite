@@ -9,6 +9,7 @@ import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
 import { useLocale } from '../LocaleContext'
 import type { Language, Currency } from '../LocaleContext'
+import { isPremiumActive, formatDate } from '../premiumShared'
 
 type Profile = {
   full_name: string | null
@@ -35,16 +36,18 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [listingsCount, setListingsCount] = useState(0)
   const [groupsCount, setGroupsCount] = useState(0)
+  const [myCompany, setMyCompany] = useState<{ id: string; name: string } | null>(null)
 
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
-    const [profileRes, listingsRes, groupsRes] = await Promise.all([
+    const [profileRes, listingsRes, groupsRes, companyRes] = await Promise.all([
       supabase.from('profiles').select('full_name, username, profile_image, role, location, is_verified, is_premium, premium_until, posts_count, farmlite_id').eq('user_id', user.id).maybeSingle(),
       supabase.from('marketplace_listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
       supabase.from('community_members').select('community_id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('companies').select('id, name').eq('owner_id', user.id).order('created_at', { ascending: true }).limit(1),
     ])
 
     if (profileRes.error) {
@@ -56,6 +59,7 @@ export default function AccountPage() {
     setProfile(profileRes.data as any)
     setListingsCount(listingsRes.count || 0)
     setGroupsCount(groupsRes.count || 0)
+    setMyCompany(companyRes.data && companyRes.data.length ? (companyRes.data[0] as any) : null)
     setLoading(false)
   }
 
@@ -142,12 +146,6 @@ export default function AccountPage() {
 
             <Section title="Settings">
               <Row icon="bell" label="Notifications" onClick={() => navigate('/notifications')} />
-              <Row
-                icon="crown"
-                label="FarmLite Premium"
-                rightText={profile.is_premium ? (profile.premium_until ? `Active · ${new Date(profile.premium_until).toLocaleDateString()}` : 'Active') : 'Not active'}
-                onClick={() => {}}
-              />
               <Row icon="shield" label="Privacy & Security" comingSoon />
               <SelectRow icon="globe" label="Language" value={language} onChange={(v) => setLanguage(v as Language)}>
                 <option value="ha">Hausa</option>
@@ -161,6 +159,50 @@ export default function AccountPage() {
               <Row icon="helpCircle" label="Help & Support" comingSoon />
               <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
             </Section>
+
+            {/* Premium card: tapping opens the Premium flow (benefits first, then price) */}
+            {(() => {
+              const active = isPremiumActive(profile.is_premium, profile.premium_until)
+              return (
+                <div style={{ marginTop: '22px', background: 'linear-gradient(135deg, #16A34A, #166534)', borderRadius: '16px', padding: '18px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', right: '-24px', top: '-24px', width: '110px', height: '110px', borderRadius: '55px', background: 'rgba(255,255,255,0.1)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '21px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="crown" size={21} color="white" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Premium Active' : 'FarmLite Premium'}</p>
+                      <p style={{ fontSize: '11.5px', color: '#DCFCE7', marginTop: '3px', lineHeight: 1.45 }}>
+                        {active
+                          ? (profile.premium_until ? `Active until ${formatDate(profile.premium_until)}` : 'Your Premium membership is active.')
+                          : 'Unlock more tools, insights and opportunities on FarmLite.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => navigate('/premium')}
+                    style={{ marginTop: '14px', textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'white', color: '#166534', fontWeight: 800, fontSize: '13.5px', cursor: 'pointer', position: 'relative' }}>
+                    {active ? 'Extend Premium' : 'Upgrade to Premium'}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Only for people who own a company: a separate dashboard with its own menu */}
+            {myCompany && (
+              <div
+                onClick={() => navigate('/company')}
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid #E5EFE5' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="building" size={19} color={COLORS.green} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>Switch to Company Dashboard</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{myCompany.name}</p>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            )}
           </>
         )}
       </div>
