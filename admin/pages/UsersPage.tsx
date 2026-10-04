@@ -27,11 +27,13 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 const STATUS_FILTERS = ['all', 'active', 'restricted', 'suspended']
 
+// months: 0 = Lifetime
 const PREMIUM_DURATIONS = [
-  { label: '1 month', days: 30 },
-  { label: '3 months', days: 90 },
-  { label: '1 year', days: 365 },
-  { label: 'Lifetime', days: null as number | null },
+  { label: '1 month', months: 1 },
+  { label: '3 months', months: 3 },
+  { label: '6 months', months: 6 },
+  { label: '1 year', months: 12 },
+  { label: 'Lifetime', months: 0 },
 ]
 
 export default function UsersPage() {
@@ -78,22 +80,27 @@ export default function UsersPage() {
     }
   }
 
-  const grantPremium = async (u: User, days: number | null) => {
-    const until = days ? new Date(Date.now() + days * 86400000).toISOString() : null
-    const { error } = await supabase.from('profiles').update({ is_premium: true, premium_until: until }).eq('user_id', u.user_id)
-    if (!error) {
-      await logAdminAction('Granted user Premium', { type: 'user', id: u.user_id, label: u.full_name || u.username || u.user_id }, { until })
-      setPremiumMenuFor('')
-      load()
+  // Premium changes go through the database (it checks the permission, extends any time the user
+  // already has, records the grant and writes the audit log + notification itself).
+  const grantPremium = async (u: User, months: number) => {
+    const { error } = await supabase.rpc('admin_grant_premium', { p_audience: 'user', p_target: u.user_id, p_months: months, p_note: null })
+    if (error) {
+      window.alert(error.message)
+      return
     }
+    setPremiumMenuFor('')
+    load()
   }
 
   const removePremium = async (u: User) => {
-    const { error } = await supabase.from('profiles').update({ is_premium: false, premium_until: null }).eq('user_id', u.user_id)
-    if (!error) {
-      await logAdminAction('Removed user Premium', { type: 'user', id: u.user_id, label: u.full_name || u.username || u.user_id })
-      load()
+    if (!window.confirm(`Remove Premium from ${u.full_name || u.username}? This applies even if they paid for it.`)) return
+    const { error } = await supabase.rpc('admin_revoke_premium', { p_audience: 'user', p_target: u.user_id, p_note: null })
+    if (error) {
+      window.alert(error.message)
+      return
     }
+    setPremiumMenuFor('')
+    load()
   }
 
   return (
@@ -155,7 +162,7 @@ export default function UsersPage() {
                     </td>
                     <td style={{ padding: '10px 16px', position: 'relative' }}>
                       <span style={{ color: u.is_premium ? A.blue : A.textMuted, fontWeight: u.is_premium ? 700 : 400, fontSize: '12px' }}>
-                        {u.is_premium ? (u.premium_until ? `Active · ${new Date(u.premium_until).toLocaleDateString()}` : 'Active') : '—'}
+                        {u.is_premium ? (u.premium_until ? `Active · ${new Date(u.premium_until).toLocaleDateString()}` : 'Active · Lifetime') : '—'}
                       </span>
                       {canManagePremium && (
                         <>
@@ -167,7 +174,7 @@ export default function UsersPage() {
                           {premiumMenuFor === u.user_id && (
                             <div style={{ position: 'absolute', top: '100%', left: '16px', zIndex: 5, background: A.surface, border: `1px solid ${A.border}`, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '8px', minWidth: '140px' }}>
                               {PREMIUM_DURATIONS.map((d) => (
-                                <div key={d.label} onClick={() => grantPremium(u, d.days)} style={{ padding: '6px 8px', fontSize: '12px', color: A.text, cursor: 'pointer', borderRadius: '5px' }}>
+                                <div key={d.label} onClick={() => grantPremium(u, d.months)} style={{ padding: '6px 8px', fontSize: '12px', color: A.text, cursor: 'pointer', borderRadius: '5px' }}>
                                   {d.label}
                                 </div>
                               ))}
