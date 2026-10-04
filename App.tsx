@@ -31,6 +31,10 @@ import WalletPage from './pages/WalletPage'
 import StaffInvitePage from './pages/StaffInvitePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderPage from './pages/OrderPage'
+import PremiumPage from './pages/PremiumPage'
+import CompanyLayout from './company/CompanyLayout'
+import CompanyHomePage from './company/CompanyHomePage'
+import CompanyPremiumPage from './company/CompanyPremiumPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -265,6 +269,37 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Premium (user). /premium/verify is where the payment page sends the user back */}
+            <Route
+              path="/premium"
+              element={
+                <ProtectedRoute>
+                  <PremiumPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/premium/verify"
+              element={
+                <ProtectedRoute>
+                  <PremiumPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Company dashboard: separate desktop-style space for company owners */}
+            <Route
+              path="/company"
+              element={
+                <ProtectedRoute>
+                  <CompanyLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<CompanyHomePage />} />
+              <Route path="premium" element={<CompanyPremiumPage />} />
+            </Route>
 
             {/* Unknown routes fall back to Home (which itself redirects to /login if needed) */}
             {/* FarmLite Admin - a signed-in user still needs an active staff row to see anything here */}
