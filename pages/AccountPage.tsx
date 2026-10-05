@@ -11,6 +11,7 @@ import { useLocale } from '../LocaleContext'
 import type { Language, Currency } from '../LocaleContext'
 import { isPremiumActive, formatDate } from '../premiumShared'
 import PremiumTick from '../PremiumTick'
+import { AnalyticsIcon } from '../AnalyticsCharts'
 
 type Profile = {
   full_name: string | null
@@ -25,8 +26,8 @@ type Profile = {
   farmlite_id: string | null
 }
 
-// The private control center for the signed-in user. The public identity other users
-// see lives on the Profile page (/u/username) instead - see [View Profile] below.
+// The private control center for the signed-in user: settings, Premium and the company switch.
+// Everything about the person's own farm, marketplace and community lives on My Profile (/my-profile).
 export default function AccountPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
@@ -35,8 +36,6 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [listingsCount, setListingsCount] = useState(0)
-  const [groupsCount, setGroupsCount] = useState(0)
   const [myCompany, setMyCompany] = useState<{ id: string; name: string } | null>(null)
 
   const load = async () => {
@@ -44,10 +43,8 @@ export default function AccountPage() {
     setNetError(false)
     setLoading(true)
 
-    const [profileRes, listingsRes, groupsRes, companyRes] = await Promise.all([
+    const [profileRes, companyRes] = await Promise.all([
       supabase.from('profiles').select('full_name, username, profile_image, role, location, is_verified, is_premium, premium_until, posts_count, farmlite_id').eq('user_id', user.id).maybeSingle(),
-      supabase.from('marketplace_listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
-      supabase.from('community_members').select('community_id', { count: 'exact', head: true }).eq('user_id', user.id),
       supabase.from('companies').select('id, name').eq('owner_id', user.id).order('created_at', { ascending: true }).limit(1),
     ])
 
@@ -58,8 +55,6 @@ export default function AccountPage() {
     }
 
     setProfile(profileRes.data as any)
-    setListingsCount(listingsRes.count || 0)
-    setGroupsCount(groupsRes.count || 0)
     setMyCompany(companyRes.data && companyRes.data.length ? (companyRes.data[0] as any) : null)
     setLoading(false)
   }
@@ -80,8 +75,6 @@ export default function AccountPage() {
     )
   }
 
-  const showFarmSection = profile?.role === 'farmer' || profile?.role === 'agribusiness'
-
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
       <Header onBack={() => navigate(-1)} />
@@ -91,59 +84,45 @@ export default function AccountPage() {
           <ProfileHeaderSkeleton />
         ) : (
           <>
-            {/* Profile: the full profile lives on its own page; it opens when this row is tapped */}
+            {/* My Profile: its own page (/my-profile) with everything personal: farm, marketplace, community, FarmBot */}
             <Section title="Profile" first>
               <div
-                onClick={() => navigate(profile.username ? `/u/${profile.username}` : '/profile/edit')}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}`, cursor: 'pointer' }}>
+                onClick={() => navigate('/my-profile')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', cursor: 'pointer' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>My Profile</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <p style={{ fontSize: '11px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {profile.full_name || profile.username || 'FarmLite user'}
                     </p>
-                    {profile.is_verified && <Icon name="checkCircle" size={13} color={COLORS.green} />}
-                    {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={15} />}
+                    {profile.is_verified && <Icon name="checkCircle" size={12} color={COLORS.green} />}
+                    {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
                   </div>
-                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>View profile</p>
                 </div>
                 <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
               </div>
-              <Row icon="user" label="Edit Profile" onClick={() => navigate('/profile/edit')} />
-              {profile.farmlite_id && <Row icon="user" label="FarmLite ID" rightText={profile.farmlite_id} />}
             </Section>
 
-            {/* Account activity */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-              <Stat label="Posts" value={profile.posts_count || 0} />
-              <Stat label="Listings" value={listingsCount} />
-              <Stat label="Groups" value={groupsCount} />
-            </div>
-
-            <Section title="My Marketplace">
-              <Row icon="package" label="My Listings" onClick={() => navigate('/marketplace?mine=1')} />
-              <Row icon="bookmark" label="Saved Products" onClick={() => navigate('/saved')} />
+            <Section title="Wallet">
               <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
-              <Row icon="fileText" label="Orders" onClick={() => navigate('/orders')} />
-            </Section>
-
-            {showFarmSection && (
-              <Section title="My Farm">
-                <Row icon="leaf" label="My Crops" onClick={() => navigate('/marketplace?mine=1&category=crop')} />
-                <Row icon="leaf" label="Livestock" onClick={() => navigate('/marketplace?mine=1&category=livestock')} />
-                <Row icon="tractor" label="Equipment" onClick={() => navigate('/equipment?mine=1')} />
-              </Section>
-            )}
-
-            <Section title="Community">
-              <Row icon="users" label="My Groups" onClick={() => navigate('/communities')} />
-              <Row icon="bookmark" label="Saved Posts" onClick={() => navigate('/saved')} />
             </Section>
 
             <Section title="FarmBot">
               <Row icon="message" label="FarmBot History" onClick={() => navigate('/farmbot')} />
+            </Section>
+
+            <Section title="Insights">
+              <div
+                onClick={() => navigate('/analytics')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
+                <AnalyticsIcon size={17} color={COLORS.textMuted} />
+                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Analytics</p>
+                {!isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
             </Section>
 
             <Section title="Settings">
@@ -193,7 +172,7 @@ export default function AccountPage() {
             {/* Only for people who own a company: a separate dashboard with its own menu */}
             {myCompany && (
               <div
-                onClick={() => navigate('/company')}
+                onClick={() => navigate('/company', { replace: true })}
                 style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid #E5EFE5' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="building" size={19} color={COLORS.green} />
@@ -264,15 +243,6 @@ function SelectRow({ icon, label, value, onChange, children }: {
         style={{ border: 'none', background: 'transparent', fontSize: '12px', fontWeight: 700, color: COLORS.green, outline: 'none', cursor: 'pointer', textAlign: 'right' }}>
         {children}
       </select>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div style={{ flex: 1, background: COLORS.card, borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
-      <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text }}>{value}</p>
-      <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '2px' }}>{label}</p>
     </div>
   )
 }
