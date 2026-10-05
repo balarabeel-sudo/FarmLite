@@ -8,6 +8,7 @@ import {
   USER_INCLUDED,
   COMPANY_INCLUDED,
   fetchPrices,
+  fetchLimits,
   startCheckout,
   verifyPayment,
   findPendingReference,
@@ -17,7 +18,7 @@ import {
   formatDate,
   planLabel,
 } from './premiumShared'
-import type { Audience, PriceInfo, VerifyResult } from './premiumShared'
+import type { Audience, PriceInfo, VerifyResult, Limits } from './premiumShared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -53,7 +54,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export default function PremiumFlow({ audience, companyId, companyName, initialReference, wide, showBenefits, onExit, onDone, onChanged }: Props) {
   const isCompany = audience === 'company'
   const productName = isCompany ? 'FarmLite Company Premium' : 'FarmLite Premium'
-  const features = isCompany ? COMPANY_FEATURES : USER_FEATURES
+  const baseFeatures = isCompany ? COMPANY_FEATURES : USER_FEATURES
+  // Real numbers from the database replace the placeholder text
+  const features = baseFeatures.map((f) =>
+    f.limitKey && limits[f.limitKey]
+      ? { ...f, free: `${limits[f.limitKey].free}${f.unit || ''}`, premium: `${limits[f.limitKey].premium}${f.unit || ''}` }
+      : f,
+  )
   const included = isCompany ? COMPANY_INCLUDED : USER_INCLUDED
 
   const [step, setStep] = useState<Step>('loading')
@@ -64,6 +71,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const [notice, setNotice] = useState<string | null>(null)
   const [result, setResult] = useState<VerifyResult | null>(null)
   const [stuck, setStuck] = useState(false)
+  const [limits, setLimits] = useState<Limits>({})
   const [failMsg, setFailMsg] = useState<string | null>(null)
   const started = useRef(false)
   const includedRef = useRef<HTMLDivElement>(null)
@@ -112,6 +120,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   useEffect(() => {
     if (started.current) return
     started.current = true
+    fetchLimits().then(setLimits).catch(() => {})
     ;(async () => {
       const { info: loaded, error: e } = await fetchPrices(audience, companyId)
       if (e || !loaded) {
