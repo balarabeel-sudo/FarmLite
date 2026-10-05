@@ -9,6 +9,7 @@ export default function CompanyPremiumPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const reference = params.get('reference') || params.get('trxref') || undefined
+  const showBenefits = params.get('benefits') === '1'
 
   const leave = () => {
     clearCheckoutContext()
@@ -23,6 +24,7 @@ export default function CompanyPremiumPage() {
         companyId={company.id}
         companyName={company.name}
         initialReference={reference}
+        showBenefits={showBenefits}
         wide
         onExit={leave}
         onDone={leave}
