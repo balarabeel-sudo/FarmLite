@@ -32,6 +32,9 @@ import StaffInvitePage from './pages/StaffInvitePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderPage from './pages/OrderPage'
 import PremiumPage from './pages/PremiumPage'
+import MyProfilePage from './pages/MyProfilePage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import CompanyAnalyticsPage from './company/CompanyAnalyticsPage'
 import CompanyLayout from './company/CompanyLayout'
 import CompanyHomePage from './company/CompanyHomePage'
 import CompanyPremiumPage from './company/CompanyPremiumPage'
@@ -270,6 +273,26 @@ function App() {
               }
             />
 
+            {/* My Profile: the user's own profile hub (farm, marketplace, community, FarmBot) */}
+            <Route
+              path="/my-profile"
+              element={
+                <ProtectedRoute>
+                  <MyProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Analytics (Premium users see real data, free users see a sample preview) */}
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Premium (user). /premium/verify is where the payment page sends the user back */}
             <Route
               path="/premium"
@@ -298,6 +321,7 @@ function App() {
               }
             >
               <Route index element={<CompanyHomePage />} />
+              <Route path="analytics" element={<CompanyAnalyticsPage />} />
               <Route path="premium" element={<CompanyPremiumPage />} />
             </Route>
 
