@@ -15,6 +15,7 @@ export default function PremiumPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const reference = params.get('reference') || params.get('trxref') || undefined
+  const showBenefits = params.get('benefits') === '1'
 
   // A company payment returns to the company dashboard instead
   const ctx = reference ? readCheckoutContext() : null
@@ -40,7 +41,7 @@ export default function PremiumPage() {
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Premium</p>
       </div>
       <div style={{ padding: '16px' }}>
-        <PremiumFlow audience="user" initialReference={reference} onExit={leave} onDone={leave} />
+        <PremiumFlow audience="user" initialReference={reference} showBenefits={showBenefits} onExit={leave} onDone={leave} />
       </div>
     </div>
   )
