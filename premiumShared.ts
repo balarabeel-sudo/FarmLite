@@ -29,11 +29,14 @@ export type Feature = {
   premium: string
   live: boolean
   soonLabel?: string
+  // when set, the Free/Premium values are read from app_limits so the page never shows stale numbers
+  limitKey?: string
+  unit?: string
 }
 
 export const USER_FEATURES: Feature[] = [
-  { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: false },
-  { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: false },
+  { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'farmbot_daily_messages', unit: '/day' },
+  { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: false, limitKey: 'active_listings' },
   { icon: 'play', title: 'Short Video Posting', sub: 'Post short videos (up to 20 seconds)', free: 'No', premium: 'Yes (20s)', live: false },
   { icon: 'bars', title: 'Advanced Analytics', sub: 'Track your growth and performance', free: 'No', premium: 'Yes', live: true },
   { icon: 'user', title: 'Premium Profile', sub: 'A richer profile that stands out', free: 'No', premium: 'Yes', live: false },
@@ -61,7 +64,7 @@ export const COMPANY_FEATURES: Feature[] = [
 export type Included = { title: string; live: boolean }
 
 export const USER_INCLUDED: Included[] = [
-  { title: 'Advanced FarmBot', live: false },
+  { title: 'Advanced FarmBot', live: true },
   { title: '10 Marketplace Listings', live: false },
   { title: '20-Second Short Videos', live: false },
   { title: 'Personal Analytics', live: true },
@@ -134,6 +137,16 @@ export async function fetchPrices(audience: Audience, companyId?: string | null)
   })
   if (error) return { error: error.message }
   return { info: data as PriceInfo }
+}
+
+export type Limits = Record<string, { free: number; premium: number }>
+
+// Free vs Premium limits (FarmBot messages per day, active listings...) configured in the database
+export async function fetchLimits(): Promise<Limits> {
+  const { data } = await supabase.from('app_limits').select('key, free_value, premium_value')
+  const out: Limits = {}
+  ;(data || []).forEach((r: any) => { out[r.key] = { free: r.free_value, premium: r.premium_value } })
+  return out
 }
 
 export async function startCheckout(
