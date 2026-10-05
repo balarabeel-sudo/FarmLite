@@ -10,6 +10,7 @@ import { COLORS } from '../shared'
 import { useLocale } from '../LocaleContext'
 import type { Language, Currency } from '../LocaleContext'
 import { isPremiumActive, formatDate } from '../premiumShared'
+import PremiumTick from '../PremiumTick'
 
 type Profile = {
   full_name: string | null
@@ -104,6 +105,7 @@ export default function AccountPage() {
                       {profile.full_name || profile.username || 'FarmLite user'}
                     </p>
                     {profile.is_verified && <Icon name="checkCircle" size={13} color={COLORS.green} />}
+                    {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={15} />}
                   </div>
                   <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>View profile</p>
                 </div>
