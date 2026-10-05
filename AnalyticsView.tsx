@@ -1,302 +1,291 @@
-import { useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
-import { compact, trend } from './analyticsShared'
+import { useState } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
+import Icon from './Icons'
+import { AreaChart, BarChart, Donut, TrendBadge, Sparkline, RangePicker, CHART } from './AnalyticsCharts'
+import { compact, dayLabels, sumSeries, EMPTY_METRIC } from './analyticsShared'
+import type { AnalyticsData, AnalyticsAudience, Metric } from './analyticsShared'
+import { formatMoney } from './premiumShared'
 
-export const CHART = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
-  bg: '#F8FAF6',
-  green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#DC2626',
-  blue: '#1D9BF0',
-  amber: '#D97706',
+type MetricKey = 'views' | 'listing_views' | 'followers' | 'likes' | 'comments' | 'saves' | 'sales'
+
+const METRICS: Record<AnalyticsAudience, { key: MetricKey; label: string; color: string }[]> = {
+  user: [
+    { key: 'views', label: 'Profile views', color: '#1D9BF0' },
+    { key: 'followers', label: 'New followers', color: '#16A34A' },
+    { key: 'likes', label: 'Likes', color: '#DB2777' },
+    { key: 'comments', label: 'Comments', color: '#7C3AED' },
+    { key: 'saves', label: 'Saves', color: '#D97706' },
+    { key: 'sales', label: 'Sales', color: '#0D9488' },
+  ],
+  company: [
+    { key: 'views', label: 'Page views', color: '#1D9BF0' },
+    { key: 'listing_views', label: 'Listing views', color: '#7C3AED' },
+    { key: 'followers', label: 'New followers', color: '#16A34A' },
+    { key: 'saves', label: 'Saves', color: '#D97706' },
+    { key: 'sales', label: 'Orders', color: '#0D9488' },
+  ],
 }
 
-export const PALETTE = ['#16A34A', '#1D9BF0', '#D97706', '#7C3AED', '#DB2777', '#0D9488', '#65A30D', '#64748B']
-
-function niceMax(v: number): number {
-  if (v <= 4) return 4
-  const pow = Math.pow(10, Math.floor(Math.log10(v)))
-  const n = v / pow
-  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10
-  return step * pow
+type Props = {
+  audience: AnalyticsAudience
+  data: AnalyticsData | null
+  loading: boolean
+  error: string | null
+  days: number
+  onDays: (d: number) => void
+  onRetry: () => void
+  onUpgrade: () => void
 }
 
-// ---------- Interactive line/area chart ----------
-export function AreaChart({
-  series,
-  labels,
-  color = CHART.green,
-  height = 220,
-}: {
-  series: number[]
-  labels: string[]
-  color?: string
-  height?: number
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [hover, setHover] = useState<number | null>(null)
-  const gid = useRef(`g${Math.random().toString(36).slice(2, 9)}`).current
-
-  const n = series.length
-  const W = 1000
-  const H = height
-  const topPad = 14
-  const max = niceMax(Math.max(1, ...series))
-  const xAt = (i: number) => (n <= 1 ? W / 2 : (i / (n - 1)) * W)
-  const yAt = (v: number) => H - (v / max) * (H - topPad)
-
-  let line = ''
-  series.forEach((v, i) => {
-    const x = xAt(i)
-    const y = yAt(v)
-    if (i === 0) line = `M ${x} ${y}`
-    else {
-      const px = xAt(i - 1)
-      const py = yAt(series[i - 1])
-      const mx = (px + x) / 2
-      line += ` C ${mx} ${py} ${mx} ${y} ${x} ${y}`
-    }
-  })
-  const area = n > 0 ? `${line} L ${xAt(n - 1)} ${H} L ${xAt(0)} ${H} Z` : ''
-
-  const onMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el || n === 0) return
-    const rect = el.getBoundingClientRect()
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-    setHover(n <= 1 ? 0 : Math.round(ratio * (n - 1)))
-  }
-
-  const gridLines = [0, 0.25, 0.5, 0.75, 1]
-  const hx = hover === null ? 0 : (xAt(hover) / W) * 100
-  const hy = hover === null ? 0 : (yAt(series[hover]) / H) * 100
+export default function AnalyticsView({ audience, data, loading, error, days, onDays, onRetry, onUpgrade }: Props) {
+  const locked = !!data?.locked
 
   return (
     <div>
-      <div
-        ref={ref}
-        onPointerMove={onMove}
-        onPointerDown={onMove}
-        onPointerLeave={() => setHover(null)}
-        style={{ position: 'relative', height: H, touchAction: 'pan-y', cursor: 'crosshair' }}>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" width="100%" height={H} style={{ display: 'block', overflow: 'visible' }}>
-          <defs>
-            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-          {gridLines.map((g) => (
-            <line key={g} x1="0" x2={W} y1={yAt(max * g)} y2={yAt(max * g)} stroke={CHART.border} strokeWidth="1" vectorEffect="non-scaling-stroke" strokeDasharray={g === 0 ? undefined : '4 4'} />
-          ))}
-          {n > 0 && <path d={area} fill={`url(#${gid})`} />}
-          {n > 0 && <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
-        </svg>
-
-        {/* y-axis labels */}
-        {gridLines.slice(1).map((g) => (
-          <span key={g} style={{ position: 'absolute', left: 0, top: `${(yAt(max * g) / H) * 100}%`, transform: 'translateY(-110%)', fontSize: '9.5px', color: CHART.textMuted, background: 'rgba(255,255,255,0.7)', padding: '0 3px', borderRadius: 3, pointerEvents: 'none' }}>
-            {compact(Math.round(max * g))}
-          </span>
-        ))}
-
-        {hover !== null && series[hover] !== undefined && (
-          <>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${hx}%`, width: 1, background: color, opacity: 0.35, pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', left: `${hx}%`, top: `${hy}%`, width: 11, height: 11, borderRadius: 6, background: color, border: '2px solid white', transform: 'translate(-50%, -50%)', boxShadow: '0 1px 4px rgba(0,0,0,0.25)', pointerEvents: 'none' }} />
-            <div
-              style={{
-                position: 'absolute', top: 0, left: `${Math.min(82, Math.max(18, hx))}%`, transform: 'translate(-50%, -100%)',
-                background: CHART.text, color: 'white', borderRadius: 8, padding: '5px 9px', fontSize: '11px', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 2,
-              }}>
-              <span style={{ opacity: 0.75 }}>{labels[hover]}</span> <b style={{ marginLeft: 4 }}>{series[hover].toLocaleString()}</b>
-            </div>
-          </>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 800, color: CHART.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            {audience === 'company' ? 'Company Analytics' : 'Analytics'}
+          </p>
+          <p style={{ fontSize: '12.5px', color: CHART.textMuted, marginTop: 3 }}>How your {audience === 'company' ? 'company' : 'profile and content'} is performing</p>
+        </div>
+        {!locked && <RangePicker value={days} onChange={onDays} />}
       </div>
 
-      {n > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '10.5px', color: CHART.textMuted }}>
-          <span>{labels[0]}</span>
-          {n > 4 && <span>{labels[Math.floor((n - 1) / 2)]}</span>}
-          <span>{labels[n - 1]}</span>
+      {error ? (
+        <div style={{ background: CHART.card, borderRadius: 14, padding: '28px 18px', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', color: CHART.red, marginBottom: 12 }}>{error}</p>
+          <div onClick={onRetry} style={{ display: 'inline-block', padding: '9px 18px', borderRadius: 10, background: CHART.green, color: 'white', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Try again</div>
         </div>
-      )}
+      ) : loading && !data ? (
+        <Skeleton />
+      ) : locked ? (
+        <LockedPreview audience={audience} onUpgrade={onUpgrade} />
+      ) : data ? (
+        <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s' }}>
+          <DashboardBody audience={audience} data={data} />
+        </div>
+      ) : null}
     </div>
   )
 }
 
-// ---------- Interactive bar chart ----------
-export function BarChart({
-  series,
-  labels,
-  color = CHART.green,
-  height = 150,
-}: {
-  series: number[]
-  labels: string[]
-  color?: string
-  height?: number
-}) {
-  const [hover, setHover] = useState<number | null>(null)
-  const max = Math.max(1, ...series)
-  const n = series.length
+function DashboardBody({ audience, data }: { audience: AnalyticsAudience; data: AnalyticsData }) {
+  const defs = METRICS[audience]
+  const [selected, setSelected] = useState<MetricKey>('views')
+  const def = defs.find((d) => d.key === selected) || defs[0]
+
+  const get = (k: MetricKey): Metric => (data[k] as Metric | undefined) || EMPTY_METRIC
+  const main = get(def.key)
+  const count = main.series.length
+  const labels = dayLabels(data.start, count)
+  const days = data.days || count
+
+  const engagement =
+    audience === 'company'
+      ? sumSeries(get('listing_views').series, get('saves').series, get('followers').series)
+      : sumSeries(get('likes').series, get('comments').series, get('saves').series)
+
+  const revenue = Object.entries(data.revenue || {})
+  const salesLabel = audience === 'company' ? 'Orders' : 'Sales'
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: n > 45 ? 1 : 3, height }} onPointerLeave={() => setHover(null)}>
-        {series.map((v, i) => (
-          <div
-            key={i}
-            onPointerEnter={() => setHover(i)}
-            onPointerDown={() => setHover(i)}
-            style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', cursor: 'pointer', touchAction: 'pan-y' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* KPI cards: tap one to see it in the big chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+        {defs.map((d) => {
+          const m = get(d.key)
+          const active = d.key === selected
+          return (
             <div
+              key={d.key}
+              onClick={() => setSelected(d.key)}
               style={{
-                width: '100%', height: `${Math.max(v > 0 ? 3 : 0, (v / max) * 100)}%`, background: color,
-                opacity: hover === null || hover === i ? 1 : 0.45, borderRadius: '3px 3px 0 0', transition: 'opacity 0.1s',
-              }}
-            />
-          </div>
-        ))}
+                background: CHART.card, borderRadius: 14, padding: '12px 12px 8px', cursor: 'pointer',
+                border: `2px solid ${active ? d.color : 'transparent'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: CHART.textMuted }}>{d.label}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, margin: '4px 0 6px' }}>
+                <p style={{ fontSize: '22px', fontWeight: 800, color: CHART.text }}>{compact(m.total)}</p>
+                <TrendBadge total={m.total} prev={m.prev} />
+              </div>
+              <Sparkline series={m.series} color={d.color} />
+            </div>
+          )
+        })}
       </div>
-      {hover !== null && series[hover] !== undefined && (
-        <div
-          style={{
-            position: 'absolute', top: -6, left: `${Math.min(85, Math.max(15, ((hover + 0.5) / n) * 100))}%`, transform: 'translate(-50%, -100%)',
-            background: CHART.text, color: 'white', borderRadius: 8, padding: '5px 9px', fontSize: '11px', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 2,
-          }}>
-          <span style={{ opacity: 0.75 }}>{labels[hover]}</span> <b style={{ marginLeft: 4 }}>{series[hover].toLocaleString()}</b>
-        </div>
+
+      {/* Main chart */}
+      <Card
+        title={def.label}
+        subtitle={`Last ${days} days · compared with the ${days} days before`}
+        right={<TrendBadge total={main.total} prev={main.prev} />}>
+        <AreaChart series={main.series} labels={labels} color={def.color} height={230} />
+        {main.total === 0 && (
+          <p style={{ fontSize: '11.5px', color: CHART.textMuted, marginTop: 10 }}>No activity in this period yet. Numbers appear here as people interact.</p>
+        )}
+      </Card>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14 }}>
+        <Card title="Engagement" subtitle={audience === 'company' ? 'Listing views, saves and new followers per day' : 'Likes, comments and saves per day'}>
+          <BarChart series={engagement} labels={labels} color={CHART.green} />
+        </Card>
+
+        <Card title="Listings by category" subtitle="Your active listings">
+          <Donut data={data.listing_categories || []} centerLabel="Listings" />
+        </Card>
+
+        <Card title={salesLabel} subtitle="Completed orders and earnings in this period">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: CHART.text, background: CHART.bg, borderRadius: 999, padding: '5px 11px' }}>
+              {get('sales').total} {get('sales').total === 1 ? 'order' : 'orders'}
+            </span>
+            {revenue.length === 0 ? (
+              <span style={{ fontSize: '12px', color: CHART.textMuted, padding: '5px 0' }}>No earnings yet</span>
+            ) : (
+              revenue.map(([cur, amt]) => (
+                <span key={cur} style={{ fontSize: '12px', fontWeight: 800, color: CHART.greenDark, background: CHART.greenSoft, borderRadius: 999, padding: '5px 11px' }}>
+                  {formatMoney(Number(amt), cur)}
+                </span>
+              ))
+            )}
+          </div>
+          <BarChart series={get('sales').series} labels={labels} color="#0D9488" height={110} />
+        </Card>
+      </div>
+
+      {/* Top content */}
+      {audience === 'user' ? (
+        <Card title="Top posts" subtitle="By likes and comments">
+          {(data.top_posts || []).length === 0 ? (
+            <Empty text="Your posts will be ranked here once you start posting." />
+          ) : (
+            (data.top_posts || []).map((p, i) => (
+              <Row key={p.id} rank={i + 1} image={p.image} title={p.snippet || 'Post'} meta={`${p.likes_count} likes · ${p.comments_count} comments`} />
+            ))
+          )}
+        </Card>
+      ) : (
+        <Card title="Top listings" subtitle="By views in this period">
+          {(data.top_listings || []).length === 0 ? (
+            <Empty text="Your company listings will be ranked here once they receive views." />
+          ) : (
+            (data.top_listings || []).map((l, i) => (
+              <Row key={l.id} rank={i + 1} image={l.image} title={l.title} meta={`${l.views} views · ${l.saves} saves`} />
+            ))
+          )}
+        </Card>
       )}
-      {n > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '10.5px', color: CHART.textMuted }}>
-          <span>{labels[0]}</span>
-          <span>{labels[n - 1]}</span>
-        </div>
-      )}
+
+      {/* Totals */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+        <Total label="Total followers" value={data.totals?.followers ?? 0} />
+        {audience === 'user' && <Total label="Posts" value={data.totals?.posts ?? 0} />}
+        <Total label="Active listings" value={data.totals?.listings ?? 0} />
+      </div>
+
+      <p style={{ fontSize: '10.5px', color: CHART.textMuted, textAlign: 'center', padding: '4px 10px' }}>
+        Views are counted from the day tracking started, so older visits are not included. Your own visits are never counted.
+      </p>
     </div>
   )
 }
 
-// ---------- Donut ----------
-export function Donut({ data, centerLabel }: { data: { label: string; value: number }[]; centerLabel?: string }) {
-  const [hover, setHover] = useState<number | null>(null)
-  const total = data.reduce((s, d) => s + d.value, 0)
-  const size = 140
-  const r = 52
-  const c = 2 * Math.PI * r
-  let offset = 0
+function Card({ title, subtitle, right, children }: { title: string; subtitle?: string; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div style={{ background: CHART.card, borderRadius: 14, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 800, color: CHART.text }}>{title}</p>
+          {subtitle && <p style={{ fontSize: '11px', color: CHART.textMuted, marginTop: 2 }}>{subtitle}</p>}
+        </div>
+        {right}
+      </div>
+      {children}
+    </div>
+  )
+}
 
-  if (total === 0) {
-    return <p style={{ fontSize: '12.5px', color: CHART.textMuted, padding: '24px 0', textAlign: 'center' }}>Nothing to show yet.</p>
+function Row({ rank, image, title, meta }: { rank: number; image: string | null; title: string; meta: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: rank === 1 ? 'none' : `1px solid ${CHART.bg}` }}>
+      <span style={{ width: 22, fontSize: '12px', fontWeight: 800, color: CHART.textMuted }}>{rank}</span>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: CHART.greenSoft, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {image ? <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={16} color={CHART.green} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '12.5px', fontWeight: 700, color: CHART.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
+        <p style={{ fontSize: '11px', color: CHART.textMuted, marginTop: 2 }}>{meta}</p>
+      </div>
+    </div>
+  )
+}
+
+function Total({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ background: CHART.card, borderRadius: 14, padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <p style={{ fontSize: '20px', fontWeight: 800, color: CHART.text }}>{compact(value)}</p>
+      <p style={{ fontSize: '11px', color: CHART.textMuted, marginTop: 2 }}>{label}</p>
+    </div>
+  )
+}
+
+function Empty({ text }: { text: string }) {
+  return <p style={{ fontSize: '12.5px', color: CHART.textMuted, padding: '10px 0' }}>{text}</p>
+}
+
+function Skeleton() {
+  const block = (h: number): CSSProperties => ({ height: h, borderRadius: 14, background: '#E9F0E9' })
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+        {[0, 1, 2, 3].map((i) => <div key={i} style={block(84)} />)}
+      </div>
+      <div style={block(300)} />
+      <div style={block(200)} />
+    </div>
+  )
+}
+
+// Free accounts see the layout with example numbers, blurred, plus an upgrade prompt.
+// The numbers are only a sample and never come from the account.
+function LockedPreview({ audience, onUpgrade }: { audience: AnalyticsAudience; onUpgrade: () => void }) {
+  const wave = (seed: number, n = 28): Metric => {
+    const series = Array.from({ length: n }, (_, i) => Math.round(8 + 6 * Math.sin(i / 3 + seed) + (i * seed) / 9))
+    return { series, total: series.reduce((a, b) => a + b, 0), prev: Math.round(series.reduce((a, b) => a + b, 0) * 0.8) }
+  }
+  const sample: AnalyticsData = {
+    locked: false,
+    days: 28,
+    start: new Date(Date.now() - 27 * 86_400_000).toISOString().slice(0, 10),
+    views: wave(1), listing_views: wave(2), followers: wave(3), likes: wave(4), comments: wave(5), saves: wave(6), sales: wave(7),
+    revenue: {},
+    top_posts: [], top_listings: [],
+    listing_categories: [{ label: 'crop', value: 5 }, { label: 'seed', value: 3 }, { label: 'livestock', value: 2 }],
+    totals: { followers: 0, posts: 0, listings: 0 },
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={CHART.bg} strokeWidth="18" />
-          {data.map((d, i) => {
-            const len = (d.value / total) * c
-            const el = (
-              <circle
-                key={d.label}
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                fill="none"
-                stroke={PALETTE[i % PALETTE.length]}
-                strokeWidth={hover === i ? 22 : 18}
-                strokeDasharray={`${Math.max(0, len - 2)} ${c - Math.max(0, len - 2)}`}
-                strokeDashoffset={-offset}
-                onPointerEnter={() => setHover(i)}
-                onPointerLeave={() => setHover(null)}
-                onPointerDown={() => setHover(i)}
-                style={{ cursor: 'pointer', transition: 'stroke-width 0.12s' }}
-              />
-            )
-            offset += len
-            return el
-          })}
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <p style={{ fontSize: '20px', fontWeight: 800, color: CHART.text }}>{hover === null ? total : data[hover].value}</p>
-          <p style={{ fontSize: '10px', color: CHART.textMuted, textTransform: 'capitalize', maxWidth: 70, textAlign: 'center' }}>{hover === null ? centerLabel || 'Total' : data[hover].label}</p>
-        </div>
+    <div style={{ position: 'relative' }}>
+      <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none', maxHeight: 640, overflow: 'hidden' }} aria-hidden>
+        <DashboardBody audience={audience} data={sample} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 130 }}>
-        {data.map((d, i) => (
-          <div key={d.label} onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)} style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: hover === null || hover === i ? 1 : 0.5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
-            <span style={{ fontSize: '12px', color: CHART.text, textTransform: 'capitalize', flex: 1 }}>{d.label}</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: CHART.text }}>{Math.round((d.value / total) * 100)}%</span>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 14px 0' }}>
+        <div style={{ background: CHART.card, borderRadius: 18, padding: '24px 22px', maxWidth: 360, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.18)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 24, background: CHART.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <Icon name="crown" size={24} color={CHART.green} />
           </div>
-        ))}
+          <p style={{ fontSize: '16px', fontWeight: 800, color: CHART.text }}>
+            {audience === 'company' ? 'Company Analytics is a Premium feature' : 'Analytics is a Premium feature'}
+          </p>
+          <p style={{ fontSize: '12.5px', color: CHART.textMuted, margin: '8px 0 16px', lineHeight: 1.5 }}>
+            See who visits you, how your content performs and how your sales grow, with interactive charts. This is a sample preview.
+          </p>
+          <div onClick={onUpgrade} style={{ padding: '12px', borderRadius: 12, background: CHART.green, color: 'white', fontWeight: 800, fontSize: '13.5px', cursor: 'pointer' }}>
+            Upgrade to Premium
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
-
-// ---------- Trend badge ----------
-export function TrendBadge({ total, prev }: { total: number; prev: number }) {
-  const t = trend(total, prev)
-  if (t.dir === 'flat') return <span style={{ fontSize: '11px', fontWeight: 700, color: CHART.textMuted }}>No change</span>
-  if (t.dir === 'new') return <span style={{ fontSize: '11px', fontWeight: 700, color: CHART.blue }}>New</span>
-  const up = t.dir === 'up'
-  const color = up ? CHART.greenDark : CHART.red
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '11px', fontWeight: 800, color, background: up ? CHART.greenSoft : '#FEE2E2', borderRadius: 999, padding: '2px 7px' }}>
-      <svg width="9" height="9" viewBox="0 0 10 10" style={{ transform: up ? undefined : 'rotate(180deg)' }}>
-        <path d="M5 1.5 L9 7.5 H1 Z" fill={color} />
-      </svg>
-      {t.pct}%
-    </span>
-  )
-}
-
-// ---------- Sparkline ----------
-export function Sparkline({ series, color = CHART.green }: { series: number[]; color?: string }) {
-  const n = series.length
-  if (n < 2) return <div style={{ height: 26 }} />
-  const max = Math.max(1, ...series)
-  const pts = series.map((v, i) => `${(i / (n - 1)) * 100},${24 - (v / max) * 22}`).join(' ')
-  return (
-    <svg viewBox="0 0 100 26" preserveAspectRatio="none" width="100%" height="26" style={{ display: 'block', overflow: 'visible' }}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
-  )
-}
-
-// ---------- Range picker ----------
-export function RangePicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
-  return (
-    <div style={{ display: 'inline-flex', background: CHART.card, border: `1px solid ${CHART.border}`, borderRadius: 10, padding: 3 }}>
-      {[7, 28, 90].map((d) => (
-        <div
-          key={d}
-          onClick={() => onChange(d)}
-          style={{
-            padding: '6px 13px', borderRadius: 8, cursor: 'pointer', fontSize: '12px', fontWeight: 700,
-            background: value === d ? CHART.green : 'transparent', color: value === d ? 'white' : CHART.textMuted,
-          }}>
-          {d}D
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ---------- Small inline chart icon (for menus) ----------
-export function AnalyticsIcon({ size = 17, color = CHART.textMuted }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-    </svg>
   )
 }
