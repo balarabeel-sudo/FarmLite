@@ -141,29 +141,40 @@ export default function AccountPage() {
               <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
             </Section>
 
-            {/* Premium card: tapping opens the Premium flow (benefits first, then price) */}
+            {/* Premium card: Free -> Upgrade, Active -> Extend / View Benefits, Expired -> Renew */}
             {(() => {
               const active = isPremiumActive(profile.is_premium, profile.premium_until)
+              const expired = !active && !!profile.premium_until
               return (
-                <div style={{ marginTop: '22px', background: 'linear-gradient(135deg, #16A34A, #166534)', borderRadius: '16px', padding: '18px', color: 'white', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', right: '-24px', top: '-24px', width: '110px', height: '110px', borderRadius: '55px', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ marginTop: '22px', background: '#166534', border: '1px solid #B8860B', borderRadius: '16px', padding: '18px', color: 'white', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '21px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="crown" size={21} color="white" />
+                    <div style={{ width: '42px', height: '42px', borderRadius: '21px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="crown" size={21} color="#F5D060" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Premium Active' : 'FarmLite Premium'}</p>
-                      <p style={{ fontSize: '11.5px', color: '#DCFCE7', marginTop: '3px', lineHeight: 1.45 }}>
+                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'FarmLite Premium ✓' : expired ? 'Premium Expired' : 'FarmLite Premium'}</p>
+                      <p style={{ fontSize: '11.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.45 }}>
                         {active
                           ? (profile.premium_until ? `Active until ${formatDate(profile.premium_until)}` : 'Your Premium membership is active.')
-                          : 'Unlock more tools, insights and opportunities on FarmLite.'}
+                          : expired
+                            ? `Ended on ${formatDate(profile.premium_until)}. Your data is safe.`
+                            : 'Unlock more tools and insights.'}
                       </p>
                     </div>
                   </div>
-                  <div
-                    onClick={() => navigate('/premium')}
-                    style={{ marginTop: '14px', textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'white', color: '#166534', fontWeight: 800, fontSize: '13.5px', cursor: 'pointer', position: 'relative' }}>
-                    {active ? 'Extend Premium' : 'Upgrade to Premium'}
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                    <div
+                      onClick={() => navigate('/premium')}
+                      style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'white', color: '#166534', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+                      {active ? 'Extend Premium' : expired ? 'Renew Premium' : 'Upgrade to Premium'}
+                    </div>
+                    {active && (
+                      <div
+                        onClick={() => navigate('/premium?benefits=1')}
+                        style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.5)', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                        View Benefits
+                      </div>
+                    )}
                   </div>
                 </div>
               )
