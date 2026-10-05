@@ -18,34 +18,74 @@ export type VerifyResult = {
   error?: string
 }
 
-export type Benefit = { icon: string; title: string; text: string }
+// One row of the Free vs Premium comparison.
+// live = the feature really works today. Rows with live: false show a small "Soon" tag so the page
+// never promises something that is not delivered yet. Flip to true when the feature ships.
+export type Feature = {
+  icon: string
+  title: string
+  sub: string
+  free: string // 'No' shows a red cross
+  premium: string
+  live: boolean
+  soonLabel?: string
+}
 
-export const USER_BENEFITS: Benefit[] = [
-  { icon: 'message', title: 'Advanced FarmBot', text: 'Deeper answers and smarter farming guidance.' },
-  { icon: 'fileText', title: 'FarmBot history', text: 'Keep and revisit your past FarmBot chats.' },
-  { icon: 'fileText', title: 'Advanced analytics', text: 'See how your posts and profile perform.' },
-  { icon: 'user', title: 'Premium profile features', text: 'Stand out with a richer profile.' },
-  { icon: 'crown', title: 'Premium badge', text: 'A Premium badge beside your name.' },
-  { icon: 'users', title: 'Priority visibility', text: 'Be seen earlier in search and results.' },
-  { icon: 'package', title: 'More upload capacity', text: 'Upload more photos and files.' },
-  { icon: 'leaf', title: 'Advanced insights', text: 'Extra insights to grow your farm business.' },
-  { icon: 'bell', title: 'Advanced notifications', text: 'Smarter alerts about what matters.' },
-  { icon: 'checkCircle', title: 'Short Video posting', text: 'Post short videos up to 20 seconds.' },
+export const USER_FEATURES: Feature[] = [
+  { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: false },
+  { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: false },
+  { icon: 'play', title: 'Short Video Posting', sub: 'Post short videos (up to 20 seconds)', free: 'No', premium: 'Yes (20s)', live: false },
+  { icon: 'bars', title: 'Advanced Analytics', sub: 'Track your growth and performance', free: 'No', premium: 'Yes', live: true },
+  { icon: 'user', title: 'Premium Profile', sub: 'A richer profile that stands out', free: 'No', premium: 'Yes', live: false },
+  { icon: 'eye', title: 'Priority Visibility', sub: 'Additional visibility opportunities', free: 'No', premium: 'Yes', live: false },
+  { icon: 'cloud', title: 'More Upload Capacity', sub: 'Images and media', free: 'Standard', premium: 'Extended', live: false },
+  { icon: 'bell', title: 'Advanced Notifications', sub: 'Personalized and important alerts', free: 'No', premium: 'Yes', live: false },
+  { icon: 'cart', title: 'Advanced Marketplace Tools', sub: 'Better listing insights and tools', free: 'No', premium: 'Yes', live: false },
+  { icon: 'crown', title: 'Premium Badge', sub: "Show you're a Premium member", free: 'No', premium: 'Yes', live: true },
 ]
 
-export const COMPANY_BENEFITS: Benefit[] = [
-  { icon: 'building', title: 'Verified Company Page', text: 'A trusted, verified company presence.' },
-  { icon: 'crown', title: 'Premium Company Badge', text: 'A Premium badge on your company.' },
-  { icon: 'fileText', title: 'Advanced Company Analytics', text: 'Charts and trends for your company.' },
-  { icon: 'package', title: 'Advanced Marketplace tools', text: 'Better tools to manage your listings.' },
-  { icon: 'package', title: 'More listing capacity', text: 'List more products and services.' },
-  { icon: 'users', title: 'Featured visibility', text: 'Get featured in front of more buyers.' },
-  { icon: 'users', title: 'Customer insights', text: 'Understand who is looking at you.' },
-  { icon: 'leaf', title: 'Company insights', text: 'Insights to guide your business decisions.' },
-  { icon: 'bell', title: 'Advertising tools', text: 'Promote your company on FarmLite.' },
-  { icon: 'fileText', title: 'Advanced reports', text: 'Detailed reports you can act on.' },
-  { icon: 'shield', title: 'Priority visibility', text: 'Show up earlier in search and results.' },
-  { icon: 'message', title: 'Premium support', text: 'Faster help from the FarmLite team.' },
+export const COMPANY_FEATURES: Feature[] = [
+  { icon: 'building', title: 'Company Page', sub: 'How your company presents itself', free: 'Basic', premium: 'Enhanced', live: false },
+  { icon: 'crown', title: 'Premium Company Badge', sub: 'A Premium badge on your company', free: 'No', premium: 'Yes', live: true },
+  { icon: 'bars', title: 'Company Analytics', sub: 'Views, followers, listings and orders', free: 'Basic', premium: 'Advanced', live: true },
+  { icon: 'box', title: 'Marketplace Tools', sub: 'Listing insights and higher capacity', free: 'Standard', premium: 'Advanced', live: false },
+  { icon: 'eye', title: 'Featured Visibility', sub: 'Additional visibility opportunities', free: 'Standard', premium: 'Featured', live: false },
+  { icon: 'users', title: 'Customer Insights', sub: 'Visitors, interest and engagement', free: 'Basic', premium: 'Yes', live: false },
+  { icon: 'megaphone', title: 'Advertising Tools', sub: 'Promote your company and listings', free: 'Standard', premium: 'Advanced', live: false, soonLabel: 'Coming soon' },
+  { icon: 'file', title: 'Performance Reports', sub: 'Weekly and monthly summaries', free: 'No', premium: 'Yes', live: false },
+  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'Agriculture and business guidance', free: 'No', premium: 'Yes', live: false },
+  { icon: 'headset', title: 'Priority Support', sub: 'Faster help from the team', free: 'Standard', premium: 'Priority', live: false },
+]
+
+// "Everything included" grid
+export type Included = { title: string; live: boolean }
+
+export const USER_INCLUDED: Included[] = [
+  { title: 'Advanced FarmBot', live: false },
+  { title: '10 Marketplace Listings', live: false },
+  { title: '20-Second Short Videos', live: false },
+  { title: 'Personal Analytics', live: true },
+  { title: 'Premium Profile', live: false },
+  { title: 'Premium Badge', live: true },
+  { title: 'Priority Visibility', live: false },
+  { title: 'Advanced Marketplace Tools', live: false },
+  { title: 'Advanced Notifications', live: false },
+  { title: 'Extended Upload Capacity', live: false },
+]
+
+export const COMPANY_INCLUDED: Included[] = [
+  { title: 'Premium Company Page', live: false },
+  { title: 'Premium Badge', live: true },
+  { title: 'Advanced Company Analytics', live: true },
+  { title: 'Advanced Marketplace Tools', live: false },
+  { title: 'Higher Listing Capacity', live: false },
+  { title: 'Featured Visibility', live: false },
+  { title: 'Customer Insights', live: false },
+  { title: 'Advanced Advertising Tools', live: false },
+  { title: 'Company Performance Reports', live: false },
+  { title: 'FarmBot Business Assistance', live: false },
+  { title: 'Priority Visibility', live: false },
+  { title: 'Priority Support', live: false },
 ]
 
 // Premium counts as active only while the real expiry date is in the future.
