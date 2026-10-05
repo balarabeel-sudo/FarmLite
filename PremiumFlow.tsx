@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import Icon from './Icons'
+import { VersusBanner, ComparisonTable, IncludedGrid, PremiumPill } from './PremiumComparison'
 import {
-  USER_BENEFITS,
-  COMPANY_BENEFITS,
+  USER_FEATURES,
+  COMPANY_FEATURES,
+  USER_INCLUDED,
+  COMPANY_INCLUDED,
   fetchPrices,
   startCheckout,
   verifyPayment,
@@ -36,6 +40,8 @@ type Props = {
   // set when the user comes back from the payment page
   initialReference?: string
   wide?: boolean
+  // open on the benefits page even when Premium is already active
+  showBenefits?: boolean
   onExit: () => void
   onDone: () => void
   // called after Premium was activated so the page can refresh its own data
@@ -44,10 +50,11 @@ type Props = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export default function PremiumFlow({ audience, companyId, companyName, initialReference, wide, onExit, onDone, onChanged }: Props) {
+export default function PremiumFlow({ audience, companyId, companyName, initialReference, wide, showBenefits, onExit, onDone, onChanged }: Props) {
   const isCompany = audience === 'company'
   const productName = isCompany ? 'FarmLite Company Premium' : 'FarmLite Premium'
-  const benefits = isCompany ? COMPANY_BENEFITS : USER_BENEFITS
+  const features = isCompany ? COMPANY_FEATURES : USER_FEATURES
+  const included = isCompany ? COMPANY_INCLUDED : USER_INCLUDED
 
   const [step, setStep] = useState<Step>('loading')
   const [info, setInfo] = useState<PriceInfo | null>(null)
@@ -59,8 +66,13 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const [stuck, setStuck] = useState(false)
   const [failMsg, setFailMsg] = useState<string | null>(null)
   const started = useRef(false)
+  const includedRef = useRef<HTMLDivElement>(null)
 
   const price = info?.prices.find((p) => p.months === months) || null
+  const isActive = !!info?.status?.is_premium
+  // Premium that ran out: it has an expiry date in the past and is no longer active
+  const expired = !!info && !isActive && !!info.status?.premium_until
+  const ctaLabel = isActive ? 'Extend Premium' : expired ? 'Renew Premium' : isCompany ? 'Upgrade to Company Premium' : 'Upgrade to Premium'
 
   const runVerify = async (reference: string) => {
     setStep('verifying')
@@ -126,7 +138,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
         }
       }
 
-      setStep(loaded.status?.is_premium ? 'active' : 'review')
+      setStep(loaded.status?.is_premium && !showBenefits ? 'active' : 'review')
     })()
   }, [])
 
@@ -146,13 +158,13 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const back = () => {
     setError(null)
     setNotice(null)
-    if (step === 'plan') setStep(info?.status?.is_premium ? 'active' : 'review')
+    if (step === 'plan') setStep('review')
     else if (step === 'order') setStep('plan')
     else if (step === 'pay') setStep('order')
     else onExit()
   }
 
-  const container: React.CSSProperties = { maxWidth: wide ? 760 : undefined, margin: '0 auto' }
+  const container: CSSProperties = { maxWidth: wide ? 760 : undefined, margin: '0 auto' }
   const showBack = step === 'plan' || step === 'order' || step === 'pay'
 
   if (step === 'loading') {
@@ -178,39 +190,70 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
       {/* Already Premium */}
       {step === 'active' && (
         <>
-          <Hero title="Premium Active" subtitle={`${productName} is active${info?.status?.premium_until ? ` until ${formatDate(info.status.premium_until)}` : ''}.`} />
-          <BenefitsGrid benefits={benefits} />
+          <div style={{ background: COLORS.greenDark, border: `1px solid #B8860B`, borderRadius: '16px', padding: '20px 18px', color: 'white', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '22px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="crown" size={22} color="#F5D060" />
+              </div>
+              <div>
+                <p style={{ fontSize: '17px', fontWeight: 800 }}>Premium Active ✓</p>
+                <p style={{ fontSize: '12px', color: '#D1FAE5', marginTop: '3px' }}>{productName}</p>
+              </div>
+            </div>
+            {info?.status?.premium_until && (
+              <p style={{ fontSize: '12.5px', color: '#D1FAE5', marginTop: '14px' }}>Active until: <b style={{ color: 'white' }}>{formatDate(info.status.premium_until)}</b></p>
+            )}
+          </div>
           <PrimaryButton label="Extend Premium" onClick={() => setStep('plan')} />
+          <GhostButton label="View Benefits" onClick={() => setStep('review')} />
         </>
       )}
 
-      {/* 1. Review benefits (no prices yet) */}
+      {/* 1. Review: Free vs Premium (no prices yet) */}
       {step === 'review' && (
         <>
-          <Hero
-            title={productName}
-            subtitle={isCompany ? 'Grow your company presence, visibility and insights on FarmLite.' : 'Unlock more tools, insights and opportunities on FarmLite.'}
-            company={isCompany ? companyName : null}
-          />
-          {!isCompany && (
-            <div style={{ background: COLORS.greenSoft, borderRadius: '14px', padding: '14px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="checkCircle" size={18} color="white" />
-              </div>
-              <div>
-                <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.greenDark }}>Premium Short Videos</p>
-                <p style={{ fontSize: '12.5px', color: COLORS.text, marginTop: '3px', lineHeight: 1.5 }}>Upload short videos up to 20 seconds.</p>
-                <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '5px', lineHeight: 1.5 }}>
-                  Free users can still watch Short Videos created by Premium users, but cannot upload their own.
-                </p>
-              </div>
+          <div style={{ marginBottom: '16px' }}>
+            <PremiumPill label={isCompany ? 'FARMLITE PREMIUM' : 'FARMLITE PREMIUM'} />
+            <h2 style={{ fontSize: '21px', fontWeight: 800, color: COLORS.text, lineHeight: 1.25, margin: '10px 0 6px' }}>
+              {isCompany ? 'Grow Your Company with FarmLite Premium' : 'Grow More With FarmLite Premium'}
+            </h2>
+            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>
+              {isCompany
+                ? 'Unlock advanced business tools, analytics, visibility and marketplace capabilities.'
+                : 'Unlock more tools, insights and opportunities for your farm, marketplace and community.'}
+            </p>
+            {isCompany && companyName && <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '6px' }}>For: <b>{companyName}</b></p>}
+          </div>
+
+          {expired && (
+            <div style={{ background: '#FEF3C7', color: '#92400E', borderRadius: '12px', padding: '11px 13px', fontSize: '12.5px', marginBottom: '14px', lineHeight: 1.5 }}>
+              <b>Premium Expired</b> on {formatDate(info?.status?.premium_until)}. Your data is safe. Renew to get Premium tools back.
             </div>
           )}
-          <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
-            {isCompany ? 'Company Premium Benefits' : 'Premium Benefits'}
+
+          <VersusBanner company={isCompany} />
+
+          <div style={{ marginBottom: '22px' }}>
+            <PrimaryButton label={ctaLabel} onClick={() => setStep('plan')} disabled={!info} />
+            <GhostButton label="View All Benefits" onClick={() => includedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
+          </div>
+
+          <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>Free vs Premium</p>
+          <ComparisonTable features={features} company={isCompany} />
+          <p style={{ fontSize: '10.5px', color: COLORS.textMuted, margin: '8px 2px 22px', lineHeight: 1.5 }}>
+            Features marked <b>Soon</b> are being rolled out and unlock automatically for Premium members as they go live.
           </p>
-          <BenefitsGrid benefits={benefits} />
-          <PrimaryButton label="Continue" onClick={() => setStep('plan')} disabled={!info} />
+
+          <div ref={includedRef} style={{ scrollMarginTop: '70px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
+              {isCompany ? 'Everything in Company Premium' : 'Everything included with Premium'}
+            </p>
+            <IncludedGrid items={included} />
+          </div>
+
+          <div style={{ marginTop: '22px' }}>
+            <PrimaryButton label={ctaLabel} onClick={() => setStep('plan')} disabled={!info} />
+          </div>
         </>
       )}
 
@@ -260,8 +303,10 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
             productName={productName}
             rows={[
               ['Plan', planLabel(months)],
+              ['Country', info.country],
+              ['Currency', info.currency],
               ['Price', formatMoney(price.amount, info.currency)],
-              ['Billing', 'One-time payment for the selected period'],
+              ['Total', formatMoney(price.amount, info.currency)],
             ]}
           />
           <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '10px 2px 16px' }}>You will not be charged until you pay on the next screen.</p>
@@ -351,37 +396,6 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function Hero({ title, subtitle, company }: { title: string; subtitle: string; company?: string | null }) {
-  return (
-    <div style={{ background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, borderRadius: '18px', padding: '22px 18px', color: 'white', marginBottom: '16px' }}>
-      <div style={{ width: '44px', height: '44px', borderRadius: '22px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-        <Icon name="crown" size={22} color="white" />
-      </div>
-      <p style={{ fontSize: '20px', fontWeight: 800 }}>{title}</p>
-      <p style={{ fontSize: '12.5px', color: '#DCFCE7', marginTop: '5px', lineHeight: 1.5 }}>{subtitle}</p>
-      {company && <p style={{ fontSize: '11.5px', color: '#DCFCE7', marginTop: '8px', opacity: 0.9 }}>For: {company}</p>}
-    </div>
-  )
-}
-
-function BenefitsGrid({ benefits }: { benefits: { icon: string; title: string; text: string }[] }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px', marginBottom: '20px' }}>
-      {benefits.map((b) => (
-        <div key={b.title} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', display: 'flex', gap: '11px', alignItems: 'flex-start', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: COLORS.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name={b.icon} size={16} color={COLORS.green} />
-          </div>
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>{b.title}</p>
-            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px', lineHeight: 1.45 }}>{b.text}</p>
-          </div>
-        </div>
-      ))}
     </div>
   )
 }
