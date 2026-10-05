@@ -64,7 +64,8 @@ export default function FarmBotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
-  const [notice, setNotice] = useState<{ kind: 'network' | 'limit' | 'generic'; text: string; retry?: string } | null>(null)
+  const [notice, setNotice] = useState<{ kind: 'network' | 'limit' | 'generic'; text: string; retry?: string; upgrade?: boolean } | null>(null)
+  const [usage, setUsage] = useState<{ used: number; limit: number; premium: boolean } | null>(null)
 
   const [chatId, setChatId] = useState<string | null>(null)
   const [chats, setChats] = useState<Chat[]>([])
@@ -126,6 +127,16 @@ export default function FarmBotPage() {
 
   useEffect(() => { init() }, [user])
 
+  // Real usage for today (counted on the server)
+  useEffect(() => {
+    if (!user) return
+    supabase.rpc('farmbot_usage').then(({ data }) => {
+      if (data && typeof (data as any).used === 'number') setUsage(data as any)
+    })
+  }, [user])
+
+  const limitReached = !!usage && usage.used >= usage.limit
+
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
@@ -177,7 +188,7 @@ export default function FarmBotPage() {
 
   const send = async (text?: string, isRetry = false) => {
     const content = (text ?? draft).trim()
-    if (!content || sending) return
+    if (!content || sending || limitReached) return
 
     setNotice(null)
     setSending(true)
@@ -202,6 +213,18 @@ export default function FarmBotPage() {
 
     setSending(false)
 
+    // The user's own daily message limit (Free / Premium) was reached: nothing was sent, so take the
+    // bubble back and keep the text in the box.
+    if (data?.code === 'user_limit') {
+      if (data.usage) setUsage(data.usage)
+      if (!isRetry) {
+        setMessages((prev) => prev.slice(0, -1))
+        setDraft(content)
+      }
+      setNotice({ kind: 'limit', text: data.error, upgrade: !data.usage?.premium })
+      return
+    }
+
     // Daily AI limit reached: friendly message, nothing technical shown.
     if (data?.code === 'daily_limit') {
       setNotice({ kind: 'limit', text: data.error })
@@ -223,6 +246,7 @@ export default function FarmBotPage() {
       return
     }
 
+    if (data.usage) setUsage(data.usage)
     if (data.conversation_id && data.conversation_id !== chatId) setChatId(data.conversation_id)
     setMessages((prev) => [...prev, { id: `local-${Date.now()}-r`, role: 'assistant', message: data.reply }])
     loadChats()
@@ -236,7 +260,7 @@ export default function FarmBotPage() {
   if (netError) {
     return (
       <div style={shell}>
-        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
+        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} usage={usage} />
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <NetworkError onRetry={() => (chatId ? loadMessages(chatId) : init())} />
         </div>
@@ -253,7 +277,7 @@ export default function FarmBotPage() {
         @keyframes fbSlide { from { transform: translateX(-100%) } to { transform: translateX(0) } }
       `}</style>
 
-      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
+      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} usage={usage} />
 
       {/* Messages (the only scrolling area) */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -299,9 +323,32 @@ export default function FarmBotPage() {
                 Resend
               </div>
             )}
+            {notice.upgrade && (
+              <div
+                onClick={() => navigate('/premium')}
+                style={{ background: COLORS.green, color: 'white', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                Upgrade to Premium
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Daily limit reached: the box is locked until tomorrow (or Premium) */}
+      {limitReached && usage && (
+        <div style={{ background: '#F0FDF4', borderTop: `1px solid ${COLORS.border}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: COLORS.greenDark }}>
+            {usage.premium
+              ? `You've used all ${usage.limit} FarmBot messages for today. They reset tomorrow.`
+              : `You've used your ${usage.limit} free messages for today. Limited use: upgrade to Premium for more.`}
+          </p>
+          {!usage.premium && (
+            <div onClick={() => navigate('/premium')} style={{ background: COLORS.green, color: 'white', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+              Upgrade to Premium
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Composer (always pinned to the bottom) */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 14px calc(10px + env(safe-area-inset-bottom, 0px))', background: COLORS.card, borderTop: `1px solid ${COLORS.border}` }}>
@@ -311,12 +358,13 @@ export default function FarmBotPage() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-          placeholder="Ask FarmBot anything..."
+          disabled={limitReached}
+          placeholder={limitReached ? 'Daily limit reached' : 'Ask FarmBot anything...'}
           style={{ flex: 1, resize: 'none', padding: '10px 14px', borderRadius: '20px', border: `1px solid ${COLORS.border}`, background: COLORS.bg, fontSize: '13px', lineHeight: 1.4, color: COLORS.text, outline: 'none', fontFamily: 'inherit', maxHeight: '110px' }}
         />
         <div
           onClick={() => send()}
-          style={{ width: '40px', height: '40px', borderRadius: '20px', background: draft.trim() && !sending ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: draft.trim() && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
+          style={{ width: '40px', height: '40px', borderRadius: '20px', background: draft.trim() && !sending && !limitReached ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: draft.trim() && !sending && !limitReached ? 'pointer' : 'default', flexShrink: 0 }}>
           <Icon name="send" size={16} color="white" />
         </div>
       </div>
@@ -480,7 +528,7 @@ function TypingBubble() {
   )
 }
 
-function Header({ onMenu, onNew }: { onMenu: () => void; onNew: () => void }) {
+function Header({ onMenu, onNew, usage }: { onMenu: () => void; onNew: () => void; usage: { used: number; limit: number; premium: boolean } | null }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '12px', padding: 'calc(12px + env(safe-area-inset-top, 0px)) 14px 12px',
@@ -493,6 +541,11 @@ function Header({ onMenu, onNew }: { onMenu: () => void; onNew: () => void }) {
         <Icon name="robot" size={20} color={COLORS.green} />
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>FarmBot</p>
       </div>
+      {usage && (
+        <div style={{ background: usage.used >= usage.limit ? '#FEF3C7' : COLORS.bg, border: `1px solid ${usage.used >= usage.limit ? '#FDE68A' : COLORS.border}`, borderRadius: '999px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: usage.used >= usage.limit ? '#92400E' : COLORS.greenDark, whiteSpace: 'nowrap' }}>
+          {usage.used} / {usage.limit} today
+        </div>
+      )}
       <div onClick={onNew} style={{ cursor: 'pointer', display: 'flex', padding: '4px' }}>
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
       </div>
