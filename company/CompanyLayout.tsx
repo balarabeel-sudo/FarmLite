@@ -83,7 +83,7 @@ export default function CompanyLayout() {
           <Icon name="building" size={30} color={COLORS.green} />
           <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text, margin: '10px 0 6px' }}>No company found</p>
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>{loadError ? `Could not load your company: ${loadError}` : 'This account does not own a company yet.'}</p>
-          <div onClick={() => navigate('/profile')} style={{ marginTop: '16px', padding: '11px', borderRadius: '10px', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+          <div onClick={() => navigate('/profile', { replace: true })} style={{ marginTop: '16px', padding: '11px', borderRadius: '10px', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
             Back to Personal Account
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function CompanyLayout() {
 
   const items: { label: string; icon: string; to?: string; active: boolean; soon?: boolean }[] = [
     { label: 'Overview', icon: 'building', to: '/company', active: path === '/company' || path === '/company/' },
-    { label: 'Analytics', icon: 'fileText', active: path.startsWith('/company/analytics'), soon: true },
+    { label: 'Analytics', icon: 'fileText', to: '/company/analytics', active: path.startsWith('/company/analytics') },
     { label: 'Premium', icon: 'crown', to: '/company/premium', active: path.startsWith('/company/premium') },
     { label: 'Public page', icon: 'users', to: `/companies/${company.id}`, active: false },
   ]
@@ -135,7 +135,7 @@ export default function CompanyLayout() {
 
       <div style={{ padding: '12px 10px 18px', borderTop: '1px solid rgba(255,255,255,0.14)' }}>
         <div
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/profile', { replace: true })}
           style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 12px', borderRadius: '10px', cursor: 'pointer', background: 'rgba(255,255,255,0.1)' }}>
           <Icon name="user" size={17} color="white" />
           <p style={{ fontSize: '13px', fontWeight: 700 }}>Switch to Personal Account</p>
