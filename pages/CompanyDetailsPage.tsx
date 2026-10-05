@@ -8,6 +8,7 @@ import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PremiumTick from '../PremiumTick'
 import { isPremiumActive } from '../premiumShared'
+import { trackView } from '../analyticsShared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -74,6 +75,7 @@ export default function CompanyDetailsPage() {
     }
 
     setCompany(companyRes.data as any)
+    if (companyRes.data) trackView('company', id)
     setListings((listingsRes.data || []) as any)
     setFollowing(!!followRes.data)
     setLoading(false)
