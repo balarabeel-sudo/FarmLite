@@ -38,6 +38,7 @@ export default function CompanyHomePage() {
   }, [company.id])
 
   const premium = isPremiumActive(company.is_premium, company.premium_until)
+  const expired = !premium && !!company.premium_until
 
   return (
     <div>
@@ -57,31 +58,36 @@ export default function CompanyHomePage() {
         <Stat label="Profile views" value={company.views_count} />
       </div>
 
-      {/* Premium status */}
+      {/* Premium status: Free -> Upgrade, Active -> Extend / View Benefits, Expired -> Renew */}
       {premium ? (
-        <div style={{ background: COLORS.card, borderRadius: '16px', padding: '18px', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: COLORS.card, borderRadius: '16px', padding: '18px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <div style={{ width: '44px', height: '44px', borderRadius: '22px', background: COLORS.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="crown" size={22} color={COLORS.green} />
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '14.5px', fontWeight: 800, color: COLORS.text }}>Premium Active</p>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <p style={{ fontSize: '14.5px', fontWeight: 800, color: COLORS.text }}>Premium Active ✓</p>
             <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '3px' }}>
               {company.premium_until ? `Active until ${formatDate(company.premium_until)}` : 'Your company Premium is active.'}
             </p>
           </div>
-          <div onClick={() => navigate('/company/premium')} style={{ padding: '9px 14px', borderRadius: '10px', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Extend</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div onClick={() => navigate('/company/premium')} style={{ padding: '9px 14px', borderRadius: '10px', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>Extend Premium</div>
+            <div onClick={() => navigate('/company/premium?benefits=1')} style={{ padding: '9px 14px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, color: COLORS.greenDark, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>View Benefits</div>
+          </div>
         </div>
       ) : (
-        <div style={{ background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, borderRadius: '16px', padding: '20px', color: 'white', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <div style={{ width: '46px', height: '46px', borderRadius: '23px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="crown" size={22} color="white" />
+        <div style={{ background: COLORS.greenDark, border: '1px solid #B8860B', borderRadius: '16px', padding: '20px', color: 'white', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '23px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="crown" size={22} color="#F5D060" />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <p style={{ fontSize: '15.5px', fontWeight: 800 }}>FarmLite Company Premium</p>
-            <p style={{ fontSize: '12.5px', color: '#DCFCE7', marginTop: '3px', lineHeight: 1.5 }}>Grow your company presence, visibility and insights on FarmLite.</p>
+            <p style={{ fontSize: '15.5px', fontWeight: 800 }}>{expired ? 'Premium Expired' : 'FarmLite Company Premium'}</p>
+            <p style={{ fontSize: '12.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.5 }}>
+              {expired ? `Ended on ${formatDate(company.premium_until)}. Your company data is safe.` : 'Grow your company presence, visibility and insights on FarmLite.'}
+            </p>
           </div>
           <div onClick={() => navigate('/company/premium')} style={{ padding: '11px 18px', borderRadius: '12px', background: 'white', color: COLORS.greenDark, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
-            Upgrade to Premium
+            {expired ? 'Renew Premium' : 'Upgrade to Company Premium'}
           </div>
         </div>
       )}
