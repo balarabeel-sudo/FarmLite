@@ -6,11 +6,8 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { GridCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
-import ImageUploader from '../ImageUploader'
-import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
-import { PremiumBadge } from '../shared'
-import BuyEscrowSheet from '../BuyEscrowSheet'
-import ReportSheet from '../ReportSheet'
+import MarketplaceInbox from '../MarketplaceInbox'
+import { CATEGORIES as CATEGORY_LIST, priceText } from '../listingConfig'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
 
 const COLORS = {
@@ -25,16 +22,8 @@ const COLORS = {
   red: '#DC2626',
 }
 
-type Category = 'crop' | 'livestock' | 'seed'
+type Category = 'crop' | 'livestock' | 'seed' | 'equipment' | 'products' | 'services' | 'other'
 type Status = 'available' | 'sold' | 'inactive'
-
-type Seller = {
-  full_name: string | null
-  username: string | null
-  profile_image: string | null
-  phone: string | null
-  is_premium: boolean
-}
 
 type Listing = {
   id: string
@@ -47,53 +36,22 @@ type Listing = {
   unit: string | null
   quantity: number | null
   location: string | null
-  whatsapp: string | null
   negotiable: boolean
+  contact_for_price: boolean
   images: string[] | null
   status: Status
   is_hidden_by_admin: boolean
-  seller: Seller | null
 }
 
 type CategoryFilter = 'all' | Category
 
 const CATEGORIES: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'crop', label: 'Crops' },
-  { value: 'livestock', label: 'Livestock' },
-  { value: 'seed', label: 'Seeds' },
+  ...CATEGORY_LIST.map((c) => ({ value: c.key as CategoryFilter, label: c.short })),
 ]
-
-const UNITS = ['kg', 'bag', 'ton', 'piece', 'litre', 'crate', 'bunch']
-const CURRENCIES = ['NGN', 'USD', 'GHS', 'KES']
-const STATUSES: { value: Status; label: string }[] = [
-  { value: 'available', label: 'Available' },
-  { value: 'sold', label: 'Sold' },
-  { value: 'inactive', label: 'Hidden' },
-]
-
-type Form = {
-  category: Category
-  title: string
-  price: string
-  currency: string
-  unit: string
-  quantity: string
-  location: string
-  whatsapp: string
-  negotiable: boolean
-  status: Status
-  description: string
-  images: string[]
-}
-
-const EMPTY_FORM: Form = {
-  category: 'crop', title: '', price: '', currency: 'NGN', unit: 'kg', quantity: '',
-  location: '', whatsapp: '', negotiable: false, status: 'available', description: '', images: [],
-}
 
 const LISTING_COLUMNS =
-  'id, seller_id, category, title, description, price, currency, unit, quantity, location, whatsapp, negotiable, images, status, is_hidden_by_admin, seller:profiles!marketplace_listings_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
+  'id, seller_id, category, title, description, price, currency, unit, quantity, location, negotiable, contact_for_price, images, status, is_hidden_by_admin'
 
 export default function MarketplacePage() {
   const navigate = useNavigate()
@@ -104,25 +62,14 @@ export default function MarketplacePage() {
   const [netError, setNetError] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
-  const [imageCap, setImageCap] = useState(5)
+  const [unread, setUnread] = useState(0)
+  const [inbox, setInbox] = useState<{ listing?: string | null; buyer?: string | null } | null>(null)
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<CategoryFilter>((searchParams.get('category') as CategoryFilter) || 'all')
   const [mineOnly, setMineOnly] = useState(searchParams.get('mine') === '1')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<Form>(EMPTY_FORM)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState('')
-
-  const [detail, setDetail] = useState<Listing | null>(null)
-  const [buyListing, setBuyListing] = useState<Listing | null>(null)
-
-  const setField = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
 
   // Builds the listings query for the current search/category filters.
   const listingsQuery = (from: number, to: number) => {
@@ -144,10 +91,9 @@ export default function MarketplacePage() {
     setNetError(false)
     setLoading(true)
 
-    const [listingsRes, savedRes, meRes] = await Promise.all([
+    const [listingsRes, savedRes] = await Promise.all([
       listingsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('listing_id').eq('user_id', user.id).not('listing_id', 'is', null),
-      supabase.from('profiles').select('location, whatsapp, is_premium').eq('user_id', user.id).maybeSingle(),
     ])
 
     if (listingsRes.error) {
@@ -160,9 +106,6 @@ export default function MarketplacePage() {
     setListings(page)
     setHasMore(page.length === PAGE_SIZE)
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.listing_id)))
-    const me = meRes.data as any
-    setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
-    setImageCap(me?.is_premium ? 10 : 5)
     setLoading(false)
   }
 
@@ -187,114 +130,31 @@ export default function MarketplacePage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  // Opens a listing directly when arriving from the Home page (/marketplace?listing=<id>),
-  // fetching it on its own if it is not on the currently loaded page.
+  // Opens a listing directly when arriving from the Home page (/marketplace?listing=<id>)
   useEffect(() => {
     const id = searchParams.get('listing')
     if (!id) return
-    setSearchParams({}, { replace: true })
-    const found = listings.find((l) => l.id === id)
-    if (found) {
-      setDetail(found)
-      return
-    }
-    supabase.from('marketplace_listings').select(LISTING_COLUMNS).eq('id', id).maybeSingle().then(({ data }) => {
-      if (data) setDetail(data as any)
-    })
-  }, [searchParams])
+    navigate(`/listing/${id}`, { replace: true })
+  }, [])
 
-  const closeForm = () => {
-    setShowForm(false)
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-    setFormError('')
+  // Marketplace messages: unread marker + opening a conversation from a notification
+  // (/marketplace?inbox=<listing>&buyer=<id>)
+  const loadUnread = async () => {
+    const { data } = await supabase.rpc('marketplace_unread')
+    if (typeof data === 'number') setUnread(data)
   }
-
-  const openNew = () => {
-    setEditingId(null)
-    setForm({ ...EMPTY_FORM, location: myDefaults.location, whatsapp: myDefaults.whatsapp })
-    setFormError('')
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const openEdit = (l: Listing) => {
-    setDetail(null)
-    setEditingId(l.id)
-    setForm({
-      category: l.category,
-      title: l.title,
-      price: String(l.price),
-      currency: l.currency || 'NGN',
-      unit: l.unit || 'kg',
-      quantity: l.quantity != null ? String(l.quantity) : '',
-      location: l.location || '',
-      whatsapp: l.whatsapp || '',
-      negotiable: !!l.negotiable,
-      status: l.status,
-      description: l.description || '',
-      images: l.images || [],
-    })
-    setFormError('')
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const handleSave = async () => {
+  useEffect(() => {
     if (!user) return
-    setFormError('')
-
-    const priceNum = Number(form.price)
-    const qtyNum = form.quantity.trim() === '' ? null : Number(form.quantity)
-
-    if (!form.title.trim()) return setFormError('Enter a title.')
-    if (form.price.trim() === '' || Number.isNaN(priceNum) || priceNum < 0) return setFormError('Enter a valid price.')
-    if (qtyNum !== null && (Number.isNaN(qtyNum) || qtyNum < 0)) return setFormError('Enter a valid quantity.')
-    if (form.images.length === 0) return setFormError('Add at least one photo.')
-    const phoneErr = validatePhone(form.whatsapp)
-    if (phoneErr) return setFormError(phoneErr)
-
-    const payload = {
-      category: form.category,
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      price: priceNum,
-      currency: form.currency,
-      unit: form.unit,
-      quantity: qtyNum,
-      location: form.location.trim() || null,
-      whatsapp: cleanPhone(form.whatsapp) || null,
-      negotiable: form.negotiable,
-      status: form.status,
-      images: form.images,
-    }
-
-    setSaving(true)
-    const { error } = editingId
-      ? await supabase.from('marketplace_listings').update(payload).eq('id', editingId).eq('seller_id', user.id)
-      : await supabase.from('marketplace_listings').insert({ ...payload, seller_id: user.id })
-    setSaving(false)
-
-    if (error) {
-      setFormError(error.message || 'Could not save your listing.')
-      return
-    }
-
-    closeForm()
-    load()
-  }
-
-  const handleDelete = async () => {
-    if (!user || !editingId) return
-    if (!window.confirm('Delete this listing? This cannot be undone.')) return
-    const { error } = await supabase.from('marketplace_listings').delete().eq('id', editingId).eq('seller_id', user.id)
-    if (error) {
-      setFormError('Could not delete the listing. Try again.')
-      return
-    }
-    closeForm()
-    load()
-  }
+    loadUnread()
+    const t = setInterval(loadUnread, 30000)
+    return () => clearInterval(t)
+  }, [user])
+  useEffect(() => {
+    const ib = searchParams.get('inbox')
+    if (!ib) return
+    setInbox({ listing: ib === '1' ? null : ib, buyer: searchParams.get('buyer') })
+    setSearchParams({}, { replace: true })
+  }, [])
 
   const toggleSave = async (listingId: string) => {
     if (!user) return
@@ -309,12 +169,12 @@ export default function MarketplacePage() {
 
   const filtered = listings
 
-  const onHeaderAdd = () => (showForm ? closeForm() : openNew())
+  const onHeaderAdd = () => navigate('/sell')
 
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
+        <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} unread={unread} onInbox={() => setInbox({})} />
         <NetworkError onRetry={load} />
       </div>
     )
@@ -322,7 +182,7 @@ export default function MarketplacePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
+      <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} unread={unread} onInbox={() => setInbox({})} />
 
       <div style={{ padding: '16px' }}>
         {mineOnly && (
@@ -359,87 +219,6 @@ export default function MarketplacePage() {
           ))}
         </div>
 
-        {showForm && (
-          <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, marginBottom: '10px', color: COLORS.text }}>{editingId ? 'Edit listing' : 'New listing'}</p>
-
-            {formError && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
-                <p style={{ fontSize: '11.5px', color: COLORS.red }}>{formError}</p>
-              </div>
-            )}
-
-            <p style={labelStyle}>Photos</p>
-            <div style={{ marginBottom: '12px' }}>
-              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="listings" max={imageCap} />
-            </div>
-
-            <select value={form.category} onChange={(e) => setField('category', e.target.value as Category)} style={inputStyle}>
-              <option value="crop">Crop</option>
-              <option value="livestock">Livestock</option>
-              <option value="seed">Seed</option>
-            </select>
-            <input value={form.title} onChange={(e) => setField('title', e.target.value)} placeholder="Title, e.g. Maize (White), 50 bags" maxLength={100} style={inputStyle} />
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input value={form.price} onChange={(e) => setField('price', e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Price" inputMode="decimal" style={{ ...inputStyle, flex: 2 }} />
-              <select value={form.currency} onChange={(e) => setField('currency', e.target.value)} style={{ ...inputStyle, flex: 1 }}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select value={form.unit} onChange={(e) => setField('unit', e.target.value)} style={{ ...inputStyle, flex: 1 }}>
-                {UNITS.map((u) => <option key={u} value={u}>per {u}</option>)}
-              </select>
-              <input value={form.quantity} onChange={(e) => setField('quantity', e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Quantity (optional)" inputMode="decimal" style={{ ...inputStyle, flex: 1 }} />
-            </div>
-
-            <div onClick={() => setField('negotiable', !form.negotiable)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `1.5px solid ${form.negotiable ? COLORS.green : COLORS.border}`, background: form.negotiable ? COLORS.green : COLORS.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {form.negotiable && <Icon name="check" size={13} color="white" strokeWidth={3} />}
-              </div>
-              <p style={{ fontSize: '12.5px', color: COLORS.text }}>Price is negotiable</p>
-            </div>
-
-            <input value={form.location} onChange={(e) => setField('location', e.target.value)} placeholder="Location, e.g. Kaduna, Nigeria" maxLength={80} style={inputStyle} />
-            <input value={form.whatsapp} onChange={(e) => setField('whatsapp', e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-            <textarea value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="Description: quality, harvest date, delivery..." rows={3} maxLength={1000} style={{ ...inputStyle, resize: 'none' }} />
-
-            {editingId && (
-              <>
-                <p style={labelStyle}>Status</p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  {STATUSES.map((s) => (
-                    <div
-                      key={s.value}
-                      onClick={() => setField('status', s.value)}
-                      style={{
-                        padding: '7px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                        background: form.status === s.value ? COLORS.green : COLORS.card,
-                        color: form.status === s.value ? 'white' : COLORS.textMuted,
-                        border: `1px solid ${form.status === s.value ? COLORS.green : COLORS.border}`,
-                      }}>
-                      {s.label}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div onClick={saving ? undefined : handleSave} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-              <Icon name={editingId ? 'check' : 'upload'} size={15} color="white" />
-              {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Post Listing'}
-            </div>
-
-            {editingId && (
-              <div onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px', padding: '10px', borderRadius: '10px', border: '1px solid #FECACA', color: COLORS.red, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>
-                <Icon name="trash" size={14} color={COLORS.red} /> Delete Listing
-              </div>
-            )}
-          </div>
-        )}
-
         {loading ? (
           <GridCardSkeleton count={6} />
         ) : filtered.length === 0 ? (
@@ -463,7 +242,7 @@ export default function MarketplacePage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {filtered.map((l) => (
-              <div key={l.id} onClick={() => setDetail(l)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+              <div key={l.id} onClick={() => navigate(`/listing/${l.id}`)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
                 <div style={{ width: '100%', height: '100px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
 
@@ -487,7 +266,7 @@ export default function MarketplacePage() {
                 </div>
                 <div style={{ padding: '10px' }}>
                   <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
-                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{l.currency} {Number(l.price).toLocaleString()}{l.unit ? `/${l.unit}` : ''}</p>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{priceText(l)}</p>
                   {l.location && (
                     <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {l.location}
@@ -518,164 +297,19 @@ export default function MarketplacePage() {
         )}
       </div>
 
-      {detail && (
-        <DetailSheet
-          listing={detail}
-          isMine={detail.seller_id === user?.id}
-          saved={savedIds.has(detail.id)}
-          onToggleSave={() => toggleSave(detail.id)}
-          onEdit={() => openEdit(detail)}
-          onBuy={() => setBuyListing(detail)}
-          onClose={() => setDetail(null)}
-        />
-      )}
-
-      {buyListing && (
-        <BuyEscrowSheet
-          listing={{ id: buyListing.id, title: buyListing.title, price: Number(buyListing.price), currency: buyListing.currency, unit: buyListing.unit, quantity: buyListing.quantity == null ? null : Number(buyListing.quantity) }}
-          onClose={() => setBuyListing(null)}
+      {inbox && (
+        <MarketplaceInbox
+          onClose={() => { setInbox(null); loadUnread() }}
+          openListing={inbox.listing}
+          openBuyer={inbox.buyer}
+          onChanged={loadUnread}
         />
       )}
     </div>
   )
 }
 
-function DetailSheet({ listing: l, isMine, saved, onToggleSave, onEdit, onBuy, onClose }: {
-  listing: Listing
-  isMine: boolean
-  saved: boolean
-  onToggleSave: () => void
-  onEdit: () => void
-  onBuy: () => void
-  onClose: () => void
-}) {
-  const [reportOpen, setReportOpen] = useState(false)
-  const images = l.images || []
-  const waNumber = l.whatsapp || ''
-  const callNumber = l.seller?.phone || ''
-  const categoryLabel = CATEGORIES.find((c) => c.value === l.category)?.label || l.category
-
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.card, width: '100%', maxWidth: '480px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '20px 20px 0 0' }}>
-        <div style={{ position: 'relative' }}>
-          {images.length > 0 ? (
-            <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
-              {images.map((url) => (
-                <img key={url} src={url} alt={l.title} style={{ width: '100%', height: '240px', objectFit: 'cover', flexShrink: 0, scrollSnapAlign: 'start' }} />
-              ))}
-            </div>
-          ) : (
-            <div style={{ height: '160px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="leaf" size={36} color={COLORS.green} />
-            </div>
-          )}
-          <div onClick={onClose} style={{ position: 'absolute', top: '12px', right: '12px', width: '32px', height: '32px', borderRadius: '16px', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Icon name="close" size={16} color="white" />
-          </div>
-          {images.length > 1 && (
-            <div style={{ position: 'absolute', left: '12px', bottom: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px' }}>
-              Swipe for {images.length} photos
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, flex: 1 }}>{l.title}</p>
-            <div onClick={onToggleSave} style={{ cursor: 'pointer', display: 'flex', padding: '2px' }}>
-              <Icon name="bookmark" size={20} color={saved ? COLORS.orange : COLORS.textMuted} />
-            </div>
-          </div>
-
-          <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.green, marginTop: '6px' }}>
-            {l.currency} {Number(l.price).toLocaleString()}{l.unit ? ` / ${l.unit}` : ''}
-            {l.negotiable && <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.orange, marginLeft: '8px' }}>Negotiable</span>}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-            <DetailRow icon="tag" text={categoryLabel} />
-            {l.quantity != null && <DetailRow icon="package" text={`${Number(l.quantity).toLocaleString()} ${l.unit || ''} available`} />}
-            {l.location && <DetailRow icon="mapPin" text={l.location} />}
-            {l.status !== 'available' && <DetailRow icon="alertTriangle" text={l.status === 'sold' ? 'This item has been sold' : 'Hidden from other buyers'} color={COLORS.red} />}
-          </div>
-
-          {l.description && <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginTop: '14px' }}>{l.description}</p>}
-
-          {l.seller && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '12px', background: COLORS.bg, borderRadius: '12px' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {l.seller.profile_image ? <img src={l.seller.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{l.seller.full_name || l.seller.username || 'Seller'}</p>
-                  {l.seller.is_premium && <PremiumBadge />}
-                </div>
-                {l.seller.username && <p style={{ fontSize: '11px', color: COLORS.textMuted }}>@{l.seller.username}</p>}
-              </div>
-            </div>
-          )}
-
-          {!isMine && l.status === 'available' && (
-            <div onClick={onBuy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: COLORS.greenDark, color: 'white', padding: '13px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', marginTop: '16px' }}>
-              <Icon name="shield" size={16} color="white" /> Buy with Escrow
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-            {isMine ? (
-              <div onClick={onEdit} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
-                <Icon name="edit" size={15} color="white" /> Edit Listing
-              </div>
-            ) : (
-              <>
-                {waNumber && (
-                  <a href={whatsappLink(waNumber)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
-                    <Icon name="message" size={15} color="white" /> WhatsApp
-                  </a>
-                )}
-                {callNumber && (
-                  <a href={`tel:${cleanPhone(callNumber)}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: `1px solid ${COLORS.green}`, color: COLORS.green, padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
-                    <Icon name="phone" size={15} color={COLORS.green} /> Call
-                  </a>
-                )}
-                {!waNumber && !callNumber && (
-                  <p style={{ fontSize: '12px', color: COLORS.textMuted }}>The seller has not added contact details yet.</p>
-                )}
-              </>
-            )}
-          </div>
-
-          {!isMine && (
-            <div onClick={() => setReportOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '14px', fontSize: '12px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
-              Report this listing
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ReportSheet
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        type="marketplace"
-        contentId={l.id}
-        targetLabel={l.title}
-      />
-    </div>
-  )
-}
-
-function DetailRow({ icon, text, color = COLORS.textMuted }: { icon: string; text: string; color?: string }) {
-  return (
-    <p style={{ fontSize: '12.5px', color, display: 'flex', alignItems: 'center', gap: '6px' }}>
-      <Icon name={icon} size={14} color={color} /> {text}
-    </p>
-  )
-}
-
-function Header({ onBack, onAdd, open }: { onBack: () => void; onAdd: () => void; open: boolean }) {
+function Header({ onBack, onAdd, unread, onInbox }: { onBack: () => void; onAdd: () => void; unread: number; onInbox: () => void }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
@@ -687,16 +321,18 @@ function Header({ onBack, onAdd, open }: { onBack: () => void; onAdd: () => void
         </div>
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Marketplace</p>
       </div>
-      <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon name={open ? 'close' : 'plus'} size={18} color="white" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Marketplace messages: the unread marker lives here, not in the DM inbox */}
+        <div onClick={onInbox} style={{ position: 'relative', width: '36px', height: '36px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <Icon name="message" size={18} color={COLORS.greenDark} />
+          {unread > 0 && (
+            <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '17px', height: '17px', borderRadius: '9px', background: COLORS.red, color: 'white', fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{unread > 9 ? '9+' : unread}</span>
+          )}
+        </div>
+        <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <Icon name="plus" size={18} color="white" />
+        </div>
       </div>
     </div>
   )
-}
-
-const labelStyle: CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }
-
-const inputStyle: CSSProperties = {
-  width: '100%', padding: '10px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
-  marginBottom: '10px', fontSize: '13px', boxSizing: 'border-box', background: COLORS.bg,
 }
