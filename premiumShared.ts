@@ -36,12 +36,12 @@ export type Feature = {
 
 export const USER_FEATURES: Feature[] = [
   { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'farmbot_daily_messages', unit: '/day' },
-  { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: false, limitKey: 'active_listings' },
+  { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: true, limitKey: 'active_listings' },
   { icon: 'play', title: 'Short Video Posting', sub: 'Post short videos (up to 20 seconds)', free: 'No', premium: 'Yes (20s)', live: false },
   { icon: 'bars', title: 'Advanced Analytics', sub: 'Track your growth and performance', free: 'No', premium: 'Yes', live: true },
   { icon: 'user', title: 'Premium Profile', sub: 'A richer profile that stands out', free: 'No', premium: 'Yes', live: false },
   { icon: 'eye', title: 'Priority Visibility', sub: 'Additional visibility opportunities', free: 'No', premium: 'Yes', live: false },
-  { icon: 'cloud', title: 'More Upload Capacity', sub: 'Images and media', free: 'Standard', premium: 'Extended', live: false },
+  { icon: 'cloud', title: 'More Upload Capacity', sub: 'Photos per listing', free: 'Standard', premium: 'Extended', live: true, limitKey: 'listing_images', unit: ' photos' },
   { icon: 'bell', title: 'Advanced Notifications', sub: 'Personalized and important alerts', free: 'No', premium: 'Yes', live: false },
   { icon: 'cart', title: 'Advanced Marketplace Tools', sub: 'Better listing insights and tools', free: 'No', premium: 'Yes', live: false },
   { icon: 'crown', title: 'Premium Badge', sub: "Show you're a Premium member", free: 'No', premium: 'Yes', live: true },
@@ -65,7 +65,7 @@ export type Included = { title: string; live: boolean }
 
 export const USER_INCLUDED: Included[] = [
   { title: 'Advanced FarmBot', live: true },
-  { title: '10 Marketplace Listings', live: false },
+  { title: '10 Marketplace Listings', live: true },
   { title: '20-Second Short Videos', live: false },
   { title: 'Personal Analytics', live: true },
   { title: 'Premium Profile', live: false },
@@ -73,7 +73,7 @@ export const USER_INCLUDED: Included[] = [
   { title: 'Priority Visibility', live: false },
   { title: 'Advanced Marketplace Tools', live: false },
   { title: 'Advanced Notifications', live: false },
-  { title: 'Extended Upload Capacity', live: false },
+  { title: 'Extended Upload Capacity', live: true },
 ]
 
 export const COMPANY_INCLUDED: Included[] = [
