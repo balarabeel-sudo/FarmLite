@@ -34,6 +34,8 @@ import OrderPage from './pages/OrderPage'
 import PremiumPage from './pages/PremiumPage'
 import MyProfilePage from './pages/MyProfilePage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import CreateListingPage from './pages/CreateListingPage'
+import ListingDetailsPage from './pages/ListingDetailsPage'
 import CompanyAnalyticsPage from './company/CompanyAnalyticsPage'
 import CompanyLayout from './company/CompanyLayout'
 import CompanyHomePage from './company/CompanyHomePage'
@@ -279,6 +281,32 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Marketplace: create/edit a listing and the product details page */}
+            <Route
+              path="/sell"
+              element={
+                <ProtectedRoute>
+                  <CreateListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sell/:id"
+              element={
+                <ProtectedRoute>
+                  <CreateListingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/listing/:id"
+              element={
+                <ProtectedRoute>
+                  <ListingDetailsPage />
                 </ProtectedRoute>
               }
             />
