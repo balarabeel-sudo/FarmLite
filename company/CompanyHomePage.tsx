@@ -28,6 +28,7 @@ export default function CompanyHomePage() {
   const { company } = useOutletContext<CompanyCtx>()
   const navigate = useNavigate()
   const [listings, setListings] = useState<number | null>(null)
+  const [posts, setPosts] = useState<number | null>(null)
 
   useEffect(() => {
     supabase
@@ -35,6 +36,11 @@ export default function CompanyHomePage() {
       .select('id', { count: 'exact', head: true })
       .eq('company_id', company.id)
       .then(({ count }) => setListings(count || 0))
+    supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', company.id)
+      .then(({ count }) => setPosts(count || 0))
   }, [company.id])
 
   const premium = isPremiumActive(company.is_premium, company.premium_until)
@@ -55,7 +61,24 @@ export default function CompanyHomePage() {
         <Stat label="Followers" value={company.followers_count} />
         <Stat label="Rating" value={company.rating > 0 ? Number(company.rating).toFixed(1) : '—'} />
         <Stat label="Listings" value={listings ?? '…'} />
+        <Stat label="Posts" value={posts ?? '…'} />
         <Stat label="Profile views" value={company.views_count} />
+      </div>
+
+      {/* Quick actions: only a verified company can post as the company */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '22px' }}>
+        {company.status === 'verified' ? (
+          <div onClick={() => navigate(`/create?company=${company.id}`)} style={{ padding: '11px 18px', borderRadius: '12px', background: COLORS.green, color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+            + New company post
+          </div>
+        ) : (
+          <div style={{ padding: '11px 14px', borderRadius: '12px', background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, fontWeight: 600, fontSize: '12.5px' }}>
+            Company posting unlocks after your company is verified.
+          </div>
+        )}
+        <div onClick={() => navigate(`/companies/${company.id}`)} style={{ padding: '11px 18px', borderRadius: '12px', background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.greenDark, fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+          View public page
+        </div>
       </div>
 
       {/* Premium status: Free -> Upgrade, Active -> Extend / View Benefits, Expired -> Renew */}
