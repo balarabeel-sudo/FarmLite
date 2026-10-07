@@ -97,6 +97,7 @@ export default function CompanyLayout() {
   const items: { label: string; icon: string; to?: string; active: boolean; soon?: boolean }[] = [
     { label: 'Overview', icon: 'building', to: '/company', active: path === '/company' || path === '/company/' },
     { label: 'Analytics', icon: 'fileText', to: '/company/analytics', active: path.startsWith('/company/analytics') },
+    { label: 'FarmBot', icon: 'comment', to: '/company/farmbot', active: path.startsWith('/company/farmbot') },
     { label: 'Premium', icon: 'crown', to: '/company/premium', active: path.startsWith('/company/premium') },
     { label: 'Public page', icon: 'users', to: `/companies/${company.id}`, active: false },
   ]
