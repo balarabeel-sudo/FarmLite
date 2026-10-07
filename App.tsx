@@ -41,6 +41,9 @@ import CompanyLayout from './company/CompanyLayout'
 import CompanyHomePage from './company/CompanyHomePage'
 import CompanyPremiumPage from './company/CompanyPremiumPage'
 import CompanyFarmBotPage from './company/CompanyFarmBotPage'
+import CompanyEditPage from './company/CompanyEditPage'
+import CompanyInsightsPage from './company/CompanyInsightsPage'
+import CompanyReportsPage from './company/CompanyReportsPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -351,6 +354,9 @@ function App() {
             >
               <Route index element={<CompanyHomePage />} />
               <Route path="analytics" element={<CompanyAnalyticsPage />} />
+              <Route path="reports" element={<CompanyReportsPage />} />
+              <Route path="insights" element={<CompanyInsightsPage />} />
+              <Route path="edit" element={<CompanyEditPage />} />
               <Route path="farmbot" element={<CompanyFarmBotPage />} />
               <Route path="premium" element={<CompanyPremiumPage />} />
             </Route>
