@@ -25,9 +25,8 @@ const COLORS = {
   orange: '#F59E0B',
 }
 
-// Owner buttons. Both routes exist in App.tsx: /company is the company dashboard, /company/premium is Company Premium.
-// There is no separate "Edit Company" page yet, so the owner button opens the dashboard for now.
-const COMPANY_DASHBOARD_PATH = '/company'
+// Owner buttons: /company/edit is the Edit Company page, /company/premium is Company Premium (both in App.tsx).
+const COMPANY_EDIT_PATH = '/company/edit'
 const COMPANY_PREMIUM_PATH = '/company/premium'
 
 type Company = {
@@ -49,6 +48,7 @@ type Company = {
   country: string | null
   products: string[] | null
   services: string[] | null
+  gallery: string[] | null
   social_links: Record<string, string> | null
   is_premium: boolean
   premium_until: string | null
@@ -92,7 +92,7 @@ export default function CompanyDetailsPage() {
 
     try {
       const [companyRes, listingsRes, followRes, postsRes, postsCountRes, likedRes, savedRes] = await Promise.all([
-        supabase.from('companies').select('id, owner_id, name, category, business_type, description, location, logo_url, cover_url, phone, whatsapp, website, address, city, state, country, products, services, social_links, is_premium, premium_until, trusted_partner, status, followers_count').eq('id', id).maybeSingle(),
+        supabase.from('companies').select('id, owner_id, name, category, business_type, description, location, logo_url, cover_url, phone, whatsapp, website, address, city, state, country, products, services, gallery, social_links, is_premium, premium_until, trusted_partner, status, followers_count').eq('id', id).maybeSingle(),
         supabase.from('marketplace_listings').select('id, title, price, unit, location, images').eq('company_id', id).eq('status', 'available').order('created_at', { ascending: false }),
         supabase.from('company_followers').select('company_id').eq('user_id', user.id).eq('company_id', id).maybeSingle(),
         supabase.from('posts').select(POST_SELECT).eq('company_id', id).eq('visibility', 'public').order('created_at', { ascending: false }).limit(20),
@@ -170,6 +170,7 @@ export default function CompanyDetailsPage() {
   const place = [company.city, company.state, company.country].filter(Boolean).join(', ') || company.location
   const focus = (company.products || []).filter(Boolean)
   const services = (company.services || []).filter(Boolean)
+  const gallery = (company.gallery || []).filter(Boolean)
   const contactHref = company.whatsapp
     ? `https://wa.me/${company.whatsapp.replace(/[^\d]/g, '')}`
     : company.phone ? `tel:${company.phone}` : null
@@ -212,7 +213,7 @@ export default function CompanyDetailsPage() {
 
           <div style={{ display: 'flex', gap: '8px', paddingBottom: '4px' }}>
             {isOwner ? (
-              <Pill onClick={() => navigate(COMPANY_DASHBOARD_PATH)} filled={false}>Dashboard</Pill>
+              <Pill onClick={() => navigate(COMPANY_EDIT_PATH)} filled={false}>Edit Company</Pill>
             ) : (
               <>
                 {contactHref && <Pill onClick={() => window.open(contactHref, '_blank', 'noopener')} filled={false}>Contact</Pill>}
@@ -325,7 +326,18 @@ export default function CompanyDetailsPage() {
               ) : null}
               {focus.length > 0 && <Block title="Business focus"><Tags items={focus} /></Block>}
               {services.length > 0 && <Block title="Services"><Tags items={services} /></Block>}
-              {!company.description && focus.length === 0 && services.length === 0 && (
+              {gallery.length > 0 && (
+                <Block title="Photos">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {gallery.map((src, i) => (
+                      <a key={`${src}-${i}`} href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', aspectRatio: '1 / 1', borderRadius: '8px', overflow: 'hidden', background: '#E5EFE5' }}>
+                        <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </a>
+                    ))}
+                  </div>
+                </Block>
+              )}
+              {!company.description && focus.length === 0 && services.length === 0 && gallery.length === 0 && (
                 <Empty text="This company has not added an overview yet." />
               )}
               {listings.length > 0 && (
