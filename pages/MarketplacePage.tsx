@@ -9,6 +9,9 @@ import NetworkError from '../NetworkError'
 import MarketplaceInbox from '../MarketplaceInbox'
 import { CATEGORIES as CATEGORY_LIST, priceText } from '../listingConfig'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
+import PremiumTick from '../PremiumTick'
+import SponsoredCard from '../SponsoredCard'
+import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -45,6 +48,13 @@ type Listing = {
 
 type CategoryFilter = 'all' | Category
 
+type FeaturedCompany = {
+  id: string
+  name: string
+  logo_url: string | null
+  category: string | null
+}
+
 const CATEGORIES: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   ...CATEGORY_LIST.map((c) => ({ value: c.key as CategoryFilter, label: c.short })),
@@ -61,6 +71,9 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
+  const [featured, setFeatured] = useState<Listing[]>([])
+  const [ads, setAds] = useState<AdData[]>([])
+  const [featuredCompanies, setFeaturedCompanies] = useState<FeaturedCompany[]>([])
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [unread, setUnread] = useState(0)
   const [inbox, setInbox] = useState<{ listing?: string | null; buyer?: string | null } | null>(null)
@@ -91,9 +104,20 @@ export default function MarketplacePage() {
     setNetError(false)
     setLoading(true)
 
-    const [listingsRes, savedRes] = await Promise.all([
+    // Featured (Company Premium) shows only on the normal browse view, not while searching or viewing "my listings".
+    const showFeatured = !mineOnly && !search.trim()
+    const [listingsRes, savedRes, featuredRes, featuredCompaniesRes, adsRes] = await Promise.all([
       listingsQuery(0, PAGE_SIZE - 1),
       supabase.from('saved_items').select('listing_id').eq('user_id', user.id).not('listing_id', 'is', null),
+      showFeatured
+        ? supabase.rpc('featured_listings', { p_category: filter === 'all' ? null : filter, p_limit: 6 })
+        : Promise.resolve({ data: [] as any[] }),
+      showFeatured && filter === 'all'
+        ? supabase.rpc('featured_companies', { p_limit: 8 })
+        : Promise.resolve({ data: [] as any[] }),
+      showFeatured
+        ? supabase.rpc('ads_for_slot', { p_slot: 'marketplace', p_limit: 2 })
+        : Promise.resolve({ data: [] as any[] }),
     ])
 
     if (listingsRes.error) {
@@ -106,6 +130,9 @@ export default function MarketplacePage() {
     setListings(page)
     setHasMore(page.length === PAGE_SIZE)
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.listing_id)))
+    setFeatured((featuredRes.data || []) as any as Listing[])
+    setFeaturedCompanies((featuredCompaniesRes.data || []) as any as FeaturedCompany[])
+    setAds((adsRes.data || []) as any as AdData[])
     setLoading(false)
   }
 
@@ -171,6 +198,63 @@ export default function MarketplacePage() {
 
   const onHeaderAdd = () => navigate('/sell')
 
+  const featuredIds = new Set(featured.map((f) => f.id))
+
+  const card = (l: Listing) => (
+              <div key={l.id} onClick={() => navigate(`/listing/${l.id}`)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                <div style={{ width: '100%', height: '100px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
+
+                  <div
+                    onClick={(e) => { e.stopPropagation(); toggleSave(l.id) }}
+                    style={{ position: 'absolute', top: '6px', right: '6px', width: '26px', height: '26px', borderRadius: '13px', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <Icon name="bookmark" size={13} color={savedIds.has(l.id) ? COLORS.orange : COLORS.textMuted} />
+                  </div>
+
+                  {(l.images?.length || 0) > 1 && (
+                    <div style={{ position: 'absolute', left: '6px', bottom: '6px', display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px' }}>
+                      <Icon name="image" size={10} color="white" /> {l.images?.length}
+                    </div>
+                  )}
+
+                  {featuredIds.has(l.id) && l.status === 'available' && (
+                    <div style={{ position: 'absolute', left: '6px', top: '6px', background: COLORS.orange, color: 'white', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px' }}>
+                      ★ Featured
+                    </div>
+                  )}
+
+                  {l.status !== 'available' && (
+                    <div style={{ position: 'absolute', left: '6px', top: '6px', background: l.status === 'sold' ? COLORS.red : COLORS.textMuted, color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>
+                      {l.status === 'sold' ? 'Sold' : 'Hidden'}
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '10px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{priceText(l)}</p>
+                  {l.location && (
+                    <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {l.location}
+                    </p>
+                  )}
+                  {l.seller_id === user?.id && (
+                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing{l.is_hidden_by_admin ? ' · Hidden by FarmLite' : ''}</p>
+                  )}
+                </div>
+              </div>
+  )
+
+  // Paid ads (always labelled "Sponsored") sit inside the grid after the 3rd and 9th listing.
+  const withAds = (items: Listing[]) => {
+    const out: any[] = []
+    items.forEach((l, i) => {
+      out.push(card(l))
+      if (i === 2 && ads[0]) out.push(<SponsoredCard key={`ad-${ads[0].id}`} ad={ads[0]} layout="grid" />)
+      if (i === 8 && ads[1]) out.push(<SponsoredCard key={`ad-${ads[1].id}`} ad={ads[1]} layout="grid" />)
+    })
+    return out
+  }
+
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
@@ -219,6 +303,40 @@ export default function MarketplacePage() {
           ))}
         </div>
 
+        {!loading && (featuredCompanies.length > 0 || featured.length > 0) && (
+          <div style={{ marginBottom: '16px' }}>
+            {featuredCompanies.length > 0 && (
+              <>
+                <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text, marginBottom: '8px' }}>Featured companies</p>
+                <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
+                  {featuredCompanies.map((c) => (
+                    <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ minWidth: '132px', width: '132px', flexShrink: 0, background: COLORS.card, borderRadius: '14px', padding: '12px 10px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                      <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#DCFCE7', margin: '0 auto', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={20} color={COLORS.green} />}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '8px' }}>
+                        <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
+                        <PremiumTick size={13} />
+                      </div>
+                      {c.category && <p style={{ fontSize: '10px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.category}</p>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {featured.length > 0 && (
+              <>
+                <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text, marginBottom: '8px' }}>Featured listings</p>
+                <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  {featured.map((l) => (
+                    <div key={`f-${l.id}`} style={{ width: '158px', flexShrink: 0 }}>{card(l)}</div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <GridCardSkeleton count={6} />
         ) : filtered.length === 0 ? (
@@ -241,43 +359,7 @@ export default function MarketplacePage() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {filtered.map((l) => (
-              <div key={l.id} onClick={() => navigate(`/listing/${l.id}`)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                <div style={{ width: '100%', height: '100px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                  {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
-
-                  <div
-                    onClick={(e) => { e.stopPropagation(); toggleSave(l.id) }}
-                    style={{ position: 'absolute', top: '6px', right: '6px', width: '26px', height: '26px', borderRadius: '13px', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <Icon name="bookmark" size={13} color={savedIds.has(l.id) ? COLORS.orange : COLORS.textMuted} />
-                  </div>
-
-                  {(l.images?.length || 0) > 1 && (
-                    <div style={{ position: 'absolute', left: '6px', bottom: '6px', display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px' }}>
-                      <Icon name="image" size={10} color="white" /> {l.images?.length}
-                    </div>
-                  )}
-
-                  {l.status !== 'available' && (
-                    <div style={{ position: 'absolute', left: '6px', top: '6px', background: l.status === 'sold' ? COLORS.red : COLORS.textMuted, color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>
-                      {l.status === 'sold' ? 'Sold' : 'Hidden'}
-                    </div>
-                  )}
-                </div>
-                <div style={{ padding: '10px' }}>
-                  <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
-                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{priceText(l)}</p>
-                  {l.location && (
-                    <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {l.location}
-                    </p>
-                  )}
-                  {l.seller_id === user?.id && (
-                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing{l.is_hidden_by_admin ? ' · Hidden by FarmLite' : ''}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+            {withAds(filtered)}
           </div>
         )}
 
