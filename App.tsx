@@ -44,6 +44,11 @@ import CompanyFarmBotPage from './company/CompanyFarmBotPage'
 import CompanyEditPage from './company/CompanyEditPage'
 import CompanyInsightsPage from './company/CompanyInsightsPage'
 import CompanyReportsPage from './company/CompanyReportsPage'
+import CompanyFeaturedPage from './company/CompanyFeaturedPage'
+import CompanyAdsPage from './company/CompanyAdsPage'
+import CompanyAdNewPage from './company/CompanyAdNewPage'
+import CompanyAdDetailPage from './company/CompanyAdDetailPage'
+import CompanyAdVerifyPage from './company/CompanyAdVerifyPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -66,6 +71,7 @@ import AdminAnalyticsPage from './admin/pages/AnalyticsPage'
 import AdminNotificationsPage from './admin/pages/NotificationsPage'
 import AdminSettingsPage from './admin/pages/SettingsPage'
 import AdminGroupsPage from './admin/pages/GroupsPage'
+import AdminAdsPage from './admin/pages/AdsPage'
 import MaintenanceGate from './MaintenanceGate'
 
 function App() {
@@ -354,6 +360,11 @@ function App() {
             >
               <Route index element={<CompanyHomePage />} />
               <Route path="analytics" element={<CompanyAnalyticsPage />} />
+              <Route path="featured" element={<CompanyFeaturedPage />} />
+              <Route path="ads" element={<CompanyAdsPage />} />
+              <Route path="ads/new" element={<CompanyAdNewPage />} />
+              <Route path="ads/verify" element={<CompanyAdVerifyPage />} />
+              <Route path="ads/:id" element={<CompanyAdDetailPage />} />
               <Route path="reports" element={<CompanyReportsPage />} />
               <Route path="insights" element={<CompanyInsightsPage />} />
               <Route path="edit" element={<CompanyEditPage />} />
@@ -419,6 +430,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="users.view">
                     <UsersPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ads"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="ads.review">
+                    <AdminAdsPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
