@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
@@ -9,6 +9,8 @@ import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../Loa
 import NetworkError from '../NetworkError'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
+import SponsoredCard from '../SponsoredCard'
+import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -60,6 +62,7 @@ export default function HomePage() {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
+  const [homeAd, setHomeAd] = useState<AdData | null>(null)
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
 
@@ -98,6 +101,15 @@ export default function HomePage() {
   }
 
   useEffect(() => { load() }, [user])
+
+  // One paid ad (labelled "Sponsored") appears in the feed after the third post.
+  useEffect(() => {
+    if (!user) return
+    supabase.rpc('ads_for_slot', { p_slot: 'home', p_limit: 1 }).then(
+      ({ data }: { data: any }) => setHomeAd(((data || []) as AdData[])[0] || null),
+      () => setHomeAd(null),
+    )
+  }, [user])
 
   if (netError) {
     return (
@@ -185,13 +197,15 @@ export default function HomePage() {
           ) : feed.length === 0 ? (
             <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
           ) : (
-            feed.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                initialLiked={likedPostIds.has(post.id)}
-                initialSaved={savedPostIds.has(post.id)}
-              />
+            feed.map((post, i) => (
+              <Fragment key={post.id}>
+                {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
+                <PostCard
+                  post={post}
+                  initialLiked={likedPostIds.has(post.id)}
+                  initialSaved={savedPostIds.has(post.id)}
+                />
+              </Fragment>
             ))
           )}
         </div>
