@@ -15,6 +15,8 @@ const COLORS = {
   red: '#DC2626',
 }
 
+type OwnedCompany = { id: string; name: string; logo_url: string | null }
+
 const CATEGORIES: { value: 'general' | 'crop' | 'livestock' | 'tips'; label: string }[] = [
   { value: 'general', label: 'General' },
   { value: 'crop', label: 'Crop' },
@@ -22,12 +24,14 @@ const CATEGORIES: { value: 'general' | 'crop' | 'livestock' | 'tips'; label: str
   { value: 'tips', label: 'Tips' },
 ]
 
-// Route: /create  (normal post)  or  /create?community=<id>  (post inside a group)
+// Route: /create  (normal post), /create?community=<id>  (post inside a group)
+// or /create?company=<id>  (post as one of your companies)
 export default function CreatePostPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const communityId = searchParams.get('community')
+  const companyParam = searchParams.get('company')
 
   const [content, setContent] = useState('')
   const [category, setCategory] = useState<'general' | 'crop' | 'livestock' | 'tips'>('general')
@@ -36,6 +40,23 @@ export default function CreatePostPage() {
   const [communityName, setCommunityName] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
+  const [companies, setCompanies] = useState<OwnedCompany[]>([])
+  const [postAs, setPostAs] = useState<string>('me') // 'me' or a company id
+
+  useEffect(() => {
+    if (!user || communityId) return
+    supabase
+      .from('companies')
+      .select('id, name, logo_url')
+      .eq('owner_id', user.id)
+      .eq('status', 'verified')
+      .order('name')
+      .then(({ data }) => {
+        const list = (data || []) as OwnedCompany[]
+        setCompanies(list)
+        if (companyParam && list.some((c) => c.id === companyParam)) setPostAs(companyParam)
+      })
+  }, [user, communityId, companyParam])
 
   useEffect(() => {
     if (!communityId) return
@@ -43,6 +64,8 @@ export default function CreatePostPage() {
       if (data) setCommunityName(data.name)
     })
   }, [communityId])
+
+  const activeCompany = companies.find((c) => c.id === postAs) || null
 
   const canPost = !!content.trim() && !posting && !uploading
 
@@ -54,6 +77,7 @@ export default function CreatePostPage() {
     const { error: insertError } = await supabase.from('posts').insert({
       user_id: user.id,
       community_id: communityId || null,
+      company_id: !communityId && activeCompany ? activeCompany.id : null,
       category,
       content: content.trim(),
       images: images.length > 0 ? images : null,
@@ -71,7 +95,10 @@ export default function CreatePostPage() {
       return
     }
 
-    navigate(communityId ? `/communities/${communityId}` : '/', { replace: true })
+    navigate(
+      communityId ? `/communities/${communityId}` : activeCompany ? `/companies/${activeCompany.id}` : '/',
+      { replace: true },
+    )
   }
 
   return (
@@ -84,7 +111,9 @@ export default function CreatePostPage() {
           <div onClick={() => navigate(-1)} style={{ cursor: 'pointer', display: 'flex' }}>
             <Icon name="close" size={22} color={COLORS.text} />
           </div>
-          <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>New Post</p>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>
+            {activeCompany ? 'New Company Post' : 'New Post'}
+          </p>
         </div>
         <div
           onClick={canPost ? handlePost : undefined}
@@ -110,6 +139,38 @@ export default function CreatePostPage() {
           </div>
         )}
 
+        {!communityId && companies.length > 0 && (
+          <div style={{ marginBottom: '14px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '8px' }}>Post as</p>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+              {[{ id: 'me', name: 'Myself', logo_url: null as string | null }, ...companies].map((o) => {
+                const active = postAs === o.id
+                return (
+                  <div
+                    key={o.id}
+                    onClick={() => setPostAs(o.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px 6px 6px', borderRadius: '999px',
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                      background: active ? '#DCFCE7' : COLORS.card,
+                      border: `1px solid ${active ? COLORS.green : COLORS.border}`,
+                    }}>
+                    <div style={{
+                      width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden', background: COLORS.green,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: 800,
+                    }}>
+                      {o.logo_url
+                        ? <img src={o.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : o.name.charAt(0).toUpperCase()}
+                    </div>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>{o.name}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto' }}>
           {CATEGORIES.map((c) => (
             <div
@@ -129,7 +190,13 @@ export default function CreatePostPage() {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={communityId ? 'Share something with the group...' : 'Share something with the FarmLite community...'}
+          placeholder={
+            communityId
+              ? 'Share something with the group...'
+              : activeCompany
+                ? `Share an update from ${activeCompany.name}...`
+                : 'Share something with the FarmLite community...'
+          }
           rows={6}
           maxLength={2000}
           style={{
