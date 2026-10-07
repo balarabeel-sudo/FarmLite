@@ -21,6 +21,8 @@ const METRICS: Record<AnalyticsAudience, { key: MetricKey; label: string; color:
     { key: 'views', label: 'Page views', color: '#1D9BF0' },
     { key: 'listing_views', label: 'Listing views', color: '#7C3AED' },
     { key: 'followers', label: 'New followers', color: '#16A34A' },
+    { key: 'likes', label: 'Post likes', color: '#DB2777' },
+    { key: 'comments', label: 'Post comments', color: '#7C3AED' },
     { key: 'saves', label: 'Saves', color: '#D97706' },
     { key: 'sales', label: 'Orders', color: '#0D9488' },
   ],
@@ -155,32 +157,34 @@ function DashboardBody({ audience, data }: { audience: AnalyticsAudience; data: 
       </div>
 
       {/* Top content */}
-      {audience === 'user' ? (
+      <div style={{ display: 'grid', gridTemplateColumns: audience === 'company' ? 'repeat(auto-fit, minmax(320px, 1fr))' : '1fr', gap: 14 }}>
         <Card title="Top posts" subtitle="By likes and comments">
           {(data.top_posts || []).length === 0 ? (
-            <Empty text="Your posts will be ranked here once you start posting." />
+            <Empty text={audience === 'company' ? 'Posts made as your company will be ranked here.' : 'Your posts will be ranked here once you start posting.'} />
           ) : (
             (data.top_posts || []).map((p, i) => (
               <Row key={p.id} rank={i + 1} image={p.image} title={p.snippet || 'Post'} meta={`${p.likes_count} likes · ${p.comments_count} comments`} />
             ))
           )}
         </Card>
-      ) : (
-        <Card title="Top listings" subtitle="By views in this period">
-          {(data.top_listings || []).length === 0 ? (
-            <Empty text="Your company listings will be ranked here once they receive views." />
-          ) : (
-            (data.top_listings || []).map((l, i) => (
-              <Row key={l.id} rank={i + 1} image={l.image} title={l.title} meta={`${l.views} views · ${l.saves} saves`} />
-            ))
-          )}
-        </Card>
-      )}
+
+        {audience === 'company' && (
+          <Card title="Top listings" subtitle="By views in this period">
+            {(data.top_listings || []).length === 0 ? (
+              <Empty text="Your company listings will be ranked here once they receive views." />
+            ) : (
+              (data.top_listings || []).map((l, i) => (
+                <Row key={l.id} rank={i + 1} image={l.image} title={l.title} meta={`${l.views} views · ${l.saves} saves`} />
+              ))
+            )}
+          </Card>
+        )}
+      </div>
 
       {/* Totals */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         <Total label="Total followers" value={data.totals?.followers ?? 0} />
-        {audience === 'user' && <Total label="Posts" value={data.totals?.posts ?? 0} />}
+        <Total label="Posts" value={data.totals?.posts ?? 0} />
         <Total label="Active listings" value={data.totals?.listings ?? 0} />
       </div>
 
