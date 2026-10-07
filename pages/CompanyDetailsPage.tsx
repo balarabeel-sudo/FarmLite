@@ -391,7 +391,7 @@ export default function CompanyDetailsPage() {
               <AboutRow label="Website" value={websiteLabel || null} href={websiteHref || undefined} />
               <AboutRow label="Phone" value={company.phone} href={company.phone ? `tel:${company.phone}` : undefined} />
               <AboutRow label="WhatsApp" value={company.whatsapp} href={contactHref && company.whatsapp ? contactHref : undefined} />
-              {Object.entries(company.social_links || {}).filter(([, v]) => typeof v === 'string' && v).map(([k, v]) => (
+              {Object.entries((company.social_links || {}) as Record<string, string>).filter(([, v]) => typeof v === 'string' && v).map(([k, v]) => (
                 <AboutRow key={k} label={k} value={v.replace(/^https?:\/\//, '')} href={v.startsWith('http') ? v : `https://${v}`} />
               ))}
               <AboutRow label="Verification" value={verified ? 'Verified company' : null} />
