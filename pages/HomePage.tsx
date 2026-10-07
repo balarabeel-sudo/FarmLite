@@ -7,9 +7,8 @@ import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
-import PostImages from '../PostImages'
-import CommentsSheet from '../CommentsSheet'
-import ReportSheet from '../ReportSheet'
+import PostCard, { POST_SELECT } from '../PostCard'
+import type { PostCardData } from '../PostCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -38,16 +37,7 @@ type Listing = {
   images: string[] | null
 }
 
-type FeedPost = {
-  id: string
-  user_id: string
-  content: string
-  images: string[] | null
-  likes_count: number
-  comments_count: number
-  created_at: string
-  profiles: { full_name: string | null; username: string | null; profile_image: string | null } | null
-}
+type FeedPost = PostCardData
 
 const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'farmbot' | 'groups' | 'equipment' | 'saved'; path: string }[] = [
   { icon: 'cart', labelKey: 'marketplace', path: '/marketplace' },
@@ -83,7 +73,7 @@ export default function HomePage() {
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
-        supabase.from('posts').select('id, user_id, content, images, likes_count, comments_count, created_at, profiles!posts_user_id_fkey(full_name, username, profile_image)').eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
+        supabase.from('posts').select(POST_SELECT).eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
         supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
         supabase.from('post_likes').select('post_id').eq('user_id', user.id),
       ])
@@ -105,52 +95,6 @@ export default function HomePage() {
     }
 
     setLoading(false)
-  }
-
-  const toggleSavePost = async (postId: string) => {
-    if (!user) return
-    if (savedPostIds.has(postId)) {
-      await supabase.from('saved_items').delete().eq('user_id', user.id).eq('post_id', postId)
-      setSavedPostIds((prev) => { const next = new Set(prev); next.delete(postId); return next })
-    } else {
-      await supabase.from('saved_items').insert({ user_id: user.id, post_id: postId })
-      setSavedPostIds((prev) => new Set(prev).add(postId))
-    }
-  }
-
-  const toggleLikePost = async (postId: string) => {
-    if (!user) return
-    const alreadyLiked = likedPostIds.has(postId)
-
-    // Optimistic update so the heart + count respond instantly; a trigger on
-    // post_likes keeps posts.likes_count as the source of truth in the DB.
-    setLikedPostIds((prev) => {
-      const next = new Set(prev)
-      alreadyLiked ? next.delete(postId) : next.add(postId)
-      return next
-    })
-    setFeed((prev) => prev.map((p) => (p.id === postId ? { ...p, likes_count: Math.max(0, p.likes_count + (alreadyLiked ? -1 : 1)) } : p)))
-
-    if (alreadyLiked) {
-      await supabase.from('post_likes').delete().eq('user_id', user.id).eq('post_id', postId)
-    } else {
-      await supabase.from('post_likes').insert({ user_id: user.id, post_id: postId })
-    }
-  }
-
-  const changeCommentCount = (postId: string, delta: number) => {
-    setFeed((prev) => prev.map((p) => (p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count + delta) } : p)))
-  }
-
-  const sharePost = async (post: FeedPost) => {
-    const shareData = { title: 'FarmLite', text: post.content, url: window.location.origin }
-    if ((navigator as any).share) {
-      try { await (navigator as any).share(shareData) } catch { /* user cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(`${post.content}\n\n${window.location.origin}`)
-      return true // signals FeedCard to show "Copied!"
-    }
-    return false
   }
 
   useEffect(() => { load() }, [user])
@@ -242,16 +186,11 @@ export default function HomePage() {
             <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
           ) : (
             feed.map((post) => (
-              <FeedCard
+              <PostCard
                 key={post.id}
                 post={post}
-                isOwn={post.user_id === user?.id}
-                saved={savedPostIds.has(post.id)}
-                liked={likedPostIds.has(post.id)}
-                onToggleSave={() => toggleSavePost(post.id)}
-                onToggleLike={() => toggleLikePost(post.id)}
-                onShare={() => sharePost(post)}
-                onCommentCountChange={(delta) => changeCommentCount(post.id, delta)}
+                initialLiked={likedPostIds.has(post.id)}
+                initialSaved={savedPostIds.has(post.id)}
               />
             ))
           )}
@@ -315,111 +254,6 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
   )
 }
 
-function FeedCard({
-  post, isOwn, saved, liked, onToggleSave, onToggleLike, onShare, onCommentCountChange,
-}: {
-  post: FeedPost
-  isOwn: boolean
-  saved: boolean
-  liked: boolean
-  onToggleSave: () => void
-  onToggleLike: () => void
-  onShare: () => Promise<boolean>
-  onCommentCountChange: (delta: number) => void
-}) {
-  const navigate = useNavigate()
-  const author = post.profiles
-  const [copied, setCopied] = useState(false)
-  const [commentsOpen, setCommentsOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [reportOpen, setReportOpen] = useState(false)
-
-  const handleShare = async () => {
-    const didCopy = await onShare()
-    if (didCopy) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    }
-  }
-
-  return (
-    <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
-        <div onClick={() => author?.username && navigate(`/u/${author.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, cursor: author?.username ? 'pointer' : 'default' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-            {author?.profile_image ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={16} color={COLORS.green} />}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{author?.full_name || author?.username || 'FarmLite user'}</p>
-            <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>{timeAgo(post.created_at)}</p>
-          </div>
-        </div>
-        {!isOwn && (
-          <div>
-            <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ padding: '6px', cursor: 'pointer', display: 'flex' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={COLORS.textMuted} aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
-            </div>
-            {menuOpen && (
-              <>
-                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                <div style={{ position: 'absolute', right: 0, top: '32px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '150px', overflow: 'hidden' }}>
-                  <div onClick={() => { setMenuOpen(false); setReportOpen(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 14px', fontSize: '12.5px', fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
-                    Report post
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginBottom: '10px' }}>{post.content}</p>
-
-      <div style={{ marginBottom: '10px' }}><PostImages images={post.images} /></div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
-        <span onClick={onToggleLike} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: liked ? '#DC2626' : COLORS.textMuted, cursor: 'pointer' }}>
-          <Icon name="heart" size={15} color={liked ? '#DC2626' : COLORS.textMuted} /> {post.likes_count}
-        </span>
-        <span onClick={() => setCommentsOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
-          <Icon name="comment" size={15} color={COLORS.textMuted} /> {post.comments_count}
-        </span>
-        <span onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
-          <ShareIcon size={16} color={COLORS.textMuted} /> {copied ? 'Copied!' : ''}
-        </span>
-        <span onClick={onToggleSave} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, marginLeft: 'auto', cursor: 'pointer' }}>
-          <Icon name="bookmark" size={15} color={saved ? COLORS.orange : COLORS.textMuted} />
-        </span>
-      </div>
-
-      <ReportSheet
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        type="post"
-        contentId={post.id}
-        targetLabel={post.content.slice(0, 80)}
-      />
-
-      <CommentsSheet
-        postId={post.id}
-        open={commentsOpen}
-        onClose={() => setCommentsOpen(false)}
-        onCountChange={onCommentCountChange}
-      />
-    </div>
-  )
-}
-
-// Forward-arrow share icon (Facebook-style), so it no longer looks like a download icon.
-function ShareIcon({ size = 16, color = '#5B6B5B' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 9V5l8 7-8 7v-4c-5.5 0-9 1.5-12 5 1-6 4.5-10.5 12-11z" />
-    </svg>
-  )
-}
-
 function BottomNav() {
   const navigate = useNavigate()
   const items = [
@@ -453,14 +287,4 @@ function BottomNav() {
       )}
     </div>
   )
-}
-
-function timeAgo(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diffMs / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
 }
