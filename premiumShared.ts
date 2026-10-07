@@ -50,13 +50,13 @@ export const USER_FEATURES: Feature[] = [
 export const COMPANY_FEATURES: Feature[] = [
   { icon: 'building', title: 'Company Page', sub: 'How your company presents itself', free: 'Basic', premium: 'Enhanced', live: false },
   { icon: 'crown', title: 'Premium Company Badge', sub: 'A Premium badge on your company', free: 'No', premium: 'Yes', live: true },
-  { icon: 'bars', title: 'Company Analytics', sub: 'Views, followers, listings and orders', free: 'Basic', premium: 'Advanced', live: true },
+  { icon: 'bars', title: 'Company Analytics', sub: 'Views, followers, posts, listings and orders', free: 'Basic', premium: 'Advanced', live: true },
   { icon: 'box', title: 'Marketplace Tools', sub: 'Listing insights and higher capacity', free: 'Standard', premium: 'Advanced', live: false },
   { icon: 'eye', title: 'Featured Visibility', sub: 'Additional visibility opportunities', free: 'Standard', premium: 'Featured', live: false },
   { icon: 'users', title: 'Customer Insights', sub: 'Visitors, interest and engagement', free: 'Basic', premium: 'Yes', live: false },
   { icon: 'megaphone', title: 'Advertising Tools', sub: 'Promote your company and listings', free: 'Standard', premium: 'Advanced', live: false, soonLabel: 'Coming soon' },
   { icon: 'file', title: 'Performance Reports', sub: 'Weekly and monthly summaries', free: 'No', premium: 'Yes', live: false },
-  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'Agriculture and business guidance', free: 'No', premium: 'Yes', live: false },
+  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'Agriculture and business guidance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'company_farmbot_daily_messages', unit: '/day' },
   { icon: 'headset', title: 'Priority Support', sub: 'Faster help from the team', free: 'Standard', premium: 'Priority', live: false },
 ]
 
@@ -86,7 +86,7 @@ export const COMPANY_INCLUDED: Included[] = [
   { title: 'Customer Insights', live: false },
   { title: 'Advanced Advertising Tools', live: false },
   { title: 'Company Performance Reports', live: false },
-  { title: 'FarmBot Business Assistance', live: false },
+  { title: 'FarmBot Business Assistance', live: true },
   { title: 'Priority Visibility', live: false },
   { title: 'Priority Support', live: false },
 ]
