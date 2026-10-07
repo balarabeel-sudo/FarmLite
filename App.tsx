@@ -40,6 +40,7 @@ import CompanyAnalyticsPage from './company/CompanyAnalyticsPage'
 import CompanyLayout from './company/CompanyLayout'
 import CompanyHomePage from './company/CompanyHomePage'
 import CompanyPremiumPage from './company/CompanyPremiumPage'
+import CompanyFarmBotPage from './company/CompanyFarmBotPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -350,6 +351,7 @@ function App() {
             >
               <Route index element={<CompanyHomePage />} />
               <Route path="analytics" element={<CompanyAnalyticsPage />} />
+              <Route path="farmbot" element={<CompanyFarmBotPage />} />
               <Route path="premium" element={<CompanyPremiumPage />} />
             </Route>
 
