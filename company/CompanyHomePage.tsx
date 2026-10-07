@@ -76,6 +76,9 @@ export default function CompanyHomePage() {
             Company posting unlocks after your company is verified.
           </div>
         )}
+        <div onClick={() => navigate('/company/edit')} style={{ padding: '11px 18px', borderRadius: '12px', background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.greenDark, fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+          Edit company
+        </div>
         <div onClick={() => navigate(`/companies/${company.id}`)} style={{ padding: '11px 18px', borderRadius: '12px', background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.greenDark, fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
           View public page
         </div>
