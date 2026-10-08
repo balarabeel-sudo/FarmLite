@@ -72,6 +72,7 @@ import AdminNotificationsPage from './admin/pages/NotificationsPage'
 import AdminSettingsPage from './admin/pages/SettingsPage'
 import AdminGroupsPage from './admin/pages/GroupsPage'
 import AdminAdsPage from './admin/pages/AdsPage'
+import AdminAdPricingPage from './admin/pages/AdPricingPage'
 import MaintenanceGate from './MaintenanceGate'
 
 function App() {
@@ -440,6 +441,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="ads.review">
                     <AdminAdsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ads/pricing"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="ads.manage_pricing">
+                    <AdminAdPricingPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
