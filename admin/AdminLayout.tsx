@@ -36,7 +36,6 @@ const NAV: NavGroup[] = [
       { label: 'Equipment', path: '/admin/equipment', permission: 'equipment.view' },
       { label: 'FarmBot', path: '/admin/farmbot', permission: 'farmbot.view_analytics' },
       { label: 'Farm Desk', path: '/admin/farm-desk', permission: 'trade_desk.view' },
-      { label: 'Wallet & Escrow', path: '/admin/wallet', permission: 'wallet.view' },
     ],
   },
   {
@@ -44,6 +43,13 @@ const NAV: NavGroup[] = [
     items: [
       { label: 'Reports', path: '/admin/reports', permission: 'reports.view' },
       { label: 'Verification', path: '/admin/verification', permission: 'companies.verify' },
+    ],
+  },
+  {
+    title: 'Advertising',
+    items: [
+      { label: 'Ads', path: '/admin/ads', permission: 'ads.review' },
+      { label: 'Ad Pricing', path: '/admin/ads/pricing', permission: 'ads.manage_pricing' },
     ],
   },
   {
@@ -114,7 +120,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  end={item.path === '/admin'}
+                  end={item.path === '/admin' || item.path === '/admin/ads'}
                   onClick={() => setSidebarOpen(false)}
                   style={({ isActive }) => ({
                     display: 'block', padding: '9px 10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
