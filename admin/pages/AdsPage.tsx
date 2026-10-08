@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
@@ -26,6 +27,8 @@ type AdminAd = {
   starts_at: string | null
   ends_at: string | null
   created_at: string
+  impressions: number
+  clicks: number
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
@@ -70,6 +73,20 @@ export default function AdsPage() {
 
   useEffect(() => { load() }, [filter])
 
+  const stop = async (ad: AdminAd) => {
+    const note = window.prompt('Why is this running ad being stopped? The company will see this message.')
+    if (!note || note.trim().length < 3) return
+    setBusy(ad.id)
+    const { error: e } = await supabase.rpc('ad_admin_stop', { p_ad: ad.id, p_note: note })
+    setBusy('')
+    if (e) {
+      window.alert(e.message.includes('not_active') ? 'This ad is no longer running.' : e.message)
+      return load()
+    }
+    await logAdminAction('Stopped running company ad', { type: 'ad', id: ad.id, label: `${ad.company_name}: ${ad.headline}` })
+    load()
+  }
+
   const review = async (ad: AdminAd, approve: boolean) => {
     let note: string | null = null
     if (!approve) {
@@ -90,7 +107,7 @@ export default function AdsPage() {
 
   return (
     <AdminLayout title="Ads">
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         {FILTERS.map((f) => (
           <div key={f.key} onClick={() => setFilter(f.key)} style={{
             padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
@@ -98,6 +115,9 @@ export default function AdsPage() {
             border: `1px solid ${filter === f.key ? A.green : A.border}`,
           }}>{f.label}</div>
         ))}
+        {staff.permissions.has('ads.manage_pricing') && (
+          <Link to="/admin/ads/pricing" style={{ marginLeft: 'auto', fontSize: '12.5px', fontWeight: 700, color: A.green, textDecoration: 'none' }}>Manage ad prices</Link>
+        )}
       </div>
 
       <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px' }}>
@@ -126,10 +146,14 @@ export default function AdsPage() {
                     Audience: {ad.audience_roles.length ? ad.audience_roles.join(', ') : 'everyone'} · Location: {ad.locations.length ? ad.locations.join(', ') : 'everywhere'} · {ad.days} days · {money(ad.amount, ad.currency)}
                   </p>
                   {ad.review_note && <p style={{ fontSize: '11.5px', color: A.red, marginTop: 4 }}>Note: {ad.review_note}</p>}
+                  {(ad.status === 'active' || ad.impressions > 0) && <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 4 }}>{ad.impressions} impressions · {ad.clicks} clicks</p>}
                   {ad.starts_at && <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 4 }}>Runs {new Date(ad.starts_at).toLocaleDateString()} to {ad.ends_at ? new Date(ad.ends_at).toLocaleDateString() : ''}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                   <span style={{ background: st.bg, color: st.color, fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px' }}>{st.label}</span>
+                  {canReview && ad.status === 'active' && new Date(ad.ends_at || 0).getTime() > Date.now() && (
+                    <span onClick={busy ? undefined : () => stop(ad)} style={{ fontSize: '12.5px', fontWeight: 700, color: A.red, cursor: 'pointer', opacity: busy === ad.id ? 0.5 : 1 }}>Stop ad</span>
+                  )}
                   {canReview && ad.status === 'pending_review' && (
                     <div style={{ display: 'flex', gap: 10 }}>
                       <span onClick={busy ? undefined : () => review(ad, true)} style={{ fontSize: '12.5px', fontWeight: 700, color: A.green, cursor: 'pointer', opacity: busy === ad.id ? 0.5 : 1 }}>Approve</span>
