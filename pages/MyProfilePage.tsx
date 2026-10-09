@@ -88,7 +88,7 @@ export default function MyProfilePage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {profile.full_name || profile.username || 'FarmLite user'}
+                      {profile.full_name || profile.username || 'Farmxie user'}
                     </p>
                     {profile.is_verified && <Icon name="checkCircle" size={15} color={COLORS.green} />}
                     {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={17} />}
