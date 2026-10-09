@@ -100,7 +100,7 @@ export default function OrderPage() {
       setShowDispute(false)
       setReason('')
       setReasonPhotos([])
-      setMessage({ type: 'ok', text: 'Dispute opened. FarmLite staff will review it.' })
+      setMessage({ type: 'ok', text: 'Dispute opened. Farmxie staff will review it.' })
       await load()
     } catch (e) {
       setMessage({ type: 'error', text: (e as Error).message })
@@ -118,7 +118,7 @@ export default function OrderPage() {
       setEvNote('')
       setEvPhotos([])
       setShowEvidenceForm(false)
-      setMessage({ type: 'ok', text: 'Evidence added. FarmLite staff have been notified.' })
+      setMessage({ type: 'ok', text: 'Evidence added. Farmxie staff have been notified.' })
       await load()
     } catch (e) {
       setMessage({ type: 'error', text: (e as Error).message })
@@ -202,7 +202,7 @@ export default function OrderPage() {
           <div style={{ background: '#FEF2F2', borderRadius: '16px', padding: '16px', marginTop: '14px' }}>
             <p style={{ fontSize: '13px', fontWeight: 800, color: '#B91C1C' }}>Under review</p>
             <p style={{ fontSize: '12px', color: COLORS.text, marginTop: '6px', lineHeight: 1.5 }}>{order.dispute_reason}</p>
-            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '8px' }}>The money stays held until FarmLite staff decide.</p>
+            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '8px' }}>The money stays held until Farmxie staff decide.</p>
           </div>
         )}
 
