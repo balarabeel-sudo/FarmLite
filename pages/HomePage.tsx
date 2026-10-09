@@ -154,7 +154,7 @@ export default function HomePage() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Farm Desk</p>
-              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Tell FarmLite what you need. We'll help you find it.</p>
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Tell Farmxie what you need. We'll help you find it.</p>
             </div>
             <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
           </div>
@@ -225,7 +225,7 @@ function Header({ unreadNotifications, profileImage }: { unreadNotifications: nu
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Icon name="leaf" size={22} color={COLORS.green} />
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>FarmLite</p>
+        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>Farmxie</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <IconBadge icon="search" onClick={() => navigate('/search')} />
