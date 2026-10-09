@@ -70,7 +70,7 @@ export default function StaffInvitePage() {
     body = (
       <>
         <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.6, textAlign: 'center' }}>
-          You have been invited to join the FarmLite team. Sign in with the email the invitation was sent to. If you do not have an account yet, create one with that same email and confirm it.
+          You have been invited to join the Farmxie team. Sign in with the email the invitation was sent to. If you do not have an account yet, create one with that same email and confirm it.
         </p>
         <Button label="Sign in" onClick={() => navigate('/login')} />
         <Button label="Create account" onClick={() => navigate('/register')} secondary />
@@ -103,7 +103,7 @@ export default function StaffInvitePage() {
     body = (
       <>
         <p style={{ fontSize: '13px', color: COLORS.text, textAlign: 'center', lineHeight: 1.6 }}>
-          {invite.inviter_name ? `${invite.inviter_name} invited you` : 'You have been invited'} to join FarmLite as
+          {invite.inviter_name ? `${invite.inviter_name} invited you` : 'You have been invited'} to join Farmxie as
         </p>
         <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.green, textAlign: 'center', margin: '6px 0 4px' }}>{invite.role_name || 'Staff'}</p>
         <p style={{ fontSize: '11.5px', color: COLORS.textMuted, textAlign: 'center' }}>Signed in as {email}</p>
@@ -140,7 +140,7 @@ export default function StaffInvitePage() {
         <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           <Icon name="leaf" size={26} color={COLORS.green} />
         </div>
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, textAlign: 'center', marginBottom: '14px' }}>FarmLite team invitation</p>
+        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, textAlign: 'center', marginBottom: '14px' }}>Farmxie team invitation</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{body}</div>
       </div>
     </div>
