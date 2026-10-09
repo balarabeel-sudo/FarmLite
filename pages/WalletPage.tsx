@@ -245,7 +245,7 @@ export default function WalletPage() {
           onClose={() => setSheet(null)}
           onDone={() => {
             setSheet(null)
-            setBanner({ type: 'ok', text: 'Withdrawal requested. FarmLite will review and send it to your bank.' })
+            setBanner({ type: 'ok', text: 'Withdrawal requested. Farmxie will review and send it to your bank.' })
             load()
           }}
         />
@@ -421,7 +421,7 @@ function WithdrawSheet({ available, onClose, onDone }: { available: number; onCl
   return (
     <Sheet title="Withdraw to bank" onClose={onClose}>
       <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>
-        Available: {money.formatNgn(available)}. The amount leaves your wallet now and is sent to your bank after FarmLite approves it.
+        Available: {money.formatNgn(available)}. The amount leaves your wallet now and is sent to your bank after Farmxie approves it.
       </p>
       <input type="number" inputMode="numeric" placeholder="Amount (NGN, minimum 1,000)" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} />
 
