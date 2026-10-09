@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <p style={{ fontSize: '40px' }}>📩</p>
         <h1 style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '10px' }}>Check your email</h1>
         <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '8px', lineHeight: 1.6 }}>
-          We sent a confirmation link to <strong>{email}</strong>. Confirm it, then sign in to start using FarmLite.
+          We sent a confirmation link to <strong>{email}</strong>. Confirm it, then sign in to start using Farmxie.
         </p>
         <Link to="/login" style={{ marginTop: '20px', color: COLORS.green, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
           Go to Sign In
@@ -93,7 +93,7 @@ export default function RegisterPage() {
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, padding: '48px 24px 32px', color: 'white' }}>
-        <p style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.3px' }}>🌱 FarmLite</p>
+        <p style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.3px' }}>🌱 Farmxie</p>
         <h1 style={{ fontSize: '24px', fontWeight: 800, marginTop: '18px' }}>Create your account</h1>
         <p style={{ fontSize: '13px', color: '#DCFCE7', marginTop: '6px' }}>Join farmers, buyers and agribusinesses.</p>
       </div>
