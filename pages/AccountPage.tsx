@@ -96,7 +96,7 @@ export default function AccountPage() {
                   <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>My Profile</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                     <p style={{ fontSize: '11px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {profile.full_name || profile.username || 'FarmLite user'}
+                      {profile.full_name || profile.username || 'Farmxie user'}
                     </p>
                     {profile.is_verified && <Icon name="checkCircle" size={12} color={COLORS.green} />}
                     {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
@@ -152,7 +152,7 @@ export default function AccountPage() {
                       <Icon name="crown" size={21} color="#F5D060" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'FarmLite Premium ✓' : expired ? 'Premium Expired' : 'FarmLite Premium'}</p>
+                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Farmxie Premium ✓' : expired ? 'Premium Expired' : 'Farmxie Premium'}</p>
                       <p style={{ fontSize: '11.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.45 }}>
                         {active
                           ? (profile.premium_until ? `Active until ${formatDate(profile.premium_until)}` : 'Your Premium membership is active.')
