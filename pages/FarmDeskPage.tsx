@@ -59,7 +59,7 @@ export default function FarmDeskPage() {
 
       {/* Hero */}
       <div style={{ margin: '16px', borderRadius: '18px', padding: '22px 20px', color: 'white', background: `linear-gradient(135deg, ${FD.green}, ${FD.greenDark})` }}>
-        <p style={{ fontSize: '19px', fontWeight: 800, lineHeight: 1.3 }}>Tell FarmLite what you need.<br />We'll help you find it.</p>
+        <p style={{ fontSize: '19px', fontWeight: 800, lineHeight: 1.3 }}>Tell Farmxie what you need.<br />We'll help you find it.</p>
         <p style={{ fontSize: '12px', color: '#DCFCE7', marginTop: '8px', lineHeight: 1.5 }}>
           Can't find it in the Marketplace? Send a request and our team will source suppliers for you.
         </p>
@@ -104,7 +104,7 @@ export default function FarmDeskPage() {
               {requests.length === 0 ? 'No requests yet' : `No ${tab} requests`}
             </p>
             <p style={{ fontSize: '12px', color: FD.textMuted, marginTop: '4px' }}>
-              {requests.length === 0 ? 'Create your first Farm Desk request and FarmLite will start looking.' : 'Requests will show here.'}
+              {requests.length === 0 ? 'Create your first Farm Desk request and Farmxie will start looking.' : 'Requests will show here.'}
             </p>
           </div>
         ) : (
