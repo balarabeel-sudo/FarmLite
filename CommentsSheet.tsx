@@ -197,7 +197,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
 
   const startReply = (c: CommentRow) => {
     const isReply = !!c.parent_id
-    const name = c.profiles?.full_name || c.profiles?.username || 'FarmLite user'
+    const name = c.profiles?.full_name || c.profiles?.username || 'Farmxie user'
     const mention = isReply ? `@${c.profiles?.username || name} ` : null
     setReplyTo({ topId: c.parent_id || c.id, name, mention })
     setText(mention || '')
@@ -267,7 +267,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
 
   const renderComment = (c: CommentRow, isReply: boolean) => {
     const p = c.profiles
-    const name = p?.full_name || p?.username || 'FarmLite user'
+    const name = p?.full_name || p?.username || 'Farmxie user'
     const liked = likedIds.has(c.id)
     const avatar = isReply ? 26 : 32
     const goProfile = () => { if (p?.username) { onClose(); navigate(`/u/${p.username}`) } }
