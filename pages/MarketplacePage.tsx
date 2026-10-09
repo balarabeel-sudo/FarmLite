@@ -238,7 +238,7 @@ export default function MarketplacePage() {
                     </p>
                   )}
                   {l.seller_id === user?.id && (
-                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing{l.is_hidden_by_admin ? ' · Hidden by FarmLite' : ''}</p>
+                    <p style={{ fontSize: '10px', color: COLORS.orange, marginTop: '4px', fontWeight: 700 }}>Your listing{l.is_hidden_by_admin ? ' · Hidden by Farmxie' : ''}</p>
                   )}
                 </div>
               </div>
@@ -348,11 +348,11 @@ export default function MarketplacePage() {
             {!mineOnly && (
               <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${COLORS.bg}` }}>
                 <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Can't find what you need?</p>
-                <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: 1.5 }}>Let FarmLite find it for you through Farm Desk.</p>
+                <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: 1.5 }}>Let Farmxie find it for you through Farm Desk.</p>
                 <div
                   onClick={() => navigate(`/farm-desk/new${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''}`)}
                   style={{ display: 'inline-block', marginTop: '12px', background: COLORS.green, color: 'white', borderRadius: '12px', padding: '11px 20px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}>
-                  Ask FarmLite to Find It
+                  Ask Farmxie to Find It
                 </div>
               </div>
             )}
