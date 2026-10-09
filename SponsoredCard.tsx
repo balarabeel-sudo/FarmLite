@@ -40,7 +40,7 @@ function priceLabel(l: NonNullable<AdData['listing']>) {
   return `${l.currency} ${Number(l.price).toLocaleString()}${l.unit ? `/${l.unit}` : ''}`
 }
 
-// A paid FarmLite Ad, always clearly labelled "Sponsored".
+// A paid Farmxie Ad, always clearly labelled "Sponsored".
 // layout "grid" matches a Marketplace listing card, "wide" fits the Home feed.
 // With `preview` it is a static preview (used while creating an ad): nothing is tracked or clickable.
 export default function SponsoredCard({ ad, layout = 'grid', preview = false }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean }) {
