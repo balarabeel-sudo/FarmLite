@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div style={{ padding: '48px 24px 160px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <FarmLiteLogo size={72} />
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: COLORS.greenDark, marginTop: '10px' }}>FarmLite</h1>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: COLORS.greenDark, marginTop: '10px' }}>Farmxie</h1>
           <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '2px' }}>
             Connecting Farmers &nbsp;•&nbsp; Growing Together
           </p>
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
         <h2 style={{ fontSize: '26px', fontWeight: 800, color: COLORS.text, marginTop: '32px' }}>Welcome Back</h2>
         <p style={{ fontSize: '14px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.4 }}>
-          Sign in to your FarmLite account and continue your agricultural journey.
+          Sign in to your Farmxie account and continue your agricultural journey.
         </p>
 
         <form onSubmit={handleSubmit} style={{ marginTop: '24px' }}>
