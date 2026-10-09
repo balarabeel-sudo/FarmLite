@@ -261,7 +261,7 @@ export default function UserProfilePage() {
 
         {/* Name + badges */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-          <p style={{ fontSize: '19px', fontWeight: 800, color: COLORS.text }}>{profile.full_name || profile.username || 'FarmLite user'}</p>
+          <p style={{ fontSize: '19px', fontWeight: 800, color: COLORS.text }}>{profile.full_name || profile.username || 'Farmxie user'}</p>
           {profile.is_verified && <span title="Verified" style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={COLORS.green} /></span>}
           {premium && <PremiumTick size={19} label="Premium member" />}
         </div>
@@ -287,7 +287,7 @@ export default function UserProfilePage() {
               <a href={websiteHref} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.green, fontWeight: 600, textDecoration: 'none' }}>{websiteLabel}</a>
             </InfoRow>
           )}
-          <InfoRow icon={<CalendarIcon />}>Joined FarmLite {joined}</InfoRow>
+          <InfoRow icon={<CalendarIcon />}>Joined Farmxie {joined}</InfoRow>
         </div>
 
         {/* Actions */}
@@ -384,7 +384,7 @@ export default function UserProfilePage() {
                 <AboutRow label="Agricultural focus" value={profile.farm_type} />
                 <AboutRow label="Location" value={profile.location} />
                 <AboutRow label="Website" value={websiteLabel || null} href={websiteHref || undefined} />
-                <AboutRow label="Joined FarmLite" value={joined} />
+                <AboutRow label="Joined Farmxie" value={joined} />
               </div>
 
               {listingsCount > 0 && (
