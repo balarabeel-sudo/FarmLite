@@ -97,7 +97,7 @@ export const DETAIL_FIELDS: Record<CategoryKey, FieldDef[]> = {
     { key: 'availability', label: 'Availability', kind: 'select', options: ['Every day', 'Weekdays', 'Weekends', 'By appointment'] },
     { key: 'experience', label: 'Experience', kind: 'select', options: ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', 'More than 10 years'] },
     { key: 'equipment_available', label: 'Equipment available', kind: 'text', placeholder: 'e.g. Tractor, sprayer' },
-    { key: 'contact_method', label: 'How should buyers contact you?', kind: 'select', options: ['Message me on FarmLite', 'Call me'] },
+    { key: 'contact_method', label: 'How should buyers contact you?', kind: 'select', options: ['Message me on Farmxie', 'Call me'] },
   ],
   other: [
     { key: 'extra', label: 'More details', kind: 'textarea', placeholder: 'Anything buyers should know' },
