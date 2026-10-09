@@ -33,7 +33,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
   const exempt = pathname === '/login' || pathname.startsWith('/staff-invite') || pathname.startsWith('/admin')
   if (!status?.maintenance || exempt) return <>{children}</>
 
-  const name = status.platform_name || 'FarmLite'
+  const name = status.platform_name || 'Farmxie'
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#F7F8F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', zIndex: 9000 }}>
       <div style={{ background: 'white', border: '1px solid #E3E7E3', borderRadius: '16px', padding: '32px 24px', maxWidth: '420px', width: '100%', textAlign: 'center' }}>
