@@ -142,7 +142,7 @@ export default function SearchPage() {
                 style={{ ...rowStyle, cursor: p.username ? 'pointer' : 'default' }}>
                 <Avatar url={p.profile_image} icon="user" round />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={rowTitle}>{p.full_name || p.username || 'FarmLite user'}</p>
+                  <p style={rowTitle}>{p.full_name || p.username || 'Farmxie user'}</p>
                   {p.username && (
                     <p style={{ fontSize: '11px', color: COLORS.textMuted }}>
                       @{p.username}{p.role && ROLE_LABELS[p.role] ? ` · ${ROLE_LABELS[p.role]}` : ''}
