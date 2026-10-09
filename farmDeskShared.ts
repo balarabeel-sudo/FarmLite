@@ -16,16 +16,16 @@ export type FarmDeskStatus =
 
 export const STATUS_META: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
   new: { label: 'New', bg: '#DBEAFE', fg: '#1D4ED8', hint: 'Request submitted.' },
-  reviewing: { label: 'Reviewing', bg: '#FEF3C7', fg: '#B45309', hint: 'FarmLite is reviewing your request.' },
-  sourcing: { label: 'Sourcing', bg: '#FEF3C7', fg: '#B45309', hint: 'FarmLite is actively looking for suppliers.' },
+  reviewing: { label: 'Reviewing', bg: '#FEF3C7', fg: '#B45309', hint: 'Farmxie is reviewing your request.' },
+  sourcing: { label: 'Sourcing', bg: '#FEF3C7', fg: '#B45309', hint: 'Farmxie is actively looking for suppliers.' },
   options_found: { label: 'Options Found', bg: '#DCFCE7', fg: '#15803D', hint: 'Potential sources have been found.' },
-  quotation_ready: { label: 'Quotation Ready', bg: '#DCFCE7', fg: '#15803D', hint: 'FarmLite has prepared an option for you.' },
+  quotation_ready: { label: 'Quotation Ready', bg: '#DCFCE7', fg: '#15803D', hint: 'Farmxie has prepared an option for you.' },
   customer_review: { label: 'Your Review', bg: '#EDE9FE', fg: '#6D28D9', hint: 'Waiting for your decision.' },
   confirmed: { label: 'Confirmed', bg: '#DCFCE7', fg: '#15803D', hint: 'You accepted the proposed option.' },
-  in_progress: { label: 'In Progress', bg: '#DBEAFE', fg: '#1D4ED8', hint: 'FarmLite is coordinating the next steps.' },
+  in_progress: { label: 'In Progress', bg: '#DBEAFE', fg: '#1D4ED8', hint: 'Farmxie is coordinating the next steps.' },
   completed: { label: 'Completed', bg: '#E5E7EB', fg: '#374151', hint: 'Request completed.' },
   cancelled: { label: 'Cancelled', bg: '#FEE2E2', fg: '#B91C1C', hint: 'Request cancelled.' },
-  unable_to_source: { label: 'Unable to Source', bg: '#FEE2E2', fg: '#B91C1C', hint: 'FarmLite could not find a suitable source.' },
+  unable_to_source: { label: 'Unable to Source', bg: '#FEE2E2', fg: '#B91C1C', hint: 'Farmxie could not find a suitable source.' },
 }
 
 export const PAYMENT_LABELS: Record<string, string> = {
