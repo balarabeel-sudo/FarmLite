@@ -99,7 +99,7 @@ export default function SplashScreen({ onFinish }: Props) {
           animation: visible ? 'splashTextIn 0.6s ease-out 0.3s both' : undefined,
         }}
       >
-        FarmLite
+        Farmxie
       </h1>
 
       <p
