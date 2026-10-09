@@ -78,7 +78,7 @@ export function VersusBanner({ company }: { company: boolean }) {
         <p style={{ fontSize: '10.5px', fontWeight: 800, color: C.muted, letterSpacing: '0.5px' }}>{company ? 'FREE COMPANY' : 'FREE'}</p>
         <p style={{ fontSize: '15px', fontWeight: 800, color: C.text, margin: '2px 0 6px' }}>Basic</p>
         <p style={{ fontSize: '11.5px', color: C.muted, lineHeight: 1.45 }}>
-          {company ? 'Basic tools to establish your company on FarmLite.' : 'Start building.'}
+          {company ? 'Basic tools to establish your company on Farmxie.' : 'Start building.'}
         </p>
       </div>
       <div style={{ flex: 1.12, background: C.greenDark, border: `1px solid ${C.gold}`, borderRadius: '0 16px 16px 0', padding: '16px 14px', minWidth: 0 }}>
