@@ -65,8 +65,8 @@ const REP_ROLE_LABELS: Record<string, string> = {
 
 const STATUS_INFO: Record<string, { text: string; color: string }> = {
   pending: { text: 'Your company is waiting for review. Only you can see it until it is verified.', color: '#92400E' },
-  needs_review: { text: 'FarmLite needs more information before this company can be verified. Edit your details below.', color: '#92400E' },
-  rejected: { text: 'This company was not approved. Contact FarmLite support for details.', color: '#991B1B' },
+  needs_review: { text: 'Farmxie needs more information before this company can be verified. Edit your details below.', color: '#92400E' },
+  rejected: { text: 'This company was not approved. Contact Farmxie support for details.', color: '#991B1B' },
 }
 
 export default function CompanyDetailsPage() {
