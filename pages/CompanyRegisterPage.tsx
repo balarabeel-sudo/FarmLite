@@ -226,7 +226,7 @@ export default function CompanyRegisterPage() {
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px' }}>
             <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginBottom: '4px' }}>Business Registration &amp; Verification</p>
             <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginBottom: '14px' }}>
-              FarmLite supports businesses registered in any country. In Nigeria, the registration authority is CAC.
+              Farmxie supports businesses registered in any country. In Nigeria, the registration authority is CAC.
             </p>
 
             <input value={form.regCountry} onChange={(e) => set('regCountry', e.target.value)} placeholder="Registration country" maxLength={60} style={inputStyle} />
@@ -238,7 +238,7 @@ export default function CompanyRegisterPage() {
             <DocumentPicker value={form.regDocument[0] || ''} uploading={docUploading} onUpload={handleDocUpload} onRemove={() => set('regDocument', [])} />
 
             <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '12px' }}>
-              After you submit, your company enters <strong>Verification Pending</strong> while FarmLite reviews this information.
+              After you submit, your company enters <strong>Verification Pending</strong> while Farmxie reviews this information.
             </p>
           </div>
         )}
@@ -277,7 +277,7 @@ export default function CompanyRegisterPage() {
         {step === 3 && (
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px' }}>
             <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginBottom: '4px' }}>Company Profile</p>
-            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginBottom: '14px' }}>How your business will appear on FarmLite.</p>
+            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginBottom: '14px' }}>How your business will appear on Farmxie.</p>
 
             <p style={labelStyle}>Company logo</p>
             <div style={{ marginBottom: '12px' }}><ImageUploader value={form.logo} onChange={(v) => set('logo', v)} folder="companies" max={1} onBusyChange={setLogoUploading} /></div>
