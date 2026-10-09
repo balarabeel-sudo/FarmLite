@@ -53,7 +53,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export default function PremiumFlow({ audience, companyId, companyName, initialReference, wide, showBenefits, onExit, onDone, onChanged }: Props) {
   const isCompany = audience === 'company'
-  const productName = isCompany ? 'FarmLite Company Premium' : 'FarmLite Premium'
+  const productName = isCompany ? 'Farmxie Company Premium' : 'Farmxie Premium'
   const baseFeatures = isCompany ? COMPANY_FEATURES : USER_FEATURES
   // Real numbers from the database replace the placeholder text
   const features = baseFeatures.map((f) =>
@@ -222,9 +222,9 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
       {step === 'review' && (
         <>
           <div style={{ marginBottom: '16px' }}>
-            <PremiumPill label={isCompany ? 'FARMLITE PREMIUM' : 'FARMLITE PREMIUM'} />
+            <PremiumPill label={isCompany ? 'FARMXIE PREMIUM' : 'FARMXIE PREMIUM'} />
             <h2 style={{ fontSize: '21px', fontWeight: 800, color: COLORS.text, lineHeight: 1.25, margin: '10px 0 6px' }}>
-              {isCompany ? 'Grow Your Company with FarmLite Premium' : 'Grow More With FarmLite Premium'}
+              {isCompany ? 'Grow Your Company with Farmxie Premium' : 'Grow More With Farmxie Premium'}
             </h2>
             <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>
               {isCompany
@@ -357,7 +357,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
           {stuck && (
             <div style={{ maxWidth: 280, margin: '18px auto 0' }}>
               <PrimaryButton label="Check again" onClick={() => initialReference ? runVerify(initialReference) : window.location.reload()} />
-              <GhostButton label="Back to FarmLite" onClick={onExit} />
+              <GhostButton label="Back to Farmxie" onClick={onExit} />
             </div>
           )}
         </div>
