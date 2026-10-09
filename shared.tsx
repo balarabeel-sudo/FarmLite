@@ -31,7 +31,7 @@ export function ErrorBanner({ text }: { text: string }) {
 import Icon from './Icons'
 
 // The three company badges, kept visually distinct and never combined into one icon:
-// ✓ verified (business info checked), 🔵 premium (blue tick, paid), ⭐ trusted partner (FarmLite-granted).
+// ✓ verified (business info checked), 🔵 premium (blue tick, paid), ⭐ trusted partner (Farmxie-granted).
 export function CompanyBadges({ verified, premium, trustedPartner, size = 14 }: { verified?: boolean; premium?: boolean; trustedPartner?: boolean; size?: number }) {
   if (!verified && !premium && !trustedPartner) return null
   return (
