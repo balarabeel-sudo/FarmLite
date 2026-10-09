@@ -195,7 +195,7 @@ export default function CreatePostPage() {
               ? 'Share something with the group...'
               : activeCompany
                 ? `Share an update from ${activeCompany.name}...`
-                : 'Share something with the FarmLite community...'
+                : 'Share something with the Farmxie community...'
           }
           rows={6}
           maxLength={2000}
