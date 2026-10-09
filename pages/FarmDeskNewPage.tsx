@@ -168,7 +168,7 @@ export default function FarmDeskNewPage() {
         </div>
         <p style={{ fontSize: '20px', fontWeight: 800, color: FD.text, marginTop: '20px' }}>Request submitted</p>
         <p style={{ fontSize: '12.5px', color: FD.textMuted, marginTop: '6px', lineHeight: 1.5 }}>
-          FarmLite has received your request and will start reviewing it. Keep your request ID for reference.
+          Farmxie has received your request and will start reviewing it. Keep your request ID for reference.
         </p>
         <div style={{ background: FD.card, border: `1px solid ${FD.border}`, borderRadius: '14px', padding: '16px', margin: '22px 0' }}>
           <p style={{ fontSize: '11px', color: FD.textMuted, fontWeight: 700 }}>REQUEST ID</p>
@@ -220,7 +220,7 @@ export default function FarmDeskNewPage() {
         )}
 
         {step === 2 && (
-          <Section title="Tell us the details" hint="The more specific you are, the faster FarmLite can find it.">
+          <Section title="Tell us the details" hint="The more specific you are, the faster Farmxie can find it.">
             <Label>Product / service name</Label>
             <Input value={f.title} onChange={(v) => set('title', v)} placeholder="e.g. White maize" />
 
@@ -241,7 +241,7 @@ export default function FarmDeskNewPage() {
         )}
 
         {step === 3 && (
-          <Section title="Where should FarmLite look?" hint="This is a preference. You can leave it open.">
+          <Section title="Where should Farmxie look?" hint="This is a preference. You can leave it open.">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {SOURCE_SCOPES.map((s) => (
                 <Radio key={s.key} active={f.sourceScope === s.key} onClick={() => set('sourceScope', s.key)}>{s.label}</Radio>
@@ -317,7 +317,7 @@ export default function FarmDeskNewPage() {
         )}
 
         {step === 7 && (
-          <Section title="Anything else FarmLite should know?" hint="Optional.">
+          <Section title="Anything else Farmxie should know?" hint="Optional.">
             <Textarea
               value={f.requirements}
               onChange={(v) => set('requirements', v)}
