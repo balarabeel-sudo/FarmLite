@@ -64,7 +64,7 @@ export default function PostCard({
   const author = post.profiles
 
   // Who the post is "from": the company when it was posted as a company, otherwise the person.
-  const name = company ? company.name : author?.full_name || author?.username || 'FarmLite user'
+  const name = company ? company.name : author?.full_name || author?.username || 'Farmxie user'
   const image = company ? company.logo_url : author?.profile_image || null
   const premium = company
     ? isPremiumActive(company.is_premium, company.premium_until)
@@ -92,7 +92,7 @@ export default function PostCard({
   }
 
   const share = async () => {
-    const shareData = { title: 'FarmLite', text: post.content, url: window.location.origin }
+    const shareData = { title: 'Farmxie', text: post.content, url: window.location.origin }
     if ((navigator as any).share) {
       try { await (navigator as any).share(shareData) } catch { /* user cancelled */ }
     } else {
