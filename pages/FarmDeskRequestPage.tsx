@@ -86,7 +86,7 @@ export default function FarmDeskRequestPage() {
 
   useEffect(() => { load() }, [user, id])
 
-  // Light polling so new FarmLite replies show up without reopening the page.
+  // Light polling so new Farmxie replies show up without reopening the page.
   useEffect(() => {
     const t = setInterval(() => { if (!document.hidden) load(true) }, 20000)
     return () => clearInterval(t)
@@ -109,9 +109,9 @@ export default function FarmDeskRequestPage() {
     await load(true)
   }
 
-  const accept = (o: Option) => { if (window.confirm(`Accept ${o.label}? FarmLite will move your request to Confirmed.`)) respond('accept_option', o.id) }
+  const accept = (o: Option) => { if (window.confirm(`Accept ${o.label}? Farmxie will move your request to Confirmed.`)) respond('accept_option', o.id) }
   const decline = (o: Option) => { if (window.confirm(`Decline ${o.label}?`)) respond('decline_option', o.id) }
-  const another = () => { if (window.confirm('Ask FarmLite to look for another option?')) respond('request_another') }
+  const another = () => { if (window.confirm('Ask Farmxie to look for another option?')) respond('request_another') }
   const cancel = () => { if (window.confirm('Cancel this request? This cannot be undone.')) respond('cancel') }
 
   const askQuestion = (o: Option) => {
@@ -222,7 +222,7 @@ export default function FarmDeskRequestPage() {
         {needsDecision && (
           <div style={{ background: '#EDE9FE', border: '1px solid #DDD6FE', borderRadius: '12px', padding: '12px 14px' }}>
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#5B21B6' }}>
-              FarmLite has {offered.length === 1 ? 'an option' : `${offered.length} options`} for you. Review below and choose.
+              Farmxie has {offered.length === 1 ? 'an option' : `${offered.length} options`} for you. Review below and choose.
             </p>
           </div>
         )}
@@ -302,13 +302,13 @@ export default function FarmDeskRequestPage() {
 
         {/* Messages */}
         <div ref={msgRef}>
-          <Card title="Messages with FarmLite">
+          <Card title="Messages with Farmxie">
             {payments.filter((p) => p.status !== 'cancelled').map((p) => (
               <PaymentStrip key={p.id} payment={p} onPay={() => navigate(`/wallet?pay=${p.id}`)} />
             ))}
             {messages.length === 0 ? (
               <p style={{ fontSize: '12.5px', color: FD.textMuted, textAlign: 'center', padding: '12px 0' }}>
-                No messages yet. Ask FarmLite anything about this request.
+                No messages yet. Ask Farmxie anything about this request.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -316,7 +316,7 @@ export default function FarmDeskRequestPage() {
                   const mine = m.sender_type === 'customer'
                   return (
                     <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                      {!mine && <p style={{ fontSize: '10.5px', fontWeight: 800, color: FD.green, marginBottom: '3px' }}>FarmLite</p>}
+                      {!mine && <p style={{ fontSize: '10.5px', fontWeight: 800, color: FD.green, marginBottom: '3px' }}>Farmxie</p>}
                       <div style={{ background: mine ? FD.green : FD.bg, color: mine ? 'white' : FD.text, padding: '9px 13px', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: '13px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         <MessagePhotos images={m.images} />
                         {m.body}
@@ -400,7 +400,7 @@ function PaymentStrip({ payment: p, onPay }: { payment: Payment; onPay: () => vo
           {amount}{paid && p.method === 'wallet' ? ' · paid from wallet' : ''}{refunded && p.method === 'wallet' ? ' · returned to your wallet' : ''}
         </p>
         {p.status === 'pending' && p.currency !== 'NGN' && (
-          <p style={{ fontSize: '11px', color: FD.textMuted, marginTop: '2px' }}>Message FarmLite below to arrange this payment.</p>
+          <p style={{ fontSize: '11px', color: FD.textMuted, marginTop: '2px' }}>Message Farmxie below to arrange this payment.</p>
         )}
       </div>
       {canPayFromWallet && (
