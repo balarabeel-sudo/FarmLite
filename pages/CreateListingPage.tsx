@@ -340,7 +340,7 @@ export default function CreateListingPage() {
           <Icon name="check" size={32} color="white" strokeWidth={3} />
         </div>
         <h2 style={{ fontSize: 20, fontWeight: 800, color: COLORS.text }}>{done.updated ? 'Changes saved ✓' : 'Listing Published ✓'}</h2>
-        <p style={{ fontSize: 13, color: COLORS.textMuted, margin: '6px 0 24px' }}>{done.updated ? 'Your listing was updated.' : 'Your listing is now live on FarmLite Marketplace.'}</p>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, margin: '6px 0 24px' }}>{done.updated ? 'Your listing was updated.' : 'Your listing is now live on Farmxie Marketplace.'}</p>
         <Btn label="View Listing" onClick={() => navigate(`/listing/${done.id}`, { replace: true })} />
         {!done.updated && <Btn ghost label="Create Another Listing" onClick={() => { setDone(null); setForm({ ...EMPTY, currency: form.currency, country: form.country, companyId: form.companyId }) }} />}
         <Btn ghost label="Back to Marketplace" onClick={() => navigate('/marketplace', { replace: true })} />
@@ -412,7 +412,7 @@ export default function CreateListingPage() {
         {form.step === 0 && (
           <>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: COLORS.text }}>What are you listing?</h2>
-            <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: '4px 0 14px' }}>Add your product, livestock, equipment or agricultural service to FarmLite Marketplace.</p>
+            <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: '4px 0 14px' }}>Add your product, livestock, equipment or agricultural service to Farmxie Marketplace.</p>
 
             {draft && (
               <div style={{ background: COLORS.greenSoft, borderRadius: 14, padding: 14, marginBottom: 14 }}>
