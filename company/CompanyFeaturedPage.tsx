@@ -170,7 +170,7 @@ export default function CompanyFeaturedPage() {
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{l.title}</p>
                   <p style={{ fontSize: '11.5px', color: l.is_featured ? COLORS.gold : COLORS.textMuted, fontWeight: l.is_featured ? 800 : 500, marginTop: 2 }}>
-                    {l.is_featured ? '★ Featured' : eligible ? 'Available' : l.is_hidden_by_admin ? 'Hidden by FarmLite' : `Not available (${l.status})`}
+                    {l.is_featured ? '★ Featured' : eligible ? 'Available' : l.is_hidden_by_admin ? 'Hidden by Farmxie' : `Not available (${l.status})`}
                   </p>
                 </div>
                 <Action
