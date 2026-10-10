@@ -100,7 +100,7 @@ export default function CompanyReportsPage() {
     if (!r) return
     const g = (m?: M) => m || EMPTY
     const rows: (string | number)[][] = [
-      ['FarmLite company report', company.name],
+      ['Farmxie company report', company.name],
       ['Period', `${r.start} to ${r.end}`],
       [],
       ['Metric', 'This period', 'Previous period', 'Change %'],
@@ -219,7 +219,7 @@ function ReportBody({ r, company }: { r: Report; company: string }) {
   return (
     <div id="company-report" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: CHART.card, borderRadius: 14, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        <p style={{ fontSize: '11px', fontWeight: 800, color: CHART.green, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{r.period === 'month' ? 'Monthly' : 'Weekly'} report · FarmLite</p>
+        <p style={{ fontSize: '11px', fontWeight: 800, color: CHART.green, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{r.period === 'month' ? 'Monthly' : 'Weekly'} report · Farmxie</p>
         <p style={{ fontSize: '19px', fontWeight: 800, color: CHART.text, marginTop: 4 }}>{company}</p>
         <p style={{ fontSize: '12.5px', color: CHART.textMuted, marginTop: 2 }}>{fmtDate(r.start)} to {fmtDate(r.end)} · compared with the {r.days} days before</p>
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -297,8 +297,8 @@ function ReportBody({ r, company }: { r: Report; company: string }) {
         </Card>
       </div>
 
-      <Card title="Advertising performance" subtitle="Results of your FarmLite Ads">
-        <p style={{ fontSize: '12.5px', color: CHART.textMuted, lineHeight: 1.5 }}>Impressions, clicks and results will appear here once you run an ad. FarmLite Ads is coming soon.</p>
+      <Card title="Advertising performance" subtitle="Results of your Farmxie Ads">
+        <p style={{ fontSize: '12.5px', color: CHART.textMuted, lineHeight: 1.5 }}>Impressions, clicks and results will appear here once you run an ad. Farmxie Ads is coming soon.</p>
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
