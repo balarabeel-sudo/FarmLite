@@ -468,7 +468,7 @@ export default function MarketplacePage() {
       <style>{CSS}</style>
 
       <div className="mk-head">
-        <p className="mk-sub" style={{ paddingTop: 7, maxWidth: 560 }}>Manage and monitor products, sellers, listings, and marketplace activity across FarmLite.</p>
+        <p className="mk-sub" style={{ paddingTop: 7, maxWidth: 560 }}>Manage and monitor products, sellers, listings, and marketplace activity across Farmxie.</p>
         <button className="mk-btn" onClick={() => setTick((n) => n + 1)}><Icon name="refresh" size={14} /> Refresh</button>
       </div>
 
