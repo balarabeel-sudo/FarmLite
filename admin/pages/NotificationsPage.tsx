@@ -470,7 +470,7 @@ export default function NotificationsPage() {
       <style>{CSS}</style>
 
       <div className="nt-head">
-        <p className="nt-sub" style={{ paddingTop: 7 }}>Create, manage, and monitor notifications across FarmLite.</p>
+        <p className="nt-sub" style={{ paddingTop: 7 }}>Create, manage, and monitor notifications across Farmxie.</p>
         {canSend && <button className="nt-btn primary" onClick={openCreate}><Icon name="plus" size={14} /> Create Notification</button>}
       </div>
 
@@ -517,7 +517,7 @@ export default function NotificationsPage() {
             <span style={{ width: 56, height: 56, borderRadius: '50%', background: A.greenTint, color: A.green, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}><Icon name="inbox" size={26} /></span>
             <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 6 }}>{filtersActive ? 'No notifications found' : 'No notifications yet'}</p>
             <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>
-              {filtersActive ? 'No notifications match your search or filters.' : 'Notifications created by FarmLite administrators will appear here.'}
+              {filtersActive ? 'No notifications match your search or filters.' : 'Notifications created by Farmxie administrators will appear here.'}
             </p>
           </div>
         ) : (
@@ -757,7 +757,7 @@ export default function NotificationsPage() {
               {form.audience === 'users' && (
                 <div>
                   <label className="nt-label" htmlFor="nt-user">Users</label>
-                  <input id="nt-user" className="nt-input" style={{ width: '100%' }} value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Search by name, username or FarmLite ID" />
+                  <input id="nt-user" className="nt-input" style={{ width: '100%' }} value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Search by name, username or Farmxie ID" />
                   {userHits.length > 0 && (
                     <div style={{ border: `1px solid ${A.border}`, borderRadius: 8, marginTop: 6 }}>
                       {userHits.filter((h) => !form.users.some((u) => u.user_id === h.user_id)).map((h) => (
@@ -786,7 +786,7 @@ export default function NotificationsPage() {
               <div>
                 <span className="nt-label">Channel</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, padding: '5px 10px', borderRadius: 8, background: A.greenTint, color: A.greenDark }}><Icon name="bell" size={13} /> In-App</span>
-                <p style={{ fontSize: 11.5, color: A.textSoft, marginTop: 4 }}>Notifications appear in the FarmLite notification list. Push notifications are not set up yet.</p>
+                <p style={{ fontSize: 11.5, color: A.textSoft, marginTop: 4 }}>Notifications appear in the Farmxie notification list. Push notifications are not set up yet.</p>
               </div>
 
               <div>
