@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
       <style>{CSS}</style>
 
       <div className="an-head">
-        <p className="an-sub" style={{ paddingTop: 7, maxWidth: 540 }}>Monitor FarmLite growth, user activity, engagement, marketplace performance, and overall platform activity.</p>
+        <p className="an-sub" style={{ paddingTop: 7, maxWidth: 540 }}>Monitor Farmxie growth, user activity, engagement, marketplace performance, and overall platform activity.</p>
         <div className="an-tools">
           <div className="an-seg" role="group" aria-label="Date range">
             {PRESETS.map((p) => <button key={p.key} className={preset === p.key ? 'on' : ''} onClick={() => setPreset(p.key)} aria-pressed={preset === p.key}>{p.label}</button>)}
@@ -281,7 +281,7 @@ export default function AnalyticsPage() {
             <Icon name="chart" size={26} />
           </span>
           <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 6 }}>No analytics data available</p>
-          <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>Analytics will appear here once people start using FarmLite.</p>
+          <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>Analytics will appear here once people start using Farmxie.</p>
         </div>
       ) : (
         <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
 
           <div className="an-panel" style={{ marginBottom: 18 }}>
             <p className="an-title">Platform activity</p>
-            <p className="an-hint" style={{ marginBottom: 14 }}>What happened on FarmLite in this period</p>
+            <p className="an-hint" style={{ marginBottom: 14 }}>What happened on Farmxie in this period</p>
             <Bars
               empty="No data available for this period."
               rows={activityRows.filter((r) => r.count > 0).map((r) => ({ label: r.kind === 'order' ? 'Product interactions (orders placed)' : r.label, value: r.count, right: `${n0(r.count)} · ${change(r.count, r.prev).text}` }))}
