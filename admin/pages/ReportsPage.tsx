@@ -404,7 +404,7 @@ export default function ReportsPage() {
         {owner}
         {r.report_type === 'user' && (
           <>
-            <div className="rp-kv"><span>FarmLite ID</span><span>{r.reported?.farmlite_id || '-'}</span></div>
+            <div className="rp-kv"><span>Farmxie ID</span><span>{r.reported?.farmlite_id || '-'}</span></div>
             <div className="rp-kv"><span>Member since</span><span>{r.reported ? fmtDay(r.reported.created_at) : '-'}</span></div>
             <div className="rp-kv"><span>Reports against this account</span><span>{against ?? '...'}</span></div>
           </>
@@ -463,7 +463,7 @@ export default function ReportsPage() {
     return {
       remove: { title: `Remove this ${noun}?`, body: noun === 'listing' ? 'The listing will be hidden from the marketplace and the seller will be notified.' : `The ${noun} will be deleted for everyone and the author will be notified. This cannot be undone.`, cta: `Remove ${noun}`, danger: true },
       restrict: { title: 'Restrict this account?', body: 'They will not be able to post new content until the restriction is lifted. They will be notified.', cta: 'Restrict account', danger: true },
-      suspend: { title: 'Suspend this account?', body: 'They will be blocked from using FarmLite until the suspension is lifted. They will be notified.', cta: 'Suspend account', danger: true },
+      suspend: { title: 'Suspend this account?', body: 'They will be blocked from using Farmxie until the suspension is lifted. They will be notified.', cta: 'Suspend account', danger: true },
       restore: { title: 'Restore this account?', body: 'The account will be active again and the user will be notified.', cta: 'Restore account', danger: false },
     }[confirm.kind]
   }
@@ -475,7 +475,7 @@ export default function ReportsPage() {
       <style>{CSS}</style>
 
       <div className="rp-head">
-        <p className="rp-sub" style={{ paddingTop: 7 }}>Review and manage reports submitted by FarmLite users.</p>
+        <p className="rp-sub" style={{ paddingTop: 7 }}>Review and manage reports submitted by Farmxie users.</p>
         <button className="rp-btn" onClick={() => { load(); loadStats() }}><Icon name="refresh" size={14} /> Refresh</button>
       </div>
 
@@ -532,7 +532,7 @@ export default function ReportsPage() {
             </span>
             <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 6 }}>No reports found</p>
             <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>
-              {filtersActive ? 'No reports match your search or filters.' : 'Reports submitted by FarmLite users will appear here.'}
+              {filtersActive ? 'No reports match your search or filters.' : 'Reports submitted by Farmxie users will appear here.'}
             </p>
           </div>
         ) : (
@@ -670,7 +670,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="rp-kv"><span>Role</span><span>{sel.reporter?.role || '-'}</span></div>
-                <div className="rp-kv"><span>FarmLite ID</span><span>{sel.reporter?.farmlite_id || '-'}</span></div>
+                <div className="rp-kv"><span>Farmxie ID</span><span>{sel.reporter?.farmlite_id || '-'}</span></div>
                 <div className="rp-kv"><span>Member since</span><span>{sel.reporter ? fmtDay(sel.reporter.created_at) : '-'}</span></div>
               </div>
 
