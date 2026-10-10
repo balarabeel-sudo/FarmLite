@@ -219,7 +219,7 @@ export default function CompanyEditPage() {
 
       <Card title="Basic information">
         <Grid>
-          <Field label="Company name" note={nameLocked ? 'Your company is verified, so the name can only be changed by FarmLite support.' : undefined}>
+          <Field label="Company name" note={nameLocked ? 'Your company is verified, so the name can only be changed by Farmxie support.' : undefined}>
             <input value={form.name} disabled={nameLocked} maxLength={80} onChange={(e) => set('name', e.target.value)} style={{ ...input, ...(nameLocked ? disabled : {}) }} />
           </Field>
           <Field label="Category">
