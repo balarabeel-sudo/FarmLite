@@ -141,7 +141,7 @@ export default function UsersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: A.bg, textAlign: 'left' }}>
-                {['User', 'FarmLite ID', 'Role', 'Status', 'Premium', ''].map((h) => (
+                {['User', 'Farmxie ID', 'Role', 'Status', 'Premium', ''].map((h) => (
                   <th key={h} style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: A.textMuted, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -152,7 +152,7 @@ export default function UsersPage() {
                 return (
                   <tr key={u.user_id} style={{ borderTop: `1px solid ${A.border}` }}>
                     <td style={{ padding: '10px 16px' }}>
-                      <p style={{ fontWeight: 600, color: A.text }}>{u.full_name || u.username || 'FarmLite user'}{u.is_verified ? ' ✓' : ''}</p>
+                      <p style={{ fontWeight: 600, color: A.text }}>{u.full_name || u.username || 'Farmxie user'}{u.is_verified ? ' ✓' : ''}</p>
                       {u.username && <p style={{ fontSize: '11px', color: A.textMuted }}>@{u.username}</p>}
                     </td>
                     <td style={{ padding: '10px 16px', color: A.textMuted, fontSize: '11.5px' }}>{u.farmlite_id || '—'}</td>
