@@ -374,7 +374,7 @@ function App() {
             </Route>
 
             {/* Unknown routes fall back to Home (which itself redirects to /login if needed) */}
-            {/* FarmLite Admin - a signed-in user still needs an active staff row to see anything here */}
+            {/* Farmxie Admin - a signed-in user still needs an active staff row to see anything here */}
             <Route
               path="/admin"
               element={
