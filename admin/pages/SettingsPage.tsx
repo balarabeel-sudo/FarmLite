@@ -23,7 +23,7 @@ const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
 ]
 
 const MODULES: { key: string; label: string; desc: string }[] = [
-  { key: 'platform.registration', label: 'User registration', desc: 'Lets new people create a FarmLite account. Invited staff can still finish joining.' },
+  { key: 'platform.registration', label: 'User registration', desc: 'Lets new people create a Farmxie account. Invited staff can still finish joining.' },
   { key: 'platform.marketplace', label: 'Marketplace', desc: 'Allows new listings and new orders. Browsing and existing orders keep working.' },
   { key: 'platform.community', label: 'Community', desc: 'Allows new posts and comments. Existing posts stay visible.' },
   { key: 'platform.groups', label: 'Groups', desc: 'Allows creating and joining groups. Existing groups stay visible.' },
@@ -197,7 +197,7 @@ export default function SettingsPage() {
     <AdminLayout title="Settings">
       <style>{CSS}</style>
       <div className="st-head">
-        <p className="st-sub">Manage FarmLite platform configuration, preferences, security, and system controls.</p>
+        <p className="st-sub">Manage Farmxie platform configuration, preferences, security, and system controls.</p>
       </div>
 
       {loadError ? (
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <label className="st-label" htmlFor="st-desc">Platform description</label>
-                        <textarea id="st-desc" className="st-input" rows={3} maxLength={300} disabled={!canManage} style={{ resize: 'vertical' }} value={text('general.description')} onChange={(e) => set('general.description', e.target.value)} placeholder="A short description of FarmLite" />
+                        <textarea id="st-desc" className="st-input" rows={3} maxLength={300} disabled={!canManage} style={{ resize: 'vertical' }} value={text('general.description')} onChange={(e) => set('general.description', e.target.value)} placeholder="A short description of Farmxie" />
                         <p style={{ fontSize: 11.5, color: A.textSoft, textAlign: 'right', marginTop: 2 }}>{text('general.description').length}/300</p>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                 {section === 'platform' && (
                   <>
                     <p className="st-title">Platform</p>
-                    <p className="st-hint">Turn parts of FarmLite on or off for everyone. Staff are never blocked by these switches. Turning something off asks for confirmation.</p>
+                    <p className="st-hint">Turn parts of Farmxie on or off for everyone. Staff are never blocked by these switches. Turning something off asks for confirmation.</p>
                     <div style={{ marginTop: 6 }}>
                       {MODULES.map((m) => (
                         <Row key={m.key} title={m.label} desc={m.desc} right={
@@ -288,7 +288,7 @@ export default function SettingsPage() {
                 {section === 'notifications' && (
                   <>
                     <p className="st-title">Notifications</p>
-                    <p className="st-hint">Choose which alerts FarmLite sends to staff. Sending notifications to users is done on the Notifications page.</p>
+                    <p className="st-hint">Choose which alerts Farmxie sends to staff. Sending notifications to users is done on the Notifications page.</p>
                     <div style={{ marginTop: 6 }}>
                       {NOTIFS.map((n) => (
                         <Row key={n.key} title={n.label} desc={n.desc} right={
@@ -300,7 +300,7 @@ export default function SettingsPage() {
                       ))}
                     </div>
                     <p style={{ fontSize: 12, color: A.textMuted, lineHeight: 1.5, marginTop: 14 }}>
-                      System notifications, security alerts, FarmBot system alerts and platform announcements are not listed because nothing in FarmLite sends them yet.
+                      System notifications, security alerts, FarmBot system alerts and platform announcements are not listed because nothing in Farmxie sends them yet.
                     </p>
                   </>
                 )}
@@ -308,15 +308,15 @@ export default function SettingsPage() {
                 {section === 'security' && (
                   <>
                     <p className="st-title">Security</p>
-                    <p className="st-hint">The protection FarmLite has today. These are read-only because they are not configured from this page.</p>
+                    <p className="st-hint">The protection Farmxie has today. These are read-only because they are not configured from this page.</p>
                     <div style={{ marginTop: 6 }}>
                       {([
                         ['Data access rules', security ? `${security.tables_rls} of ${security.tables_total} database tables have row-level security turned on, so each person only reaches the data they are allowed to.` : 'Loading...', security ? (security.tables_rls === security.tables_total ? 'Active' : 'Check') : '-'],
                         ['Role-based admin access', 'Every admin page and action is limited by the permissions of the staff role.', 'Active'],
                         ['Admin activity log', security ? `${security.audit_24h} admin actions in the last 24 hours and ${security.audit_30d} in the last 30 days are recorded.${security.last_audit_at ? ` Latest: ${fmtFull(security.last_audit_at)}.` : ''}` : 'Loading...', 'Active'],
-                        ['Sign-in, passwords and sessions', 'Handled by the sign-in service. Password rules and session lifetime are not changed from FarmLite.', 'Managed elsewhere'],
-                        ['Two-factor authentication', 'Not available in FarmLite yet.', 'Not available'],
-                        ['Active session management', 'Not available in FarmLite yet.', 'Not available'],
+                        ['Sign-in, passwords and sessions', 'Handled by the sign-in service. Password rules and session lifetime are not changed from Farmxie.', 'Managed elsewhere'],
+                        ['Two-factor authentication', 'Not available in Farmxie yet.', 'Not available'],
+                        ['Active session management', 'Not available in Farmxie yet.', 'Not available'],
                       ] as [string, string, string][]).map(([t, d, s]) => (
                         <Row key={t} title={t} desc={d} right={
                           <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', background: s === 'Active' ? '#DCFCE7' : s === 'Check' ? A.amberChip : '#F1F3F1', color: s === 'Active' ? '#166534' : s === 'Check' ? A.amber : '#4B5563' }}>{s}</span>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,26,18,0.45)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => { if (!saving) setConfirmOpen(false) }}>
           <div role="alertdialog" aria-label="Confirm changes" onClick={(e) => e.stopPropagation()} style={{ background: A.surface, borderRadius: 12, padding: 22, width: 440, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
             <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 8 }}>Are you sure you want to continue?</p>
-            <p style={{ fontSize: 13, color: A.textMuted, lineHeight: 1.55, marginBottom: 10 }}>These changes affect everyone using FarmLite:</p>
+            <p style={{ fontSize: 13, color: A.textMuted, lineHeight: 1.55, marginBottom: 10 }}>These changes affect everyone using Farmxie:</p>
             <ul style={{ margin: '0 0 16px', paddingLeft: 18, fontSize: 13, color: A.text, lineHeight: 1.6 }}>
               {risky.map((r) => <li key={r}>{r}</li>)}
             </ul>
