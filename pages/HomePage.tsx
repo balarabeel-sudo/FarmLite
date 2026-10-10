@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
 import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
+import FarmLiteLogo from '../FarmLiteLogo'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PostCard, { POST_SELECT } from '../PostCard'
@@ -224,7 +225,7 @@ function Header({ unreadNotifications, profileImage }: { unreadNotifications: nu
       background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Icon name="leaf" size={22} color={COLORS.green} />
+        <FarmLiteLogo size={28} />
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>Farmxie</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
