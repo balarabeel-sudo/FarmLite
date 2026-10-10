@@ -408,7 +408,7 @@ export default function GroupsPage() {
       <style>{CSS}</style>
 
       <div className="gp-head">
-        <p className="gp-sub" style={{ paddingTop: 7, maxWidth: 560 }}>Manage and monitor groups, members, activity, and reported content across FarmLite.</p>
+        <p className="gp-sub" style={{ paddingTop: 7, maxWidth: 560 }}>Manage and monitor groups, members, activity, and reported content across Farmxie.</p>
         <button className="gp-btn" onClick={() => setTick((n) => n + 1)}><Icon name="refresh" size={14} /> Refresh</button>
       </div>
 
@@ -460,7 +460,7 @@ export default function GroupsPage() {
             <span style={{ width: 56, height: 56, borderRadius: '50%', background: A.greenTint, color: A.green, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}><Icon name="inbox" size={26} /></span>
             <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 6 }}>No groups found</p>
             <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>
-              {noGroups ? 'Groups will appear here when people create them in FarmLite.' : 'No groups match your search or filters.'}
+              {noGroups ? 'Groups will appear here when people create them in Farmxie.' : 'No groups match your search or filters.'}
             </p>
           </div>
         ) : (
