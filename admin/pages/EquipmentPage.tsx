@@ -414,7 +414,7 @@ export default function EquipmentPage() {
                 </p>
                 {it.seller_id === user?.id && (
                   <p style={{ fontSize: '10px', fontWeight: 700, color: it.status === 'available' ? COLORS.orange : COLORS.red, marginTop: '3px' }}>
-                    {it.status === 'available' ? (it.is_hidden_by_admin ? 'Your listing · Hidden by FarmLite' : 'Your listing') : 'Your listing · Unavailable'}
+                    {it.status === 'available' ? (it.is_hidden_by_admin ? 'Your listing · Hidden by Farmxie' : 'Your listing') : 'Your listing · Unavailable'}
                   </p>
                 )}
               </div>
