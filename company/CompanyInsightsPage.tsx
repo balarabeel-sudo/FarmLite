@@ -194,7 +194,7 @@ function Content({ d }: { d: Insights }) {
         <Card title="Locations" subtitle="Towns and states they listed on their profile">
           <Bars data={d.locations || []} />
         </Card>
-        <Card title="Who they are" subtitle="Their role on FarmLite">
+        <Card title="Who they are" subtitle="Their role on Farmxie">
           <Donut data={(d.roles || []).map((r) => ({ label: ROLE_LABELS[r.label] || r.label.charAt(0).toUpperCase() + r.label.slice(1), value: r.value }))} centerLabel="Visitors" />
         </Card>
       </div>
