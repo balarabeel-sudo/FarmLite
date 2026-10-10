@@ -427,7 +427,7 @@ export default function AdminFarmDeskRequestPage() {
                         <MessagePhotos images={m.images || []} />
                         {m.body}
                       </div>
-                      <p style={{ fontSize: '10.5px', color: A.textMuted, marginTop: '3px', textAlign: mine ? 'right' : 'left' }}>{mine ? 'FarmLite' : 'Customer'} · {fmtDateTime(m.created_at)}</p>
+                      <p style={{ fontSize: '10.5px', color: A.textMuted, marginTop: '3px', textAlign: mine ? 'right' : 'left' }}>{mine ? 'Farmxie' : 'Customer'} · {fmtDateTime(m.created_at)}</p>
                     </div>
                   )
                 })}
@@ -562,7 +562,7 @@ function OptionFormPanel({ draft, requestId, userId, onCancel, onSaved, onError 
       supplier: c.name,
       location: [c.city, c.country].filter(Boolean).join(', ') || p.location,
       // Uses the company's existing verification status - no new badge is invented.
-      verification: c.status === 'verified' ? (c.trusted_partner ? 'Verified FarmLite company · Trusted Partner' : 'Verified FarmLite company') : p.verification,
+      verification: c.status === 'verified' ? (c.trusted_partner ? 'Verified Farmxie company · Trusted Partner' : 'Verified Farmxie company') : p.verification,
       companyId: c.id,
     }))
     setFinder('none'); setQ(''); setResults([])
@@ -617,7 +617,7 @@ function OptionFormPanel({ draft, requestId, userId, onCancel, onSaved, onError 
       <p style={{ fontSize: '11.5px', color: A.textMuted, marginBottom: '10px' }}>The customer sees everything here except the private source record. Do not put supplier phone numbers in these fields.</p>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
-        <LinkBtn onClick={() => setFinder(finder === 'companies' ? 'none' : 'companies')}>Find FarmLite company</LinkBtn>
+        <LinkBtn onClick={() => setFinder(finder === 'companies' ? 'none' : 'companies')}>Find Farmxie company</LinkBtn>
         <LinkBtn onClick={() => setFinder(finder === 'listings' ? 'none' : 'listings')}>Find Marketplace listing</LinkBtn>
       </div>
       {finder !== 'none' && (
@@ -651,7 +651,7 @@ function OptionFormPanel({ draft, requestId, userId, onCancel, onSaved, onError 
         </Field>
         <Field label="Estimated delivery (days)"><input value={f.days} onChange={(e) => set('days', e.target.value.replace(/[^0-9]/g, ''))} style={inputStyle} /></Field>
       </div>
-      <Field label="Supplier verification (shown to customer)"><input value={f.verification} onChange={(e) => set('verification', e.target.value)} placeholder="e.g. Verified FarmLite company" style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} /></Field>
+      <Field label="Supplier verification (shown to customer)"><input value={f.verification} onChange={(e) => set('verification', e.target.value)} placeholder="e.g. Verified Farmxie company" style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} /></Field>
       <Field label="Note to customer (optional)"><textarea value={f.note} onChange={(e) => set('note', e.target.value)} rows={2} style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} /></Field>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -696,7 +696,7 @@ function SourceFormPanel({ requestId, userId, defaultProduct, defaultUnit, onCan
 
   return (
     <div style={{ border: `1.5px solid ${A.border}`, borderRadius: '10px', padding: '14px', marginTop: '12px' }}>
-      <p style={{ fontSize: '11.5px', color: A.textMuted, marginBottom: '10px' }}>This record stays private. Recording an external supplier does not make them a FarmLite user or company.</p>
+      <p style={{ fontSize: '11.5px', color: A.textMuted, marginBottom: '10px' }}>This record stays private. Recording an external supplier does not make them a Farmxie user or company.</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <Field label="Source type">
           <select value={f.type} onChange={(e) => set('type', e.target.value)} style={inputStyle}>{SOURCE_TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}</select>
