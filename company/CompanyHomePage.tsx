@@ -107,9 +107,9 @@ export default function CompanyHomePage() {
             <Icon name="crown" size={22} color="#F5D060" />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <p style={{ fontSize: '15.5px', fontWeight: 800 }}>{expired ? 'Premium Expired' : 'FarmLite Company Premium'}</p>
+            <p style={{ fontSize: '15.5px', fontWeight: 800 }}>{expired ? 'Premium Expired' : 'Farmxie Company Premium'}</p>
             <p style={{ fontSize: '12.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.5 }}>
-              {expired ? `Ended on ${formatDate(company.premium_until)}. Your company data is safe.` : 'Grow your company presence, visibility and insights on FarmLite.'}
+              {expired ? `Ended on ${formatDate(company.premium_until)}. Your company data is safe.` : 'Grow your company presence, visibility and insights on Farmxie.'}
             </p>
           </div>
           <div onClick={() => navigate('/company/premium')} style={{ padding: '11px 18px', borderRadius: '12px', background: 'white', color: COLORS.greenDark, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
