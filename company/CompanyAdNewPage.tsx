@@ -225,7 +225,7 @@ export default function CompanyAdNewPage() {
             <div role="button" onClick={saving ? undefined : submit} style={{ padding: '13px 28px', borderRadius: 12, background: COLORS.green, color: 'white', fontWeight: 800, fontSize: '14px', cursor: saving ? 'default' : 'pointer', opacity: saving || uploading ? 0.6 : 1 }}>
               {saving ? 'Submitting…' : 'Submit for review'}
             </div>
-            <p style={{ fontSize: '12px', color: COLORS.textMuted, maxWidth: 360, lineHeight: 1.5 }}>FarmLite checks every ad first. You only pay after it is approved.</p>
+            <p style={{ fontSize: '12px', color: COLORS.textMuted, maxWidth: 360, lineHeight: 1.5 }}>Farmxie checks every ad first. You only pay after it is approved.</p>
           </div>
         </div>
 
