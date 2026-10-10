@@ -35,7 +35,7 @@ export default function CompanyAdDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'error' | 'ok'; text: string } | null>(
-    params.get('submitted') === '1' ? { kind: 'ok', text: 'Your ad was submitted. FarmLite will review it, and you will be able to pay once it is approved.' } : null,
+    params.get('submitted') === '1' ? { kind: 'ok', text: 'Your ad was submitted. Farmxie will review it, and you will be able to pay once it is approved.' } : null,
   )
 
   const load = useCallback(async () => {
@@ -123,7 +123,7 @@ export default function CompanyAdDetailPage() {
           </div>
         </Banner>
       )}
-      {ad.status === 'pending_review' && <Banner tone="amber"><p style={{ fontSize: '12.5px', fontWeight: 600, color: '#92400E' }}>FarmLite is reviewing your ad. You will pay only after it is approved.</p></Banner>}
+      {ad.status === 'pending_review' && <Banner tone="amber"><p style={{ fontSize: '12.5px', fontWeight: 600, color: '#92400E' }}>Farmxie is reviewing your ad. You will pay only after it is approved.</p></Banner>}
       {ad.status === 'rejected' && (
         <Banner tone="red">
           <div style={{ flex: 1 }}>
