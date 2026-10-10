@@ -41,7 +41,7 @@ const AUTHORS: Record<string, Author> = {
   yusuf: { name: 'Yusuf Danjuma', handle: '@yusuf_d', role: 'Farmer', since: 'May 2026', posts: 17 },
   ngozi: { name: 'Ngozi Eze', handle: '@ngozi.eze', role: 'Buyer', since: 'Jun 2026', posts: 9 },
   ibrahim: { name: 'Ibrahim Musa', handle: '@ibrahimmusa', role: 'Farmer', since: 'Feb 2026', posts: 63 },
-  team: { name: 'FarmLite Team', handle: '@farmlite', role: 'Official', since: 'Nov 2025', posts: 36 },
+  team: { name: 'Farmxie Team', handle: '@farmxie', role: 'Official', since: 'Nov 2025', posts: 36 },
   samuel: { name: 'Samuel Adeyemi', handle: '@sam.adeyemi', role: 'Equipment dealer', since: 'Jul 2026', posts: 22 },
   zainab: { name: 'Zainab Lawal', handle: '@zainab_l', role: 'Farmer', since: 'Aug 2026', posts: 5 },
 }
@@ -79,7 +79,7 @@ const SEED: Item[] = MOCK_ENABLED ? [
   mk(25, 'Drip irrigation cut my water use by almost half on two hectares of pepper. Setup cost was recovered in a single season. Full breakdown in the comments.', 'fatima', 'Discussion', [221, 62, 58, 6840], [], 'Published', 36, { image: true }),
   mk(24, 'Weekly community guidelines reminder: keep discussions respectful, no pricing offers outside the marketplace, and report anything that looks like a scam.', 'team', 'Announcement', [96, 7, 21, 3980], [], 'Published', 48),
   mk(23, 'Anybody know where to rent a combine harvester near Minna? Harvest starts in about three weeks.', 'samuel', 'Question', [6, 8, 0, 360], [], 'Published', 55),
-  mk(22, 'The new price comparison tool in FarmLite is useless and the team is lying about how it works. Whoever built it should be sacked.', 'yusuf', 'Post', [1, 6, 0, 210], ['Harassment'], 'Hidden', 60, { resolved: true, extra: [['Hidden', 'Aisha Mohammed', 58, 'Targeted abuse of named staff']] }),
+  mk(22, 'The new price comparison tool in Farmxie is useless and the team is lying about how it works. Whoever built it should be sacked.', 'yusuf', 'Post', [1, 6, 0, 210], ['Harassment'], 'Hidden', 60, { resolved: true, extra: [['Hidden', 'Aisha Mohammed', 58, 'Targeted abuse of named staff']] }),
   mk(21, 'Cassava mosaic is spreading in our area. Resistant varieties TME 419 and TMS 30572 are holding up well so far. Sharing in case it helps neighbours.', 'chidi', 'Post', [88, 16, 25, 2410], [], 'Published', 72),
   mk(20, 'Sorghum or millet for sandy soil with low rainfall? I have 4 hectares and 600mm average annual rain.', 'ibrahim', 'Question', [14, 23, 3, 780], [], 'Published', 80),
   mk(19, 'Free training: organic composting for smallholders. Saturday 10am at the Zaria cooperative hall. Bring your own bag, lunch is provided.', 'hauwa', 'Announcement', [74, 12, 31, 2150], ['Misleading information'], 'Published', 96, { resolved: true, extra: [['Report reviewed', 'Aisha Mohammed', 90, 'Event details confirmed, kept published']] }),
@@ -89,13 +89,13 @@ const SEED: Item[] = MOCK_ENABLED ? [
   mk(15, 'Harvest day on the farm today. 18 tonnes of groundnut from six hectares, up from 14 last year after switching to improved seed.', 'yusuf', 'Post', [133, 21, 18, 3350], [], 'Published', 170, { image: true }),
   mk(14, 'Soil testing results came back with pH 5.2. What is the safest way to raise it before planting maize?', 'ngozi', 'Question', [10, 17, 1, 540], [], 'Published', 190),
   mk(13, 'Goat feed mix that cut my feed cost by 30 percent: groundnut haulms, maize bran, a little cottonseed cake and mineral lick. Details below.', 'samuel', 'Post', [67, 13, 14, 1980], [], 'Published', 220),
-  mk(12, 'Reminder: FarmLite will never ask for your password or bank details in a message. Report any account that does.', 'team', 'Announcement', [201, 9, 88, 7420], [], 'Published', 260),
+  mk(12, 'Reminder: Farmxie will never ask for your password or bank details in a message. Report any account that does.', 'team', 'Announcement', [201, 9, 88, 7420], [], 'Published', 260),
   mk(11, 'How are you handling the armyworm outbreak this season? Sharing what has worked for us and what has not.', 'aminu', 'Discussion', [92, 51, 17, 3010], [], 'Published', 300),
   mk(10, 'Wanted: reliable supplier of improved cowpea seed, 2 tonnes per month. Serious sellers only.', 'hauwa', 'Post', [18, 7, 3, 690], [], 'Published', 340),
   mk(9, 'Best time of day to spray herbicide on maize to avoid drift and leaf burn?', 'chidi', 'Question', [8, 12, 0, 410], [], 'Published', 400),
   mk(8, 'Small update from our greenhouse trial: lettuce and spinach are growing well at 28 degrees with shade netting. Photos coming soon.', 'fatima', 'Post', [45, 6, 5, 1120], [], 'Published', 460, { image: true }),
   mk(7, 'Is anyone using solar pumps for dry-season farming? Looking for honest feedback on cost and maintenance.', 'ibrahim', 'Discussion', [51, 28, 9, 1560], [], 'Published', 540),
-  mk(6, 'What would you like FarmLite to build next?', 'team', 'Poll', [143, 86, 12, 4890], [], 'Published', 620),
+  mk(6, 'What would you like Farmxie to build next?', 'team', 'Poll', [143, 86, 12, 4890], [], 'Published', 620),
 ] : []
 
 const TYPES: PostType[] = ['Post', 'Discussion', 'Announcement', 'Question', 'Poll']
@@ -404,7 +404,7 @@ export default function CommunityPage() {
       <style>{CSS}</style>
 
       <div className="cm-head">
-        <p className="cm-sub">Monitor and manage community activity across FarmLite.</p>
+        <p className="cm-sub">Monitor and manage community activity across Farmxie.</p>
         <div className="cm-tools">
           <div className="cm-search">
             <span style={{ position: 'absolute', left: 11, top: 9, color: A.textSoft, display: 'flex' }}><Icon name="search" size={15} /></span>
@@ -469,7 +469,7 @@ export default function CommunityPage() {
             </span>
             <p style={{ fontSize: 15, fontWeight: 800, color: A.text, marginBottom: 6 }}>No community activity yet</p>
             <p style={{ fontSize: 13, color: A.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.55 }}>
-              Community posts and discussions will appear here when users begin interacting on FarmLite.
+              Community posts and discussions will appear here when users begin interacting on Farmxie.
             </p>
           </div>
         ) : (
