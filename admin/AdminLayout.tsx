@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { useStaff } from './AdminStaffContext'
+import FarmLiteLogo from '../FarmLiteLogo'
 
 // Farmxie Admin's own design language: desktop-first, data-dense, professional -
 // deliberately NOT the mobile app's card-and-icon look. Only the green accent carries over.
@@ -104,7 +105,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
 
       <aside className={`admin-sidebar${sidebarOpen ? ' open' : ''}`} style={{ width: '250px', background: A.sidebarBg, color: A.sidebarText, flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
         <div style={{ padding: '0 20px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '17px' }}>🌱</span>
+          <FarmLiteLogo size={26} />
           <span style={{ fontSize: '15px', fontWeight: 800, color: 'white' }}>Farmxie Admin</span>
         </div>
 
