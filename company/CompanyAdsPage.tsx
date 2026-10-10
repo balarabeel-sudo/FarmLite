@@ -20,7 +20,7 @@ const COLORS = {
 }
 
 // Route: /company/ads
-// FarmLite Ads = paid promotion, open to every verified company (Premium or not).
+// Farmxie Ads = paid promotion, open to every verified company (Premium or not).
 // Featured Visibility is the separate free Premium placement.
 export default function CompanyAdsPage() {
   const { company } = useOutletContext<CompanyCtx>()
@@ -51,7 +51,7 @@ export default function CompanyAdsPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ flex: 1, minWidth: 220 }}>
           <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Business tools</p>
-          <h1 style={{ fontSize: '22px', fontWeight: 800, color: COLORS.text, marginTop: 2 }}>FarmLite Ads</h1>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, color: COLORS.text, marginTop: 2 }}>Farmxie Ads</h1>
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: 3 }}>Promote a listing or your company to the right customers</p>
         </div>
         <div
@@ -93,7 +93,7 @@ export default function CompanyAdsPage() {
         <Box>
           <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text }}>Reach more customers</p>
           <p style={{ fontSize: '13px', color: COLORS.textMuted, lineHeight: 1.6, marginTop: 6, maxWidth: 560 }}>
-            Choose a listing or your company, pick who should see it and where, and run it for 3, 7 or 14 days. Every ad is checked by FarmLite before it goes live, and you only pay once it is approved. You will see impressions and clicks as it runs.
+            Choose a listing or your company, pick who should see it and where, and run it for 3, 7 or 14 days. Every ad is checked by Farmxie before it goes live, and you only pay once it is approved. You will see impressions and clicks as it runs.
           </p>
           {verified && <div onClick={() => navigate('/company/ads/new')} style={{ display: 'inline-block', marginTop: 14, padding: '10px 20px', borderRadius: 10, background: COLORS.green, color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>Create your first ad</div>}
         </Box>
