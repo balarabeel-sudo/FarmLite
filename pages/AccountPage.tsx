@@ -37,15 +37,19 @@ export default function AccountPage() {
   const [netError, setNetError] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [myCompany, setMyCompany] = useState<{ id: string; name: string } | null>(null)
+  // Set only for active staff members: their role title, shown on the Admin Console link
+  const [staffRole, setStaffRole] = useState<string | null>(null)
 
   const load = async () => {
     if (!user) return
     setNetError(false)
     setLoading(true)
 
-    const [profileRes, companyRes] = await Promise.all([
+    const [profileRes, companyRes, staffRes] = await Promise.all([
       supabase.from('profiles').select('full_name, username, profile_image, role, location, is_verified, is_premium, premium_until, posts_count, farmlite_id').eq('user_id', user.id).maybeSingle(),
       supabase.from('companies').select('id, name').eq('owner_id', user.id).order('created_at', { ascending: true }).limit(1),
+      // Read-only look at the person's own active staff row (never claims or changes anything)
+      supabase.from('staff').select('id, roles(name)').eq('user_id', user.id).eq('status', 'active').limit(1),
     ])
 
     if (profileRes.error) {
@@ -56,6 +60,9 @@ export default function AccountPage() {
 
     setProfile(profileRes.data as any)
     setMyCompany(companyRes.data && companyRes.data.length ? (companyRes.data[0] as any) : null)
+    const staffRow: any = !staffRes.error && staffRes.data && staffRes.data.length ? staffRes.data[0] : null
+    const roleJoin = staffRow ? (Array.isArray(staffRow.roles) ? staffRow.roles[0] : staffRow.roles) : null
+    setStaffRole(staffRow ? (roleJoin?.name || 'Staff') : null)
     setLoading(false)
   }
 
@@ -191,6 +198,22 @@ export default function AccountPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>Switch to Company Dashboard</p>
                   <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{myCompany.name}</p>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            )}
+
+            {/* Only for active staff: a link into the admin console, titled with their role */}
+            {staffRole && (
+              <div
+                onClick={() => navigate('/admin')}
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid #E5EFE5' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="shield" size={19} color={COLORS.green} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>{staffRole}</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>Open Admin Console</p>
                 </div>
                 <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
               </div>
