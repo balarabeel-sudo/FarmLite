@@ -24,7 +24,7 @@ const countedViews = new Set<string>()
 // Only one video plays at a time.
 let playing: HTMLVideoElement | null = null
 
-// One short-video card used by the Update tab on Home.
+// One short-video card shown inside the Home feed.
 // It owns its like / view state; the parent only passes the initial values.
 export default function VideoCard({
   video, initialLiked, onDeleted,
@@ -162,6 +162,10 @@ export default function VideoCard({
             playsInline
             preload={video.thumbnail_url ? 'none' : 'metadata'}
             onPlay={handlePlay}
+            onTimeUpdate={(e) => {
+              const el = e.currentTarget
+              if (video.duration_seconds > 0 && el.currentTime >= video.duration_seconds + 0.3) { el.pause(); el.currentTime = 0 }
+            }}
             onError={() => setFailed(true)}
             style={{ width: '100%', maxHeight: '68vh', display: 'block', objectFit: 'contain', background: '#000' }}
           />
