@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
@@ -10,6 +10,9 @@ import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../Loa
 import NetworkError from '../NetworkError'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
+import VideoCard from '../VideoCard'
+import { VIDEO_SELECT } from '../videoShared'
+import type { VideoRow } from '../videoShared'
 import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
@@ -76,6 +79,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { t } = useLocale()
+  const [searchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -89,11 +93,15 @@ export default function HomePage() {
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
 
   // Feed chips: each chip loads its own data the first time it is opened
-  const [feedTab, setFeedTab] = useState<FeedTab>('all')
+  const [feedTab, setFeedTab] = useState<FeedTab>(() => (searchParams.get('tab') === 'update' ? 'update' : 'all'))
   const [tabPosts, setTabPosts] = useState<{ companies?: FeedPost[]; groups?: FeedPost[] }>({})
   const [tabItems, setTabItems] = useState<{ products?: TabItem[]; equipment?: TabItem[] }>({})
   const [tabLoading, setTabLoading] = useState(false)
   const [tabError, setTabError] = useState(false)
+  // Update tab: short videos (loaded the first time the tab opens)
+  const [videos, setVideos] = useState<VideoRow[] | null>(null)
+  const [likedVideoIds, setLikedVideoIds] = useState<Set<string>>(new Set())
+  const [isPremium, setIsPremium] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -130,12 +138,14 @@ export default function HomePage() {
   }
 
   useEffect(() => { load() }, [user])
+  useEffect(() => { if (user && feedTab === 'update') loadTab('update') }, [user])
 
   const tabLoaded = (tab: FeedTab) =>
     tab === 'companies' ? !!tabPosts.companies
     : tab === 'groups' ? !!tabPosts.groups
     : tab === 'products' ? !!tabItems.products
     : tab === 'equipment' ? !!tabItems.equipment
+    : tab === 'update' ? videos !== null
     : true
 
   const loadTab = async (tab: FeedTab) => {
@@ -143,7 +153,18 @@ export default function HomePage() {
     setTabLoading(true)
     setTabError(false)
     try {
-      if (tab === 'companies' || tab === 'groups') {
+      if (tab === 'update') {
+        const [vRes, likesRes, meRes] = await Promise.all([
+          supabase.from('short_videos').select(VIDEO_SELECT).eq('status', 'active').eq('is_hidden_by_admin', false).order('created_at', { ascending: false }).limit(10),
+          user ? supabase.from('video_likes').select('video_id').eq('user_id', user.id) : Promise.resolve({ data: [], error: null } as any),
+          user ? supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null } as any),
+        ])
+        if (vRes.error) throw vRes.error
+        setVideos((vRes.data || []) as any)
+        setLikedVideoIds(new Set(((likesRes as any).data || []).map((r: any) => r.video_id)))
+        const me: any = (meRes as any).data
+        setIsPremium(!!me && !!me.is_premium && (!me.premium_until || new Date(me.premium_until).getTime() > Date.now()))
+      } else if (tab === 'companies' || tab === 'groups') {
         let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
         q = tab === 'companies' ? q.not('company_id', 'is', null) : q.not('community_id', 'is', null)
         const { data, error } = await q.order('created_at', { ascending: false }).limit(10)
@@ -285,13 +306,37 @@ export default function HomePage() {
 
         <div style={{ marginTop: '12px' }}>
           {feedTab === 'update' ? (
-            <div style={{ background: COLORS.card, borderRadius: '14px', padding: '34px 18px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-                <PlayIcon size={24} color={COLORS.green} />
+            <>
+              <div
+                onClick={() => navigate('/videos/new')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '12px 14px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <PlayIcon size={20} color="white" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Post a short video</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{isPremium ? 'Share a video of up to 20 seconds.' : 'Premium members can post videos of up to 20 seconds.'}</p>
+                </div>
+                <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
               </div>
-              <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginTop: '12px' }}>Updates are coming soon</p>
-              <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.5 }}>Short videos from farmers and companies will appear here.</p>
-            </div>
+
+              {tabError ? (
+                <NetworkError onRetry={() => loadTab('update')} />
+              ) : tabLoading || videos === null ? (
+                <FeedPostSkeleton count={2} />
+              ) : videos.length === 0 ? (
+                <EmptyState icon="camera" text="No videos yet. Be the first to post one!" />
+              ) : (
+                videos.map((v) => (
+                  <VideoCard
+                    key={v.id}
+                    video={v}
+                    initialLiked={likedVideoIds.has(v.id)}
+                    onDeleted={(id) => setVideos((prev) => (prev || []).filter((x) => x.id !== id))}
+                  />
+                ))
+              )}
+            </>
           ) : feedTab === 'all' ? (
             loading ? (
               <FeedPostSkeleton count={3} />
