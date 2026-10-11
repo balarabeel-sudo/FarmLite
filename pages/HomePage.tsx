@@ -42,6 +42,27 @@ type Listing = {
 
 type FeedPost = PostCardData
 
+// Feed filter chips. "Update" is where short videos will live; until that feature exists it shows a coming-soon card.
+type FeedTab = 'all' | 'products' | 'companies' | 'groups' | 'update' | 'equipment'
+const FEED_TABS: { key: FeedTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'products', label: 'Products' },
+  { key: 'companies', label: 'Companies' },
+  { key: 'groups', label: 'Groups' },
+  { key: 'update', label: 'Update' },
+  { key: 'equipment', label: 'Equipment' },
+]
+
+type TabItem = {
+  id: string
+  title: string
+  price: number | null
+  currency: string
+  unit: string | null
+  location: string | null
+  images: string[] | null
+}
+
 const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'farmbot' | 'groups' | 'equipment' | 'saved'; path: string }[] = [
   { icon: 'cart', labelKey: 'marketplace', path: '/marketplace' },
   { icon: 'building', labelKey: 'companies', path: '/companies' },
@@ -66,6 +87,13 @@ export default function HomePage() {
   const [homeAd, setHomeAd] = useState<AdData | null>(null)
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
+
+  // Feed chips: each chip loads its own data the first time it is opened
+  const [feedTab, setFeedTab] = useState<FeedTab>('all')
+  const [tabPosts, setTabPosts] = useState<{ companies?: FeedPost[]; groups?: FeedPost[] }>({})
+  const [tabItems, setTabItems] = useState<{ products?: TabItem[]; equipment?: TabItem[] }>({})
+  const [tabLoading, setTabLoading] = useState(false)
+  const [tabError, setTabError] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -103,6 +131,51 @@ export default function HomePage() {
 
   useEffect(() => { load() }, [user])
 
+  const tabLoaded = (tab: FeedTab) =>
+    tab === 'companies' ? !!tabPosts.companies
+    : tab === 'groups' ? !!tabPosts.groups
+    : tab === 'products' ? !!tabItems.products
+    : tab === 'equipment' ? !!tabItems.equipment
+    : true
+
+  const loadTab = async (tab: FeedTab) => {
+    if (tabLoaded(tab)) return
+    setTabLoading(true)
+    setTabError(false)
+    try {
+      if (tab === 'companies' || tab === 'groups') {
+        let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
+        q = tab === 'companies' ? q.not('company_id', 'is', null) : q.not('community_id', 'is', null)
+        const { data, error } = await q.order('created_at', { ascending: false }).limit(10)
+        if (error) throw error
+        setTabPosts((prev) => ({ ...prev, [tab]: (data || []) as any }))
+      } else if (tab === 'products' || tab === 'equipment') {
+        const isProducts = tab === 'products'
+        const { data, error } = await supabase
+          .from(isProducts ? 'marketplace_listings' : 'equipment')
+          .select(`id, ${isProducts ? 'title' : 'name'}, price, currency, unit, location, images`)
+          .eq('status', 'available')
+          .not('is_hidden_by_admin', 'is', true)
+          .order('created_at', { ascending: false })
+          .limit(12)
+        if (error) throw error
+        const items: TabItem[] = ((data || []) as any[]).map((r) => ({
+          id: r.id, title: isProducts ? r.title : r.name, price: r.price, currency: r.currency,
+          unit: r.unit, location: r.location, images: r.images,
+        }))
+        setTabItems((prev) => ({ ...prev, [tab]: items }))
+      }
+    } catch {
+      setTabError(true)
+    }
+    setTabLoading(false)
+  }
+
+  const selectTab = (tab: FeedTab) => {
+    setFeedTab(tab)
+    loadTab(tab)
+  }
+
   // One paid ad (labelled "Sponsored") appears in the feed after the third post.
   useEffect(() => {
     if (!user) return
@@ -130,16 +203,16 @@ export default function HomePage() {
         {loading ? (
           <QuickActionsSkeleton />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '22px' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '14px', paddingBottom: '2px' }}>
             {QUICK_ACTIONS.map((a) => (
               <div
                 key={a.labelKey}
                 onClick={() => navigate(a.path)}
-                style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 6px', textAlign: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-                  <Icon name={a.icon} size={19} color={COLORS.green} />
+                style={{ flex: '1 0 58px', textAlign: 'center', cursor: 'pointer' }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: COLORS.card, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <Icon name={a.icon} size={22} color={COLORS.green} />
                 </div>
-                <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.text, marginTop: '8px' }}>{t(a.labelKey)}</p>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: COLORS.text, marginTop: '6px', whiteSpace: 'nowrap' }}>{t(a.labelKey)}</p>
               </div>
             ))}
           </div>
@@ -149,7 +222,7 @@ export default function HomePage() {
         {!loading && (
           <div
             onClick={() => navigate('/farm-desk')}
-            style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginTop: '-8px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+            style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="leaf" size={19} color="white" />
             </div>
@@ -192,22 +265,98 @@ export default function HomePage() {
         )}
 
         <SectionTitle title={t('feed')} />
-        <div style={{ marginTop: '10px' }}>
-          {loading ? (
-            <FeedPostSkeleton count={3} />
-          ) : feed.length === 0 ? (
-            <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
-          ) : (
-            feed.map((post, i) => (
-              <Fragment key={post.id}>
-                {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
+
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginTop: '10px', paddingBottom: '4px' }}>
+          {FEED_TABS.map((c) => {
+            const active = feedTab === c.key
+            return (
+              <div
+                key={c.key}
+                onClick={() => selectTab(c.key)}
+                style={{
+                  flexShrink: 0, padding: '8px 16px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+                  background: active ? COLORS.greenDark : '#EAEFEA', color: active ? 'white' : COLORS.textMuted,
+                }}>
+                {c.label}
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ marginTop: '12px' }}>
+          {feedTab === 'update' ? (
+            <div style={{ background: COLORS.card, borderRadius: '14px', padding: '34px 18px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                <PlayIcon size={24} color={COLORS.green} />
+              </div>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginTop: '12px' }}>Updates are coming soon</p>
+              <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.5 }}>Short videos from farmers and companies will appear here.</p>
+            </div>
+          ) : feedTab === 'all' ? (
+            loading ? (
+              <FeedPostSkeleton count={3} />
+            ) : feed.length === 0 ? (
+              <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
+            ) : (
+              feed.map((post, i) => (
+                <Fragment key={post.id}>
+                  {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
+                  <PostCard
+                    post={post}
+                    initialLiked={likedPostIds.has(post.id)}
+                    initialSaved={savedPostIds.has(post.id)}
+                  />
+                </Fragment>
+              ))
+            )
+          ) : tabError ? (
+            <NetworkError onRetry={() => loadTab(feedTab)} />
+          ) : tabLoading || !tabLoaded(feedTab) ? (
+            <FeedPostSkeleton count={2} />
+          ) : feedTab === 'companies' || feedTab === 'groups' ? (
+            (tabPosts[feedTab] || []).length === 0 ? (
+              <EmptyState icon="message" text={feedTab === 'companies' ? 'No company posts yet.' : 'No group posts yet.'} />
+            ) : (
+              (tabPosts[feedTab] || []).map((post) => (
                 <PostCard
+                  key={post.id}
                   post={post}
                   initialLiked={likedPostIds.has(post.id)}
                   initialSaved={savedPostIds.has(post.id)}
                 />
-              </Fragment>
-            ))
+              ))
+            )
+          ) : (
+            (tabItems[feedTab] || []).length === 0 ? (
+              <EmptyState icon={feedTab === 'products' ? 'cart' : 'tractor'} text={feedTab === 'products' ? 'No products yet.' : 'No equipment yet.'} />
+            ) : (
+              <>
+                {(tabItems[feedTab] || []).map((it) => (
+                  <div
+                    key={it.id}
+                    onClick={() => navigate(feedTab === 'products' ? `/marketplace?listing=${it.id}` : '/equipment')}
+                    style={{ display: 'flex', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '10px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: '72px', height: '72px', borderRadius: '10px', background: '#E5EFE5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {it.images?.[0] ? <img src={it.images[0]} alt={it.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={feedTab === 'products' ? 'leaf' : 'tractor'} size={26} color={COLORS.green} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.title}</p>
+                      {it.price != null && (
+                        <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{formatMoney(Number(it.price), it.currency)}{it.unit ? `/${it.unit}` : ''}</p>
+                      )}
+                      {it.location && (
+                        <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {it.location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Link to={feedTab === 'products' ? '/marketplace' : '/equipment'} style={{ display: 'block', textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: COLORS.green, textDecoration: 'none', padding: '6px 0 2px' }}>
+                  {feedTab === 'products' ? 'See all products' : 'See all equipment'}
+                </Link>
+              </>
+            )
           )}
         </div>
       </div>
@@ -225,8 +374,7 @@ function Header({ unreadNotifications, profileImage }: { unreadNotifications: nu
       background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <FarmLiteLogo size={28} />
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.green }}>Farmxie</p>
+        <FarmLiteLogo size={32} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <IconBadge icon="search" onClick={() => navigate('/search')} />
@@ -253,6 +401,15 @@ function IconBadge({ icon, count, onClick }: { icon: string; count?: number; onC
         </div>
       )}
     </div>
+  )
+}
+
+function PlayIcon({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M10.5 9.5v5l4-2.5-4-2.5Z" fill={color} />
+    </svg>
   )
 }
 
