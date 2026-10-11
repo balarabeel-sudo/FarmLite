@@ -19,6 +19,7 @@ import MessagesPage from './pages/MessagesPage'
 import NotificationsPage from './pages/NotificationsPage'
 import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
+import VideoUploadPage from './pages/VideoUploadPage'
 import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
 import CompanyRegisterPage from './pages/CompanyRegisterPage'
@@ -187,6 +188,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CreatePostPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/videos/new"
+              element={
+                <ProtectedRoute>
+                  <VideoUploadPage />
                 </ProtectedRoute>
               }
             />
