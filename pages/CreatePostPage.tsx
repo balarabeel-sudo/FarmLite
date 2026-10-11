@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import ImageUploader from '../ImageUploader'
+import { isPremiumActive } from '../premiumShared'
+import { captureThumbnail, fetchMaxVideoSeconds, formatDuration, postShortVideo, readVideoMeta, trimVideo } from '../videoShared'
+
+const MAX_PICK_BYTES = 200 * 1024 * 1024
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -43,6 +47,27 @@ export default function CreatePostPage() {
   const [companies, setCompanies] = useState<OwnedCompany[]>([])
   const [postAs, setPostAs] = useState<string>('me') // 'me' or a company id
 
+  // Short video (Premium members only)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const [premium, setPremium] = useState(false)
+  const [maxSeconds, setMaxSeconds] = useState(20)
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const [videoLength, setVideoLength] = useState(0)
+  const [videoThumb, setVideoThumb] = useState<Blob | null>(null)
+  const [checkingVideo, setCheckingVideo] = useState(false)
+  const [postingStage, setPostingStage] = useState('')
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      setPremium(!!data && isPremiumActive((data as any).is_premium, (data as any).premium_until))
+    })
+    fetchMaxVideoSeconds().then(setMaxSeconds)
+  }, [user])
+
+  useEffect(() => () => { if (videoPreview) URL.revokeObjectURL(videoPreview) }, [videoPreview])
+
   useEffect(() => {
     if (!user || communityId) return
     supabase
@@ -67,10 +92,67 @@ export default function CreatePostPage() {
 
   const activeCompany = companies.find((c) => c.id === postAs) || null
 
-  const canPost = !!content.trim() && !posting && !uploading
+  // Videos are personal posts only (not inside a group or as a company)
+  const canAddVideo = premium && !communityId && !activeCompany && images.length === 0
+
+  const clearVideo = () => {
+    setVideoFile(null)
+    setVideoPreview(null)
+    setVideoLength(0)
+    setVideoThumb(null)
+    if (videoInputRef.current) videoInputRef.current.value = ''
+  }
+
+  const handleVideoFile = async (f: File | null) => {
+    if (!f) return
+    setError('')
+    clearVideo()
+    const looksLikeVideo = f.type.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(f.name)
+    if (!looksLikeVideo) { setError('Please choose a video file.'); return }
+    if (f.size > MAX_PICK_BYTES) { setError('This video is too large. Please choose a smaller one.'); return }
+    setCheckingVideo(true)
+    try {
+      const meta = await readVideoMeta(f)
+      const t = await captureThumbnail(f)
+      setVideoFile(f)
+      setVideoLength(meta.duration)
+      setVideoThumb(t)
+      setVideoPreview(URL.createObjectURL(f))
+    } catch (e) {
+      setError((e as Error).message)
+    }
+    setCheckingVideo(false)
+  }
+
+  const canPost = (!!content.trim() || !!videoFile) && !posting && !uploading && !checkingVideo
+
+  const handleVideoPost = async () => {
+    if (!videoFile) return
+    setError('')
+    setPosting(true)
+    try {
+      let file: Blob & { name?: string } = videoFile
+      let duration = videoLength
+      // Longer than the limit: quietly keep only the first part, like a WhatsApp status
+      if (videoLength > maxSeconds + 0.3) {
+        setPostingStage('Preparing your video...')
+        const trimmed = await trimVideo(videoFile, maxSeconds)
+        if (trimmed) { file = trimmed.blob; duration = trimmed.duration }
+        else duration = maxSeconds // the player stops at this length
+      }
+      setPostingStage('Uploading your video...')
+      await postShortVideo({ file, caption: content, duration: Math.min(duration, maxSeconds), thumbnail: videoThumb })
+      navigate('/', { replace: true })
+    } catch (e) {
+      setError((e as Error).message)
+      setPosting(false)
+      setPostingStage('')
+    }
+  }
 
   const handlePost = async () => {
     if (!user || !canPost) return
+    if (videoFile) { await handleVideoPost(); return }
     setError('')
     setPosting(true)
 
@@ -121,7 +203,7 @@ export default function CreatePostPage() {
             padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white',
             background: COLORS.green, cursor: canPost ? 'pointer' : 'default', opacity: canPost ? 1 : 0.5,
           }}>
-          {posting ? 'Posting...' : uploading ? 'Uploading...' : 'Post'}
+          {posting ? (postingStage ? 'Please wait...' : 'Posting...') : uploading ? 'Uploading...' : 'Post'}
         </div>
       </div>
 
@@ -205,8 +287,51 @@ export default function CreatePostPage() {
           }}
         />
 
-        <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, margin: '14px 0 8px' }}>Photos (optional)</p>
-        <ImageUploader value={images} onChange={setImages} folder="posts" max={4} onBusyChange={setUploading} />
+        {!videoFile && (
+          <>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, margin: '14px 0 8px' }}>Photos (optional)</p>
+            <ImageUploader value={images} onChange={setImages} folder="posts" max={4} onBusyChange={setUploading} />
+          </>
+        )}
+
+        {canAddVideo && (
+          <>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/*"
+              onChange={(e) => handleVideoFile(e.target.files?.[0] || null)}
+              style={{ display: 'none' }}
+            />
+            {!videoFile ? (
+              <div
+                onClick={checkingVideo ? undefined : () => videoInputRef.current?.click()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '12px', padding: '10px 14px', borderRadius: '12px', background: COLORS.card, border: `1px dashed ${COLORS.green}`, cursor: checkingVideo ? 'default' : 'pointer' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M10.5 9.5v5l4-2.5-4-2.5Z" fill={COLORS.green} />
+                </svg>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.green }}>{checkingVideo ? 'Checking video...' : 'Add video'}</span>
+              </div>
+            ) : (
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ position: 'relative', background: '#000', borderRadius: '14px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
+                  <video src={videoPreview || undefined} controls playsInline preload="metadata" style={{ width: '100%', maxHeight: '50vh', display: 'block', objectFit: 'contain', background: '#000' }} />
+                  <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10.5px', fontWeight: 700, borderRadius: '6px', padding: '2px 7px', pointerEvents: 'none' }}>
+                    {formatDuration(Math.min(videoLength, maxSeconds))}
+                  </div>
+                </div>
+                {!posting && (
+                  <div onClick={clearVideo} style={{ display: 'inline-block', marginTop: '10px', fontSize: '12.5px', fontWeight: 700, color: COLORS.red, cursor: 'pointer' }}>
+                    Remove video
+                  </div>
+                )}
+                {posting && postingStage && (
+                  <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '10px', lineHeight: 1.5 }}>{postingStage} Please keep this page open.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
