@@ -43,9 +43,9 @@ export function formatDuration(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-function guessType(file: File): string {
-  if (file.type) return file.type
-  const n = file.name.toLowerCase()
+function guessType(file: Blob & { name?: string }): string {
+  if (file.type) return file.type.split(';')[0]
+  const n = (file.name || '').toLowerCase()
   if (n.endsWith('.webm')) return 'video/webm'
   if (n.endsWith('.mov')) return 'video/quicktime'
   return 'video/mp4'
@@ -126,7 +126,7 @@ function friendlyUploadError(message: string): string {
 
 // Uploads the video (and its cover picture) and creates the video post.
 // The database refuses it for non-Premium members, videos that are too long, and when the daily cap is reached.
-export async function postShortVideo(args: { file: File; caption: string; duration: number; thumbnail: Blob | null }): Promise<string> {
+export async function postShortVideo(args: { file: Blob & { name?: string }; caption: string; duration: number; thumbnail: Blob | null }): Promise<string> {
   const { data: auth } = await supabase.auth.getUser()
   const user = auth.user
   if (!user) throw new Error('Please log in first.')
@@ -172,6 +172,74 @@ export async function postShortVideo(args: { file: File; caption: string; durati
     throw new Error(error?.message || 'Could not post your video. Please try again.')
   }
   return data.id as string
+}
+
+// Keeps only the first `maxSeconds` of a video, like WhatsApp status does, without showing the user any warning.
+// It replays the video on the phone and records the first seconds. Returns null when the phone cannot do this;
+// the caller then posts the original file and the player stops it at the limit.
+export function trimVideo(file: File, maxSeconds: number): Promise<{ blob: Blob; duration: number } | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video') as any
+    const capture = v.captureStream || v.mozCaptureStream
+    if (!capture || typeof MediaRecorder === 'undefined') { resolve(null); return }
+
+    const url = URL.createObjectURL(file)
+    let ctx: AudioContext | null = null
+    let recorder: MediaRecorder | null = null
+    let finished = false
+    const finish = (r: { blob: Blob; duration: number } | null) => {
+      if (finished) return
+      finished = true
+      try { v.pause() } catch { /* ignore */ }
+      try { ctx?.close() } catch { /* ignore */ }
+      URL.revokeObjectURL(url)
+      resolve(r)
+    }
+
+    const candidates = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    const mime = candidates.find((m) => { try { return MediaRecorder.isTypeSupported(m) } catch { return false } })
+    if (!mime) { URL.revokeObjectURL(url); resolve(null); return }
+
+    v.playsInline = true
+    v.preload = 'auto'
+    v.src = url
+    v.onerror = () => finish(null)
+    v.onloadeddata = async () => {
+      try {
+        const stream: MediaStream = capture.call(v)
+        // Take the sound through the audio engine so the phone does not play it out loud while recording
+        let tracks = [...stream.getVideoTracks()]
+        try {
+          const AC = (window as any).AudioContext || (window as any).webkitAudioContext
+          ctx = new AC()
+          const src = ctx!.createMediaElementSource(v)
+          const dest = ctx!.createMediaStreamDestination()
+          src.connect(dest)
+          tracks = [...tracks, ...dest.stream.getAudioTracks()]
+        } catch {
+          tracks = [...tracks, ...stream.getAudioTracks()]
+        }
+        const chunks: Blob[] = []
+        recorder = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 2_500_000 })
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data) }
+        const started = Date.now()
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: mime.split(';')[0] })
+          if (blob.size === 0 || blob.size > MAX_VIDEO_BYTES) finish(null)
+          else finish({ blob, duration: Math.min(maxSeconds, (Date.now() - started) / 1000) })
+        }
+        const stop = () => { try { if (recorder && recorder.state !== 'inactive') recorder.stop() } catch { finish(null) } }
+        v.ontimeupdate = () => { if (v.currentTime >= maxSeconds) stop() }
+        v.onended = stop
+        recorder.start(500)
+        await v.play()
+        // safety net in case timeupdate never fires
+        setTimeout(stop, (maxSeconds + 2) * 1000)
+      } catch {
+        finish(null)
+      }
+    }
+  })
 }
 
 // Removes the post and its files.
