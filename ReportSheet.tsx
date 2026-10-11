@@ -11,11 +11,15 @@ type Props = {
   contentTable?: 'equipment' | null
   // short name of what is being reported, e.g. "Aminu Garba" or the listing title
   targetLabel?: string
+  // optional: shown in the title instead of the type name (e.g. "video")
+  titleLabel?: string
+  // optional: added in front of the explanation so staff can find what was reported (e.g. a link)
+  context?: string
 }
 
 const G = { green: '#16A34A', text: '#0F1A0F', muted: '#6B7280', border: '#E3E7E3', bg: '#F7F8F7', red: '#B91C1C' }
 
-export default function ReportSheet({ open, onClose, type, contentId, userId, contentTable, targetLabel }: Props) {
+export default function ReportSheet({ open, onClose, type, contentId, userId, contentTable, targetLabel, titleLabel, context }: Props) {
   const [reason, setReason] = useState('')
   const [details, setDetails] = useState('')
   const [sending, setSending] = useState(false)
@@ -42,7 +46,9 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
     if (!canSend) return
     setSending(true)
     setError('')
-    const res = await submitReport({ type, contentId, userId, contentTable, reason, description: details })
+    const note = details.trim()
+    const description = context ? (note ? `${context} - ${note}` : context).slice(0, 1000) : details
+    const res = await submitReport({ type, contentId, userId, contentTable, reason, description })
     setSending(false)
     if (res.ok) setSent(true)
     else setError(res.message)
@@ -50,7 +56,7 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
 
   return (
     <div onClick={() => { if (!sending) onClose() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div role="dialog" aria-label={`Report ${typeLabel(type).toLowerCase()}`} onClick={(e) => e.stopPropagation()}
+      <div role="dialog" aria-label={`Report ${(titleLabel || typeLabel(type)).toLowerCase()}`} onClick={(e) => e.stopPropagation()}
         style={{ background: 'white', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', padding: '18px 18px 22px' }}>
         <div style={{ width: '38px', height: '4px', borderRadius: '2px', background: G.border, margin: '0 auto 14px' }} />
 
@@ -65,7 +71,7 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
           </div>
         ) : (
           <>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: G.text }}>Report {typeLabel(type).toLowerCase()}</p>
+            <p style={{ fontSize: '16px', fontWeight: 800, color: G.text }}>Report {(titleLabel || typeLabel(type)).toLowerCase()}</p>
             {targetLabel && <p style={{ fontSize: '12.5px', color: G.muted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{targetLabel}</p>}
             <p style={{ fontSize: '13px', color: G.muted, margin: '10px 0 12px', lineHeight: 1.5 }}>Why are you reporting this? Your report is private.</p>
 
