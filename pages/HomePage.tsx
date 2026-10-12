@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
@@ -10,11 +10,11 @@ import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../Loa
 import NetworkError from '../NetworkError'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
-import SponsoredCard from '../SponsoredCard'
-import type { AdData } from '../SponsoredCard'
 import VideoCard from '../VideoCard'
 import { VIDEO_SELECT } from '../videoShared'
 import type { VideoRow } from '../videoShared'
+import SponsoredCard from '../SponsoredCard'
+import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -45,6 +45,27 @@ type Listing = {
 
 type FeedPost = PostCardData
 
+// Feed filter chips. "Update" is where short videos will live; until that feature exists it shows a coming-soon card.
+type FeedTab = 'all' | 'products' | 'companies' | 'groups' | 'update' | 'equipment'
+const FEED_TABS: { key: FeedTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'companies', label: 'Companies' },
+  { key: 'products', label: 'Products' },
+  { key: 'groups', label: 'Groups' },
+  { key: 'update', label: 'Update' },
+  { key: 'equipment', label: 'Equipment' },
+]
+
+type TabItem = {
+  id: string
+  title: string
+  price: number | null
+  currency: string
+  unit: string | null
+  location: string | null
+  images: string[] | null
+}
+
 const QUICK_ACTIONS: { icon: string; labelKey: 'marketplace' | 'companies' | 'farmbot' | 'groups' | 'equipment' | 'saved'; path: string }[] = [
   { icon: 'cart', labelKey: 'marketplace', path: '/marketplace' },
   { icon: 'building', labelKey: 'companies', path: '/companies' },
@@ -58,6 +79,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { t } = useLocale()
+  const [searchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -66,11 +88,20 @@ export default function HomePage() {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
-  const [videos, setVideos] = useState<VideoRow[]>([])
-  const [likedVideoIds, setLikedVideoIds] = useState<Set<string>>(new Set())
   const [homeAd, setHomeAd] = useState<AdData | null>(null)
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
+
+  // Feed chips: each chip loads its own data the first time it is opened
+  const [feedTab, setFeedTab] = useState<FeedTab>(() => (searchParams.get('tab') === 'update' ? 'update' : 'all'))
+  const [tabPosts, setTabPosts] = useState<{ companies?: FeedPost[]; groups?: FeedPost[] }>({})
+  const [tabItems, setTabItems] = useState<{ products?: TabItem[]; equipment?: TabItem[] }>({})
+  const [tabLoading, setTabLoading] = useState(false)
+  const [tabError, setTabError] = useState(false)
+  // Update tab: short videos (loaded the first time the tab opens)
+  const [videos, setVideos] = useState<VideoRow[] | null>(null)
+  const [likedVideoIds, setLikedVideoIds] = useState<Set<string>>(new Set())
+  const [isPremium, setIsPremium] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -99,18 +130,6 @@ export default function HomePage() {
       setFeed((feedRes.data || []) as any)
       setSavedPostIds(new Set((savedPostsRes.data || []).map((r: any) => r.post_id)))
       setLikedPostIds(new Set((likedPostsRes.data || []).map((r: any) => r.post_id)))
-
-      // Short videos from Premium members appear inside the feed by date. A failure here never breaks Home.
-      try {
-        const [vidRes, vidLikesRes] = await Promise.all([
-          supabase.from('short_videos').select(VIDEO_SELECT).eq('status', 'active').eq('is_hidden_by_admin', false).order('created_at', { ascending: false }).limit(10),
-          supabase.from('video_likes').select('video_id').eq('user_id', user.id),
-        ])
-        setVideos(vidRes.error ? [] : ((vidRes.data || []) as any))
-        setLikedVideoIds(new Set((vidLikesRes.data || []).map((r: any) => r.video_id)))
-      } catch {
-        setVideos([])
-      }
     } catch {
       setNetError(true)
     }
@@ -119,12 +138,64 @@ export default function HomePage() {
   }
 
   useEffect(() => { load() }, [user])
+  useEffect(() => { if (user && feedTab === 'update') loadTab('update') }, [user])
 
-  // Posts and videos in one list, newest first
-  const feedItems: ({ kind: 'post'; id: string; at: string; post: FeedPost } | { kind: 'video'; id: string; at: string; video: VideoRow })[] = [
-    ...feed.map((post) => ({ kind: 'post' as const, id: post.id, at: (post as any).created_at as string, post })),
-    ...videos.map((video) => ({ kind: 'video' as const, id: video.id, at: video.created_at, video })),
-  ].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
+  const tabLoaded = (tab: FeedTab) =>
+    tab === 'companies' ? !!tabPosts.companies
+    : tab === 'groups' ? !!tabPosts.groups
+    : tab === 'products' ? !!tabItems.products
+    : tab === 'equipment' ? !!tabItems.equipment
+    : tab === 'update' ? videos !== null
+    : true
+
+  const loadTab = async (tab: FeedTab) => {
+    if (tabLoaded(tab)) return
+    setTabLoading(true)
+    setTabError(false)
+    try {
+      if (tab === 'update') {
+        const [vRes, likesRes, meRes] = await Promise.all([
+          supabase.from('short_videos').select(VIDEO_SELECT).eq('status', 'active').eq('is_hidden_by_admin', false).order('created_at', { ascending: false }).limit(10),
+          user ? supabase.from('video_likes').select('video_id').eq('user_id', user.id) : Promise.resolve({ data: [], error: null } as any),
+          user ? supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null } as any),
+        ])
+        if (vRes.error) throw vRes.error
+        setVideos((vRes.data || []) as any)
+        setLikedVideoIds(new Set(((likesRes as any).data || []).map((r: any) => r.video_id)))
+        const me: any = (meRes as any).data
+        setIsPremium(!!me && !!me.is_premium && (!me.premium_until || new Date(me.premium_until).getTime() > Date.now()))
+      } else if (tab === 'companies' || tab === 'groups') {
+        let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
+        q = tab === 'companies' ? q.not('company_id', 'is', null) : q.not('community_id', 'is', null)
+        const { data, error } = await q.order('created_at', { ascending: false }).limit(10)
+        if (error) throw error
+        setTabPosts((prev) => ({ ...prev, [tab]: (data || []) as any }))
+      } else if (tab === 'products' || tab === 'equipment') {
+        const isProducts = tab === 'products'
+        const { data, error } = await supabase
+          .from(isProducts ? 'marketplace_listings' : 'equipment')
+          .select(`id, ${isProducts ? 'title' : 'name'}, price, currency, unit, location, images`)
+          .eq('status', 'available')
+          .not('is_hidden_by_admin', 'is', true)
+          .order('created_at', { ascending: false })
+          .limit(12)
+        if (error) throw error
+        const items: TabItem[] = ((data || []) as any[]).map((r) => ({
+          id: r.id, title: isProducts ? r.title : r.name, price: r.price, currency: r.currency,
+          unit: r.unit, location: r.location, images: r.images,
+        }))
+        setTabItems((prev) => ({ ...prev, [tab]: items }))
+      }
+    } catch {
+      setTabError(true)
+    }
+    setTabLoading(false)
+  }
+
+  const selectTab = (tab: FeedTab) => {
+    setFeedTab(tab)
+    loadTab(tab)
+  }
 
   // One paid ad (labelled "Sponsored") appears in the feed after the third post.
   useEffect(() => {
@@ -153,16 +224,16 @@ export default function HomePage() {
         {loading ? (
           <QuickActionsSkeleton />
         ) : (
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '14px', paddingBottom: '2px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
             {QUICK_ACTIONS.map((a) => (
               <div
                 key={a.labelKey}
                 onClick={() => navigate(a.path)}
-                style={{ flex: '1 0 58px', textAlign: 'center', cursor: 'pointer' }}>
-                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: COLORS.card, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <Icon name={a.icon} size={22} color={COLORS.green} />
+                style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 8px', textAlign: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                  <Icon name={a.icon} size={20} color={COLORS.green} />
                 </div>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: COLORS.text, marginTop: '6px', whiteSpace: 'nowrap' }}>{t(a.labelKey)}</p>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.text, marginTop: '8px', whiteSpace: 'nowrap' }}>{t(a.labelKey)}</p>
               </div>
             ))}
           </div>
@@ -215,30 +286,122 @@ export default function HomePage() {
         )}
 
         <SectionTitle title={t('feed')} />
-        <div style={{ marginTop: '10px' }}>
-          {loading ? (
-            <FeedPostSkeleton count={3} />
-          ) : feedItems.length === 0 ? (
-            <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
-          ) : (
-            feedItems.map((item, i) => (
-              <Fragment key={item.kind + item.id}>
-                {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
-                {item.kind === 'video' ? (
+
+        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginTop: '10px', paddingBottom: '4px' }}>
+          {FEED_TABS.map((c) => {
+            const active = feedTab === c.key
+            return (
+              <div
+                key={c.key}
+                onClick={() => selectTab(c.key)}
+                style={{
+                  flex: '1 1 auto', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', padding: '8px 4px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700, cursor: 'pointer',
+                  background: active ? COLORS.greenDark : '#EAEFEA', color: active ? 'white' : COLORS.textMuted,
+                }}>
+                {c.label}
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ marginTop: '12px' }}>
+          {feedTab === 'update' ? (
+            <>
+              <div
+                onClick={() => navigate('/videos/new')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '12px 14px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <PlayIcon size={20} color="white" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Post a short video</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{isPremium ? 'Share a video of up to 20 seconds.' : 'Premium members can post videos of up to 20 seconds.'}</p>
+                </div>
+                <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
+              </div>
+
+              {tabError ? (
+                <NetworkError onRetry={() => loadTab('update')} />
+              ) : tabLoading || videos === null ? (
+                <FeedPostSkeleton count={2} />
+              ) : videos.length === 0 ? (
+                <EmptyState icon="camera" text="No videos yet. Be the first to post one!" />
+              ) : (
+                videos.map((v) => (
                   <VideoCard
-                    video={item.video}
-                    initialLiked={likedVideoIds.has(item.id)}
-                    onDeleted={(id) => setVideos((list) => list.filter((v) => v.id !== id))}
+                    key={v.id}
+                    video={v}
+                    initialLiked={likedVideoIds.has(v.id)}
+                    onDeleted={(id) => setVideos((prev) => (prev || []).filter((x) => x.id !== id))}
                   />
-                ) : (
+                ))
+              )}
+            </>
+          ) : feedTab === 'all' ? (
+            loading ? (
+              <FeedPostSkeleton count={3} />
+            ) : feed.length === 0 ? (
+              <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
+            ) : (
+              feed.map((post, i) => (
+                <Fragment key={post.id}>
+                  {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
                   <PostCard
-                    post={item.post}
-                    initialLiked={likedPostIds.has(item.id)}
-                    initialSaved={savedPostIds.has(item.id)}
+                    post={post}
+                    initialLiked={likedPostIds.has(post.id)}
+                    initialSaved={savedPostIds.has(post.id)}
                   />
-                )}
-              </Fragment>
-            ))
+                </Fragment>
+              ))
+            )
+          ) : tabError ? (
+            <NetworkError onRetry={() => loadTab(feedTab)} />
+          ) : tabLoading || !tabLoaded(feedTab) ? (
+            <FeedPostSkeleton count={2} />
+          ) : feedTab === 'companies' || feedTab === 'groups' ? (
+            (tabPosts[feedTab] || []).length === 0 ? (
+              <EmptyState icon="message" text={feedTab === 'companies' ? 'No company posts yet.' : 'No group posts yet.'} />
+            ) : (
+              (tabPosts[feedTab] || []).map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  initialLiked={likedPostIds.has(post.id)}
+                  initialSaved={savedPostIds.has(post.id)}
+                />
+              ))
+            )
+          ) : (
+            (tabItems[feedTab] || []).length === 0 ? (
+              <EmptyState icon={feedTab === 'products' ? 'cart' : 'tractor'} text={feedTab === 'products' ? 'No products yet.' : 'No equipment yet.'} />
+            ) : (
+              <>
+                {(tabItems[feedTab] || []).map((it) => (
+                  <div
+                    key={it.id}
+                    onClick={() => navigate(feedTab === 'products' ? `/marketplace?listing=${it.id}` : '/equipment')}
+                    style={{ display: 'flex', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '10px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: '72px', height: '72px', borderRadius: '10px', background: '#E5EFE5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {it.images?.[0] ? <img src={it.images[0]} alt={it.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={feedTab === 'products' ? 'leaf' : 'tractor'} size={26} color={COLORS.green} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.title}</p>
+                      {it.price != null && (
+                        <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{formatMoney(Number(it.price), it.currency)}{it.unit ? `/${it.unit}` : ''}</p>
+                      )}
+                      {it.location && (
+                        <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {it.location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Link to={feedTab === 'products' ? '/marketplace' : '/equipment'} style={{ display: 'block', textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: COLORS.green, textDecoration: 'none', padding: '6px 0 2px' }}>
+                  {feedTab === 'products' ? 'See all products' : 'See all equipment'}
+                </Link>
+              </>
+            )
           )}
         </div>
       </div>
@@ -283,6 +446,15 @@ function IconBadge({ icon, count, onClick }: { icon: string; count?: number; onC
         </div>
       )}
     </div>
+  )
+}
+
+function PlayIcon({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M10.5 9.5v5l4-2.5-4-2.5Z" fill={color} />
+    </svg>
   )
 }
 
