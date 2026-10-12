@@ -17,6 +17,7 @@ import EquipmentPage from './pages/EquipmentPage'
 import SavedPage from './pages/SavedPage'
 import MessagesPage from './pages/MessagesPage'
 import NotificationsPage from './pages/NotificationsPage'
+import NotificationSettingsPage from './pages/NotificationSettingsPage'
 import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
 import VideoUploadPage from './pages/VideoUploadPage'
@@ -172,6 +173,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationSettingsPage />
                 </ProtectedRoute>
               }
             />
