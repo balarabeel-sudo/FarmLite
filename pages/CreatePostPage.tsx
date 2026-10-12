@@ -50,6 +50,7 @@ export default function CreatePostPage() {
   // Short video (Premium members only)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const [premium, setPremium] = useState(false)
+  const [premiumChecked, setPremiumChecked] = useState(false)
   const [maxSeconds, setMaxSeconds] = useState(20)
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
@@ -62,6 +63,7 @@ export default function CreatePostPage() {
     if (!user) return
     supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle().then(({ data }) => {
       setPremium(!!data && isPremiumActive((data as any).is_premium, (data as any).premium_until))
+      setPremiumChecked(true)
     })
     fetchMaxVideoSeconds().then(setMaxSeconds)
   }, [user])
@@ -94,6 +96,8 @@ export default function CreatePostPage() {
 
   // Videos are personal posts only (not inside a group or as a company)
   const canAddVideo = premium && !communityId && !activeCompany && images.length === 0
+  // Everyone else who could post a personal video is offered the upgrade instead
+  const showUpgradeForVideo = premiumChecked && !premium && !communityId && !activeCompany
 
   const clearVideo = () => {
     setVideoFile(null)
@@ -331,6 +335,19 @@ export default function CreatePostPage() {
               </div>
             )}
           </>
+        )}
+
+        {showUpgradeForVideo && (
+          <div
+            onClick={() => navigate('/premium')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', padding: '10px 14px', borderRadius: '12px', background: '#FFFBEB', border: '1px dashed #F59E0B', cursor: 'pointer' }}>
+            <Icon name="crown" size={20} color="#F59E0B" />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>Add video</p>
+              <p style={{ fontSize: '11.5px', fontWeight: 700, color: '#B45309', marginTop: '1px' }}>Upgrade to Premium</p>
+            </div>
+            <Icon name="chevronRight" size={16} color={COLORS.textMuted} />
+          </div>
         )}
       </div>
     </div>
