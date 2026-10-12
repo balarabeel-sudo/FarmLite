@@ -1,0 +1,16 @@
+{
+  "name": "Farmxie",
+  "short_name": "Farmxie",
+  "description": "Farmxie - marketplace, community and tools for farmers and agribusiness.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAF6",
+  "theme_color": "#16A34A",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
