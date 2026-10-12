@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
+import { detachPushFromAccount, syncPushSubscription } from './pushShared'
 
 type AuthContextValue = {
   session: Session | null
@@ -34,7 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe()
   }, [])
 
+  // When someone signs in on a device that already allowed notifications, attach the device to that account.
+  const userId = session?.user?.id
+  useEffect(() => {
+    if (userId) syncPushSubscription()
+  }, [userId])
+
   const signOut = async () => {
+    await detachPushFromAccount()
     await supabase.auth.signOut()
   }
 
