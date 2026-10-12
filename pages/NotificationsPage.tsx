@@ -5,6 +5,8 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import { enablePush, getPushState } from '../pushShared'
+import type { PushState } from '../pushShared'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -43,6 +45,8 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [pushState, setPushState] = useState<PushState | null>(null)
+  const [enabling, setEnabling] = useState(false)
 
   const load = async () => {
     if (!user) return
@@ -66,6 +70,14 @@ export default function NotificationsPage() {
   }
 
   useEffect(() => { load() }, [user])
+  useEffect(() => { getPushState().then(setPushState) }, [])
+
+  const turnOnPush = async () => {
+    setEnabling(true)
+    const res = await enablePush()
+    setPushState(res.state)
+    setEnabling(false)
+  }
 
   const markRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n))
@@ -89,7 +101,7 @@ export default function NotificationsPage() {
   if (netError) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} onMarkAllRead={markAllRead} hasUnread={false} />
+        <Header onBack={() => navigate('/')} onSettings={() => navigate('/settings/notifications')} onMarkAllRead={markAllRead} hasUnread={false} />
         <NetworkError onRetry={load} />
       </div>
     )
@@ -97,9 +109,26 @@ export default function NotificationsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} onMarkAllRead={markAllRead} hasUnread={hasUnread} />
+      <Header onBack={() => navigate('/')} onSettings={() => navigate('/settings/notifications')} onMarkAllRead={markAllRead} hasUnread={hasUnread} />
 
       <div style={{ padding: '16px' }}>
+        {(pushState === 'off' || pushState === 'ios-install') && (
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '14px', padding: '13px', marginBottom: '12px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>Get alerts even when Farmxie is closed</p>
+            <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '3px', lineHeight: 1.4 }}>
+              {pushState === 'off'
+                ? 'Turn on push notifications for messages, orders, payments and more.'
+                : 'On iPhone, add Farmxie to your Home Screen first, then turn on notifications from the settings icon above.'}
+            </p>
+            {pushState === 'off' && (
+              <div
+                onClick={enabling ? undefined : turnOnPush}
+                style={{ marginTop: '10px', background: COLORS.green, color: '#fff', fontSize: '12.5px', fontWeight: 700, borderRadius: '10px', padding: '9px 14px', display: 'inline-block', cursor: 'pointer', opacity: enabling ? 0.7 : 1 }}>
+                {enabling ? 'Please wait...' : 'Turn on'}
+              </div>
+            )}
+          </div>
+        )}
         {loading ? (
           <ListCardSkeleton count={5} />
         ) : notifications.length === 0 ? (
@@ -134,7 +163,7 @@ export default function NotificationsPage() {
   )
 }
 
-function Header({ onBack, onMarkAllRead, hasUnread }: { onBack: () => void; onMarkAllRead: () => void; hasUnread: boolean }) {
+function Header({ onBack, onSettings, onMarkAllRead, hasUnread }: { onBack: () => void; onSettings: () => void; onMarkAllRead: () => void; hasUnread: boolean }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
@@ -146,11 +175,16 @@ function Header({ onBack, onMarkAllRead, hasUnread }: { onBack: () => void; onMa
         </div>
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Notifications</p>
       </div>
-      {hasUnread && (
-        <div onClick={onMarkAllRead} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, cursor: 'pointer' }}>
-          Mark all read
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {hasUnread && (
+          <div onClick={onMarkAllRead} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, cursor: 'pointer' }}>
+            Mark all read
+          </div>
+        )}
+        <div onClick={onSettings} style={{ cursor: 'pointer', display: 'flex' }} aria-label="Notification settings">
+          <Icon name="wrench" size={19} color={COLORS.text} />
         </div>
-      )}
+      </div>
     </div>
   )
 }
