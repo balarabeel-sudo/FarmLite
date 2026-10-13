@@ -28,13 +28,14 @@ export default function CompanyAdVerifyPage() {
       if (data?.status === 'active') return setState('active')
       if (data?.status === 'failed') return setState('failed')
       if (data?.status === 'cancelled') return setState('cancelled')
+      if (data?.status === 'mismatch' || data?.status === 'not_approved') return setState('error')
       if (data?.status === 'pending' && tries < 6) { setTimeout(check, 2500); return }
       setState('pending')
     }
     check()
   }, [reference])
 
-  const goAd = () => navigate(adId ? `/company/ads/${adId}` : '/company/ads', { replace: true })
+  const goAd = () => navigate(adId ? `/company/ads/${adId}` : '/company/ads/billing', { replace: true })
 
   const copy: Record<typeof state, { title: string; text: string; color: string }> = {
     checking: { title: 'Confirming your payment…', text: 'Please wait a moment. Do not close this page.', color: COLORS.text },
@@ -42,7 +43,7 @@ export default function CompanyAdVerifyPage() {
     failed: { title: 'The payment did not go through', text: 'You were not charged for this ad. You can try paying again from the ad page.', color: COLORS.red },
     cancelled: { title: 'Payment cancelled', text: 'Nothing was charged. You can pay again from the ad page whenever you are ready.', color: COLORS.text },
     pending: { title: 'Still waiting for confirmation', text: 'The payment has not been confirmed yet. Open the ad page in a minute to check its status.', color: COLORS.text },
-    error: { title: 'We could not confirm the payment', text: 'If money left your account, it will be matched to your ad. Open the ad page and check again shortly.', color: COLORS.red },
+    error: { title: 'We could not confirm the payment', text: 'If money left your account, contact Farmxie support with your payment reference. You can see every payment under Billing History.', color: COLORS.red },
   }
   const c = copy[state]
 
