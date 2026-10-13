@@ -115,8 +115,9 @@ export default function MarketplacePage() {
       showFeatured && filter === 'all'
         ? supabase.rpc('featured_companies', { p_limit: 8 })
         : Promise.resolve({ data: [] as any[] }),
-      showFeatured
-        ? supabase.rpc('ads_for_slot', { p_slot: 'marketplace', p_limit: 2 })
+      // Ads follow the category chip and the search text, so they are relevant to what the person is looking at.
+      !mineOnly
+        ? supabase.rpc('ads_for_slot', { p_slot: 'marketplace', p_limit: 2, p_query: search.trim() || null, p_category: filter === 'all' ? null : filter })
         : Promise.resolve({ data: [] as any[] }),
     ])
 
@@ -249,8 +250,8 @@ export default function MarketplacePage() {
     const out: any[] = []
     items.forEach((l, i) => {
       out.push(card(l))
-      if (i === 2 && ads[0]) out.push(<SponsoredCard key={`ad-${ads[0].id}`} ad={ads[0]} layout="grid" />)
-      if (i === 8 && ads[1]) out.push(<SponsoredCard key={`ad-${ads[1].id}`} ad={ads[1]} layout="grid" />)
+      if (i === 2 && ads[0]) out.push(<SponsoredCard key={`ad-${ads[0].id}`} ad={ads[0]} layout="grid" placement="marketplace" />)
+      if (i === 8 && ads[1]) out.push(<SponsoredCard key={`ad-${ads[1].id}`} ad={ads[1]} layout="grid" placement="marketplace" />)
     })
     return out
   }
