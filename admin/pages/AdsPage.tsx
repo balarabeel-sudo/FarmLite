@@ -4,6 +4,7 @@ import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
 import { logAdminAction } from '../adminAuth'
+import { HISTORY_LABELS, placementLabel } from '../../company/adShared'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', bg: '#F7F8F7', red: '#DC2626', blue: '#2563EB', amber: '#B45309' }
 
@@ -22,7 +23,10 @@ type AdminAd = {
   days: number
   amount: number
   currency: string
-  status: 'pending_review' | 'approved' | 'rejected' | 'active' | 'cancelled'
+  ref: string
+  placements: string[]
+  paid_at: string | null
+  status: 'pending_review' | 'approved' | 'rejected' | 'active' | 'paused' | 'completed' | 'cancelled'
   review_note: string | null
   starts_at: string | null
   ends_at: string | null
@@ -36,6 +40,8 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   approved: { bg: '#DBEAFE', color: '#1D4ED8', label: 'Approved, unpaid' },
   rejected: { bg: '#FEE2E2', color: '#991B1B', label: 'Rejected' },
   active: { bg: '#DCFCE7', color: '#166534', label: 'Running' },
+  paused: { bg: '#FFEDD5', color: '#9A3412', label: 'Paused' },
+  completed: { bg: '#E5E7EB', color: '#4B5563', label: 'Completed' },
   cancelled: { bg: '#E5E7EB', color: '#4B5563', label: 'Cancelled' },
 }
 
@@ -43,7 +49,10 @@ const FILTERS: { key: string; label: string }[] = [
   { key: 'pending_review', label: 'In review' },
   { key: 'approved', label: 'Approved' },
   { key: 'active', label: 'Running' },
+  { key: 'paused', label: 'Paused' },
+  { key: 'completed', label: 'Completed' },
   { key: 'rejected', label: 'Rejected' },
+  { key: 'cancelled', label: 'Cancelled' },
   { key: 'all', label: 'All' },
 ]
 
@@ -61,6 +70,16 @@ export default function AdsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState('')
+  const [openHistory, setOpenHistory] = useState('')
+  const [history, setHistory] = useState<{ action: string; note: string | null; created_at: string; actor: string | null }[]>([])
+
+  const toggleHistory = async (id: string) => {
+    if (openHistory === id) return setOpenHistory('')
+    setOpenHistory(id)
+    setHistory([])
+    const { data } = await supabase.rpc('ads_admin_history', { p_ad: id })
+    setHistory((data || []) as any)
+  }
 
   const load = async () => {
     setError(false)
@@ -98,7 +117,7 @@ export default function AdsPage() {
     const { error: e } = await supabase.rpc('ad_review', { p_ad: ad.id, p_approve: approve, p_note: note })
     setBusy('')
     if (e) {
-      window.alert(e.message.includes('not_pending') ? 'This ad was already reviewed.' : e.message)
+      window.alert(e.message.includes('not_pending') ? 'This ad was already reviewed.' : e.message.includes('listing_unavailable') ? 'The listing for this ad is no longer available, so the ad cannot be approved.' : e.message)
       return load()
     }
     await logAdminAction(approve ? 'Approved company ad' : 'Rejected company ad', { type: 'ad', id: ad.id, label: `${ad.company_name}: ${ad.headline}` })
@@ -143,15 +162,28 @@ export default function AdsPage() {
                   <p style={{ fontSize: '14.5px', fontWeight: 800, color: A.text, marginTop: 3 }}>{ad.headline}</p>
                   {ad.body && <p style={{ fontSize: '12.5px', color: A.text, marginTop: 3, lineHeight: 1.5 }}>{ad.body}</p>}
                   <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 8 }}>
+                    {ad.ref} · Placements: {(ad.placements || []).map(placementLabel).join(', ')}
+                  </p>
+                  <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 3 }}>
                     Audience: {ad.audience_roles.length ? ad.audience_roles.join(', ') : 'everyone'} · Location: {ad.locations.length ? ad.locations.join(', ') : 'everywhere'} · {ad.days} days · {money(ad.amount, ad.currency)}
                   </p>
                   {ad.review_note && <p style={{ fontSize: '11.5px', color: A.red, marginTop: 4 }}>Note: {ad.review_note}</p>}
                   {(ad.status === 'active' || ad.impressions > 0) && <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 4 }}>{ad.impressions} impressions · {ad.clicks} clicks</p>}
                   {ad.starts_at && <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 4 }}>Runs {new Date(ad.starts_at).toLocaleDateString()} to {ad.ends_at ? new Date(ad.ends_at).toLocaleDateString() : ''}</p>}
+                  <span onClick={() => toggleHistory(ad.id)} style={{ display: 'inline-block', marginTop: 8, fontSize: '12px', fontWeight: 700, color: A.blue, cursor: 'pointer' }}>{openHistory === ad.id ? 'Hide history' : 'Show history'}</span>
+                  {openHistory === ad.id && (
+                    <div style={{ marginTop: 6, background: A.bg, borderRadius: 8, padding: '8px 12px' }}>
+                      {history.length === 0 ? <p style={{ fontSize: '12px', color: A.textMuted }}>Loading...</p> : history.map((h, hi) => (
+                        <p key={hi} style={{ fontSize: '12px', color: A.text, padding: '3px 0' }}>
+                          <b>{HISTORY_LABELS[h.action] ?? h.action}</b> · {new Date(h.created_at).toLocaleString()}{h.actor ? ` · ${h.actor}` : ''}{h.note ? ` · ${h.note}` : ''}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                   <span style={{ background: st.bg, color: st.color, fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px' }}>{st.label}</span>
-                  {canReview && ad.status === 'active' && new Date(ad.ends_at || 0).getTime() > Date.now() && (
+                  {canReview && (ad.status === 'paused' || (ad.status === 'active' && new Date(ad.ends_at || 0).getTime() > Date.now())) && (
                     <span onClick={busy ? undefined : () => stop(ad)} style={{ fontSize: '12.5px', fontWeight: 700, color: A.red, cursor: 'pointer', opacity: busy === ad.id ? 0.5 : 1 }}>Stop ad</span>
                   )}
                   {canReview && ad.status === 'pending_review' && (
