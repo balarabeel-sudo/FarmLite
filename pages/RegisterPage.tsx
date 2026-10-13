@@ -1,35 +1,55 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import Icon from '../Icons'
+import {
+  AUTH, AuthPage, AuthHero, AuthCard, ErrorBox, OrDivider, SocialRow,
+  authInputWrap, authInput, authLabel, authPrimaryButton,
+} from '../AuthShared'
 
-const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#DCE7DC',
-  green: '#16A34A',
-  greenDark: '#166534',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#DC2626',
-}
-
-const ROLES: { value: string; label: string }[] = [
-  { value: 'farmer', label: 'Farmer' },
-  { value: 'buyer', label: 'Buyer' },
-  { value: 'agribusiness', label: 'Agribusiness' },
+const ROLES: { value: string; label: string; hint: string; icon: string }[] = [
+  { value: 'farmer', label: 'Farmer', hint: 'Sell produce', icon: 'tractor' },
+  { value: 'buyer', label: 'Buyer', hint: 'Buy produce', icon: 'cart' },
+  { value: 'agribusiness', label: 'Agribusiness', hint: 'Run a business', icon: 'building' },
 ]
+
+const cleanUsername = (v: string) => v.toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 24)
+
+function passwordStrength(p: string): { score: number; label: string; color: string } {
+  if (!p) return { score: 0, label: '', color: '#DCE7DC' }
+  let score = 0
+  if (p.length >= 6) score++
+  if (p.length >= 9) score++
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++
+  if (/\d/.test(p) && /[^A-Za-z0-9]/.test(p)) score++
+  if (p.length < 6) return { score: 1, label: 'Too short', color: '#DC2626' }
+  if (score <= 1) return { score: 2, label: 'Fair', color: '#F59E0B' }
+  if (score === 2) return { score: 3, label: 'Good', color: '#65A30D' }
+  return { score: 4, label: 'Strong', color: '#16A34A' }
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate()
 
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
+  const [usernameEdited, setUsernameEdited] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState('farmer')
+  const [agree, setAgree] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkEmail, setCheckEmail] = useState(false)
+
+  const strength = passwordStrength(password)
+
+  const onNameChange = (v: string) => {
+    setFullName(v)
+    // Suggest a username from the name until the person types their own.
+    if (!usernameEdited) setUsername(cleanUsername(v.replace(/\s+/g, '')))
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -39,8 +59,16 @@ export default function RegisterPage() {
       setError('Please fill in every field.')
       return
     }
+    if (username.trim().length < 3) {
+      setError('Username must be at least 3 characters.')
+      return
+    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.')
+      return
+    }
+    if (!agree) {
+      setError('Please accept the terms to create your account.')
       return
     }
 
@@ -77,87 +105,138 @@ export default function RegisterPage() {
 
   if (checkEmail) {
     return (
-      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: '40px' }}>📩</p>
-        <h1 style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '10px' }}>Check your email</h1>
-        <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '8px', lineHeight: 1.6 }}>
-          We sent a confirmation link to <strong>{email}</strong>. Confirm it, then sign in to start using Farmxie.
-        </p>
-        <Link to="/login" style={{ marginTop: '20px', color: COLORS.green, fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
-          Go to Sign In
-        </Link>
-      </div>
+      <AuthPage>
+        <div style={{ padding: '90px 24px 0', textAlign: 'center' }}>
+          <div style={{ width: '84px', height: '84px', borderRadius: '50%', background: '#DCFCE7', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="mail" size={38} color={AUTH.greenMid} />
+          </div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: AUTH.text, marginTop: '22px' }}>Check your email</h1>
+          <p style={{ fontSize: '14px', color: AUTH.textMuted, marginTop: '10px', lineHeight: 1.6 }}>
+            We sent a confirmation link to <strong style={{ color: AUTH.text }}>{email}</strong>. Confirm it, then sign in to start using Farmxie.
+          </p>
+          <Link
+            to="/login"
+            style={{ ...authPrimaryButton(false), display: 'inline-flex', width: 'auto', padding: '14px 34px', marginTop: '26px', textDecoration: 'none' }}
+          >
+            Go to Sign In
+          </Link>
+        </div>
+      </AuthPage>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, padding: '48px 24px 32px', color: 'white' }}>
-        <p style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.3px' }}>🌱 Farmxie</p>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, marginTop: '18px' }}>Create your account</h1>
-        <p style={{ fontSize: '13px', color: '#DCFCE7', marginTop: '6px' }}>Join farmers, buyers and agribusinesses.</p>
-      </div>
+    <AuthPage>
+      <AuthHero title="Create your account" subtitle="Join farmers, buyers and agribusinesses growing together on Farmxie." />
 
-      <form onSubmit={handleSubmit} style={{ padding: '24px', flex: 1 }}>
-        {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px' }}>
-            <p style={{ fontSize: '12px', color: COLORS.red }}>{error}</p>
+      <AuthCard>
+        <form onSubmit={handleSubmit}>
+          <ErrorBox message={error} />
+
+          <label style={authLabel}>I am a...</label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            {ROLES.map((r) => {
+              const on = role === r.value
+              return (
+                <div
+                  key={r.value}
+                  onClick={() => setRole(r.value)}
+                  style={{
+                    flex: 1, textAlign: 'center', padding: '12px 4px 10px', borderRadius: '14px', cursor: 'pointer',
+                    background: on ? '#ECFDF3' : AUTH.card,
+                    border: `1.5px solid ${on ? AUTH.green : AUTH.fieldBorder}`,
+                    boxShadow: on ? '0 4px 12px rgba(22,163,74,0.15)' : 'none',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex' }}><Icon name={r.icon} size={22} color={on ? AUTH.green : AUTH.textMuted} /></span>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: on ? AUTH.greenMid : AUTH.text, marginTop: '4px' }}>{r.label}</p>
+                  <p style={{ fontSize: '10.5px', color: AUTH.textMuted, marginTop: '1px' }}>{r.hint}</p>
+                </div>
+              )
+            })}
           </div>
-        )}
 
-        <label style={labelStyle}>Full Name</label>
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Rabeel Bala" style={inputStyle} />
+          <label style={authLabel}>Full name</label>
+          <div style={authInputWrap}>
+            <span style={{ marginRight: '10px', display: 'flex' }}><Icon name="user" size={18} color={AUTH.greenMid} /></span>
+            <input value={fullName} onChange={(e) => onNameChange(e.target.value)} placeholder="e.g. Rabeel Bala" autoComplete="name" style={authInput} />
+          </div>
 
-        <label style={labelStyle}>Username</label>
-        <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())} placeholder="e.g. rabeelbala" style={inputStyle} />
+          <label style={authLabel}>Username</label>
+          <div style={authInputWrap}>
+            <span style={{ marginRight: '8px', fontSize: '16px', fontWeight: 800, color: AUTH.greenMid }}>@</span>
+            <input
+              value={username}
+              onChange={(e) => { setUsernameEdited(true); setUsername(cleanUsername(e.target.value)) }}
+              placeholder="rabeelbala"
+              autoComplete="username"
+              autoCapitalize="none"
+              style={authInput}
+            />
+          </div>
 
-        <label style={labelStyle}>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" style={inputStyle} />
+          <label style={authLabel}>Email</label>
+          <div style={authInputWrap}>
+            <span style={{ marginRight: '10px', display: 'flex' }}><Icon name="mail" size={18} color={AUTH.greenMid} /></span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" style={authInput} />
+          </div>
 
-        <label style={labelStyle}>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" autoComplete="new-password" style={inputStyle} />
+          <label style={authLabel}>Password</label>
+          <div style={{ ...authInputWrap, marginBottom: '8px' }}>
+            <span style={{ marginRight: '10px', display: 'flex' }}><Icon name="lock" size={18} color={AUTH.greenMid} /></span>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 6 characters"
+              autoComplete="new-password"
+              style={authInput}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: '6px' }}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} color={AUTH.textMuted} />
+            </button>
+          </div>
 
-        <label style={labelStyle}>I am a...</label>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '6px', marginBottom: '16px' }}>
-          {ROLES.map((r) => (
-            <div
-              key={r.value}
-              onClick={() => setRole(r.value)}
-              style={{
-                flex: 1, textAlign: 'center', padding: '10px 6px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
-                background: role === r.value ? COLORS.green : COLORS.card,
-                color: role === r.value ? 'white' : COLORS.textMuted,
-                border: `1px solid ${role === r.value ? COLORS.green : COLORS.border}`,
-              }}>
-              {r.label}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 2px 16px', minHeight: '16px' }}>
+            <div style={{ flex: 1, display: 'flex', gap: '4px' }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ flex: 1, height: '4px', borderRadius: '999px', background: i <= strength.score ? strength.color : '#DCE7DC' }} />
+              ))}
             </div>
-          ))}
-        </div>
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: strength.color, minWidth: '56px', textAlign: 'right' }}>{strength.label}</span>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%', border: 'none', background: COLORS.green, color: 'white', fontWeight: 700, fontSize: '14px',
-            padding: '13px', borderRadius: '12px', marginTop: '4px', cursor: 'pointer', opacity: loading ? 0.6 : 1,
-          }}>
-          {loading ? 'Creating account...' : 'Create Account'}
-        </button>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '12.5px', color: AUTH.textMuted, lineHeight: 1.45, cursor: 'pointer', marginBottom: '18px' }}>
+            <input
+              type="checkbox"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: AUTH.green, marginTop: '1px', flexShrink: 0 }}
+            />
+            <span>I agree to the Farmxie terms of use and privacy policy.</span>
+          </label>
 
-        <p style={{ textAlign: 'center', fontSize: '13px', color: COLORS.textMuted, marginTop: '20px' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: COLORS.green, fontWeight: 700, textDecoration: 'none' }}>
-            Sign in
-          </Link>
-        </p>
-      </form>
-    </div>
+          <button type="submit" disabled={loading} style={authPrimaryButton(loading)}>
+            {loading ? 'Creating account...' : 'Create Account'}
+            {!loading && <Icon name="arrowRight" size={18} color="#FFFFFF" />}
+          </button>
+        </form>
+
+        <OrDivider text="Or sign up with" />
+        <SocialRow onError={setError} />
+      </AuthCard>
+
+      <p style={{ textAlign: 'center', fontSize: '13.5px', color: AUTH.textMuted, marginTop: '22px' }}>
+        Already have an account?{' '}
+        <Link to="/login" style={{ color: AUTH.green, fontWeight: 800, textDecoration: 'none' }}>
+          Sign in
+        </Link>
+      </p>
+    </AuthPage>
   )
-}
-
-const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, color: COLORS.text, display: 'block' }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${COLORS.border}`,
-  marginTop: '6px', marginBottom: '16px', fontSize: '14px', boxSizing: 'border-box', background: COLORS.card, color: COLORS.text,
 }
