@@ -79,6 +79,7 @@ import AdminGroupsPage from './admin/pages/GroupsPage'
 import AdminAdsPage from './admin/pages/AdsPage'
 import AdminAdPricingPage from './admin/pages/AdPricingPage'
 import MaintenanceGate from './MaintenanceGate'
+import PresenceTracker from './PresenceTracker'
 
 function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -87,6 +88,7 @@ function App() {
     <BrowserRouter>
       <LocaleProvider>
         <AuthProvider>
+          <PresenceTracker />
           {showSplash && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
               <SplashScreen onFinish={() => setShowSplash(false)} />
