@@ -51,6 +51,9 @@ import CompanyAdsPage from './company/CompanyAdsPage'
 import CompanyAdNewPage from './company/CompanyAdNewPage'
 import CompanyAdDetailPage from './company/CompanyAdDetailPage'
 import CompanyAdVerifyPage from './company/CompanyAdVerifyPage'
+import CompanyAdCampaignsPage from './company/CompanyAdCampaignsPage'
+import CompanyAdPerformancePage from './company/CompanyAdPerformancePage'
+import CompanyAdBillingPage from './company/CompanyAdBillingPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -382,6 +385,9 @@ function App() {
               <Route path="featured" element={<CompanyFeaturedPage />} />
               <Route path="ads" element={<CompanyAdsPage />} />
               <Route path="ads/new" element={<CompanyAdNewPage />} />
+              <Route path="ads/campaigns" element={<CompanyAdCampaignsPage />} />
+              <Route path="ads/performance" element={<CompanyAdPerformancePage />} />
+              <Route path="ads/billing" element={<CompanyAdBillingPage />} />
               <Route path="ads/verify" element={<CompanyAdVerifyPage />} />
               <Route path="ads/:id" element={<CompanyAdDetailPage />} />
               <Route path="reports" element={<CompanyReportsPage />} />
