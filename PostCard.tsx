@@ -20,14 +20,16 @@ const COLORS = {
 
 // Select string every page should use so PostCard gets everything it needs.
 export const POST_SELECT =
-  'id, user_id, company_id, content, images, likes_count, comments_count, created_at, ' +
+  'id, user_id, company_id, community_id, content, images, likes_count, comments_count, created_at, ' +
   'profiles!posts_user_id_fkey(full_name, username, profile_image, is_premium, premium_until), ' +
-  'companies!posts_company_id_fkey(id, name, logo_url, is_premium, premium_until)'
+  'companies!posts_company_id_fkey(id, name, logo_url, is_premium, premium_until), ' +
+  'communities!posts_community_id_fkey(id, name, cover_url)'
 
 export type PostCardData = {
   id: string
   user_id: string
   company_id: string | null
+  community_id?: string | null
   content: string
   images: string[] | null
   likes_count: number
@@ -35,6 +37,7 @@ export type PostCardData = {
   created_at: string
   profiles: { full_name: string | null; username: string | null; profile_image: string | null; is_premium: boolean; premium_until: string | null } | null
   companies: { id: string; name: string; logo_url: string | null; is_premium: boolean; premium_until: string | null } | null
+  communities?: { id: string; name: string; cover_url: string | null } | null
 }
 
 // One post card used by Home, company pages and (later) user profiles.
@@ -70,6 +73,11 @@ export default function PostCard({
     ? isPremiumActive(company.is_premium, company.premium_until)
     : !!author && isPremiumActive(author.is_premium, author.premium_until)
   const target = company ? `/companies/${company.id}` : author?.username ? `/u/${author.username}` : null
+
+  // A post made inside a group shows the group first and the person who posted underneath (Facebook style).
+  const group = !company && post.community_id ? post.communities || null : null
+  const authorName = author?.full_name || author?.username || 'Farmxie user'
+  const authorTarget = author?.username ? `/u/${author.username}` : null
 
   const toggleLike = async () => {
     if (!user) return
@@ -110,6 +118,30 @@ export default function PostCard({
   return (
     <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
+        {group ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            <div onClick={() => navigate(`/communities/${group.id}`)} style={{ position: 'relative', width: '40px', height: '40px', flexShrink: 0, cursor: 'pointer' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '11px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {group.cover_url
+                  ? <img src={group.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <Icon name="users" size={18} color={COLORS.green} />}
+              </div>
+              <div style={{ position: 'absolute', right: '-5px', bottom: '-5px', width: '20px', height: '20px', borderRadius: '10px', background: '#DCFCE7', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {author?.profile_image
+                  ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <Icon name="user" size={10} color={COLORS.green} />}
+              </div>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p onClick={() => navigate(`/communities/${group.id}`)} style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{group.name}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                <p onClick={() => authorTarget && navigate(authorTarget)} style={{ fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: authorTarget ? 'pointer' : 'default' }}>{authorName}</p>
+                {!!author && isPremiumActive(author.is_premium, author.premium_until) && <PremiumTick size={11} />}
+                <p style={{ fontSize: '10.5px', color: COLORS.textMuted, whiteSpace: 'nowrap' }}>· {timeAgo(post.created_at)}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div onClick={() => target && navigate(target)} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, cursor: target ? 'pointer' : 'default' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: company ? '10px' : '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
             {image
@@ -124,6 +156,7 @@ export default function PostCard({
             <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>{timeAgo(post.created_at)}{company ? ' · Company' : ''}</p>
           </div>
         </div>
+        )}
         {!isOwn && (
           <div>
             <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ padding: '6px', cursor: 'pointer', display: 'flex' }}>
