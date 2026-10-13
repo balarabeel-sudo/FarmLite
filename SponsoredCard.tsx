@@ -41,9 +41,10 @@ function priceLabel(l: NonNullable<AdData['listing']>) {
 }
 
 // A paid Farmxie Ad, always clearly labelled "Sponsored".
+// `placement` is where it is shown (used for per-placement analytics).
 // layout "grid" matches a Marketplace listing card, "wide" fits the Home feed.
 // With `preview` it is a static preview (used while creating an ad): nothing is tracked or clickable.
-export default function SponsoredCard({ ad, layout = 'grid', preview = false }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean }) {
+export default function SponsoredCard({ ad, layout = 'grid', preview = false, placement }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean; placement?: 'home' | 'marketplace' | 'companies' | 'search' }) {
   const navigate = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
   const counted = useRef(false)
@@ -55,13 +56,13 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false }: 
     const io = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting) && !counted.current) {
         counted.current = true
-        supabase.rpc('ad_track', { p_ad: ad.id, p_kind: 'impression' }).then(() => {}, () => {})
+        supabase.rpc('ad_track', { p_ad: ad.id, p_kind: 'impression', p_placement: placement ?? null }).then(() => {}, () => {})
         io.disconnect()
       }
     }, { threshold: 0.5 })
     io.observe(el)
     return () => io.disconnect()
-  }, [ad.id, preview])
+  }, [ad.id, preview, placement])
 
   const image = ad.image_url || (ad.target_type === 'listing' ? ad.listing?.images?.[0] : null) || ad.company.logo_url || null
   const premium = isPremiumActive(ad.company.is_premium, ad.company.premium_until)
@@ -69,7 +70,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false }: 
 
   const open = () => {
     if (preview) return
-    supabase.rpc('ad_track', { p_ad: ad.id, p_kind: 'click' }).then(() => {}, () => {})
+    supabase.rpc('ad_track', { p_ad: ad.id, p_kind: 'click', p_placement: placement ?? null }).then(() => {}, () => {})
     navigate(target)
   }
 
