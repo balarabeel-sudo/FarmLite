@@ -5,6 +5,8 @@ import { formatMoney } from '../moneyUtils'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import SponsoredCard from '../SponsoredCard'
+import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -31,6 +33,7 @@ export default function SearchPage() {
   const [profiles, setProfiles] = useState<ProfileResult[]>([])
   const [companies, setCompanies] = useState<CompanyResult[]>([])
   const [listings, setListings] = useState<ListingResult[]>([])
+  const [ads, setAds] = useState<AdData[]>([])
 
   // Ignores results of older searches that finish after a newer one.
   const tokenRef = useRef(0)
@@ -39,6 +42,7 @@ export default function SearchPage() {
     setProfiles([])
     setCompanies([])
     setListings([])
+    setAds([])
     setSearched(false)
     setNetError(false)
     setLoading(false)
@@ -58,10 +62,12 @@ export default function SearchPage() {
     setNetError(false)
 
     try {
-      const [profilesRes, companiesRes, listingsRes] = await Promise.all([
+      const [profilesRes, companiesRes, listingsRes, adsRes] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, username, profile_image, role').or(`full_name.ilike.%${safe}%,username.ilike.%${safe}%`).limit(8),
         supabase.from('companies').select('id, name, category, logo_url').eq('status', 'approved').ilike('name', `%${safe}%`).limit(8),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, images').eq('status', 'available').ilike('title', `%${safe}%`).limit(8),
+        // Paid ads that match what was searched (labelled "Sponsored"); failures here never break the search.
+        supabase.rpc('ads_for_slot', { p_slot: 'search', p_limit: 1, p_query: safe, p_category: null }),
       ])
 
       if (token !== tokenRef.current) return
@@ -75,6 +81,7 @@ export default function SearchPage() {
       setProfiles((profilesRes.data || []) as any)
       setCompanies((companiesRes.data || []) as any)
       setListings((listingsRes.data || []) as any)
+      setAds(adsRes.error ? [] : ((adsRes.data || []) as AdData[]))
     } catch {
       if (token !== tokenRef.current) return
       setNetError(true)
@@ -122,6 +129,12 @@ export default function SearchPage() {
         {netError && <NetworkError onRetry={() => runSearch(query.trim())} title="Search failed." />}
 
         {loading && !netError && <ListCardSkeleton count={3} />}
+
+        {!loading && !netError && ads.length > 0 && (
+          <div style={{ marginTop: '4px' }}>
+            {ads.map((a) => <SponsoredCard key={a.id} ad={a} layout="wide" placement="search" />)}
+          </div>
+        )}
 
         {noResults && (
           <div style={{ background: COLORS.card, padding: '32px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
