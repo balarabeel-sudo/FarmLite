@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
@@ -6,6 +6,8 @@ import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import { PAGE_SIZE, LoadMoreButton, CompanyBadges } from '../shared'
+import SponsoredCard from '../SponsoredCard'
+import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
   bg: '#F8FAF6',
@@ -47,6 +49,7 @@ export default function CompaniesPage() {
   const [search, setSearch] = useState('')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [ads, setAds] = useState<AdData[]>([])
 
   const companiesQuery = (from: number, to: number) => {
     let q = supabase.from('companies').select(COMPANY_COLUMNS)
@@ -61,9 +64,11 @@ export default function CompaniesPage() {
     setNetError(false)
     setLoading(true)
 
-    const [companiesRes, followedRes] = await Promise.all([
+    const [companiesRes, followedRes, adsRes] = await Promise.all([
       companiesQuery(0, PAGE_SIZE - 1),
       supabase.from('company_followers').select('company_id').eq('user_id', user.id),
+      // Company ads for this page (labelled "Sponsored"); they follow the search text.
+      supabase.rpc('ads_for_slot', { p_slot: 'companies', p_limit: 2, p_query: search.trim() || null, p_category: null }),
     ])
 
     if (companiesRes.error) {
@@ -76,6 +81,7 @@ export default function CompaniesPage() {
     setCompanies(page)
     setHasMore(page.length === PAGE_SIZE)
     setFollowedIds(new Set((followedRes.data || []).map((r: any) => r.company_id)))
+    setAds((adsRes.data || []) as any as AdData[])
     setLoading(false)
   }
 
@@ -143,8 +149,12 @@ export default function CompaniesPage() {
             {search.trim() ? 'No companies match your search.' : 'No companies registered yet. Tap + to register the first one.'}
           </div>
         ) : (
-          companies.map((c) => (
-            <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+          companies.map((c, idx) => (
+            <Fragment key={c.id}>
+            {(idx === 1 || idx === 6) && ads[idx === 1 ? 0 : 1] && (
+              <div style={{ marginBottom: '10px' }}><SponsoredCard ad={ads[idx === 1 ? 0 : 1]} layout="wide" placement="companies" /></div>
+            )}
+            <div onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={24} color={COLORS.green} />}
               </div>
@@ -172,6 +182,7 @@ export default function CompaniesPage() {
                 <Icon name="bookmark" size={16} color={followedIds.has(c.id) ? COLORS.orange : COLORS.textMuted} />
               </div>
             </div>
+            </Fragment>
           ))
         )}
 
