@@ -88,7 +88,8 @@ export default function HomePage() {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
-  const [homeAd, setHomeAd] = useState<AdData | null>(null)
+  const [homeAds, setHomeAds] = useState<AdData[]>([])
+  const [homeEvery, setHomeEvery] = useState(4)
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
 
@@ -197,12 +198,16 @@ export default function HomePage() {
     loadTab(tab)
   }
 
-  // One paid ad (labelled "Sponsored") appears in the feed after the third post.
+  // Paid ads (labelled "Sponsored") appear in the feed after every N posts; N is set by Farmxie in admin limits.
   useEffect(() => {
     if (!user) return
-    supabase.rpc('ads_for_slot', { p_slot: 'home', p_limit: 1 }).then(
-      ({ data }: { data: any }) => setHomeAd(((data || []) as AdData[])[0] || null),
-      () => setHomeAd(null),
+    supabase.rpc('ads_config').then(
+      ({ data }: { data: any }) => { const n = Number(data?.home_every); if (n >= 2) setHomeEvery(n) },
+      () => {},
+    )
+    supabase.rpc('ads_for_slot', { p_slot: 'home', p_limit: 4 }).then(
+      ({ data }: { data: any }) => setHomeAds((data || []) as AdData[]),
+      () => setHomeAds([]),
     )
   }, [user])
 
@@ -345,7 +350,9 @@ export default function HomePage() {
             ) : (
               feed.map((post, i) => (
                 <Fragment key={post.id}>
-                  {i === 3 && homeAd && <SponsoredCard ad={homeAd} layout="wide" />}
+                  {i > 0 && i % homeEvery === 0 && homeAds[i / homeEvery - 1] && (
+                    <SponsoredCard ad={homeAds[i / homeEvery - 1]} layout="wide" placement="home" />
+                  )}
                   <PostCard
                     post={post}
                     initialLiked={likedPostIds.has(post.id)}
