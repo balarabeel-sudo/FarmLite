@@ -7,13 +7,28 @@ import { useLocale } from '../LocaleContext'
 import type { Currency } from '../LocaleContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
-import { COLORS } from '../shared'
+import FarmLiteLogo from '../FarmLiteLogo'
 import {
   getMyWallet, startTopup, verifyTopup, verifyOrderCode, verifyErrorMessage, useMoney, payFarmDeskFromWallet,
   fetchBanks, resolveAccount, requestWithdrawal, cancelWithdrawal, WITHDRAWAL_STATUS, WITHDRAWAL_COLUMNS,
   TX_LABELS,
 } from '../walletShared'
 import type { Wallet, WalletTx, Withdrawal, Bank } from '../walletShared'
+
+// Dark green look for the wallet only.
+const COLORS = {
+  bg: '#04130C',
+  card: '#0C2418',
+  cardSoft: '#0F2D1F',
+  border: '#1B4A31',
+  green: '#16A34A',
+  greenLight: '#4ADE80',
+  text: '#F1F8F3',
+  textMuted: '#8FB09C',
+  red: '#F87171',
+  amber: '#FBBF24',
+  blue: '#60A5FA',
+}
 
 const HIDE_KEY = 'fl_wallet_hidden'
 const PENDING_REF_KEY = 'fl_pending_topup_ref'
@@ -38,6 +53,8 @@ export default function WalletPage() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
   const [hidden, setHidden] = useState(readHidden)
   const [banner, setBanner] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const [curOpen, setCurOpen] = useState(false)
 
   // ?pay=<farm_desk_payment_id> comes from the Pay with wallet button in a Farm Desk request
   const [payId, setPayId] = useState<string | null>(() => searchParams.get('pay'))
@@ -102,101 +119,139 @@ export default function WalletPage() {
 
   if (netError) {
     return (
-      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate(-1)} />
+      <Page>
+        <Header onBack={() => navigate(-1)} onBell={() => navigate('/notifications')} />
         <NetworkError onRetry={load} />
-      </div>
+      </Page>
     )
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate(-1)} />
+  const activeCur = currencies.find((c: { code: string }) => c.code === currency)
+  const visibleTxs = showAll ? txs : txs.slice(0, 5)
 
-      <div style={{ padding: '16px' }}>
+  return (
+    <Page>
+      <Header onBack={() => navigate(-1)} onBell={() => navigate('/notifications')} />
+
+      <div style={{ padding: '4px 16px 0' }}>
         {banner && (
           <div onClick={() => setBanner(null)} style={{
-            padding: '11px 13px', borderRadius: '10px', marginBottom: '12px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-            background: banner.type === 'ok' ? '#DCFCE7' : '#FEE2E2', color: banner.type === 'ok' ? '#166534' : '#B91C1C',
+            padding: '11px 13px', borderRadius: '12px', marginBottom: '12px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+            background: banner.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(248,113,113,0.14)',
+            border: `1px solid ${banner.type === 'ok' ? 'rgba(34,197,94,0.45)' : 'rgba(248,113,113,0.45)'}`,
+            color: banner.type === 'ok' ? COLORS.greenLight : COLORS.red,
           }}>
             {banner.text}
           </div>
         )}
 
         {/* Balance card */}
-        <div style={{ background: COLORS.green, borderRadius: '18px', padding: '18px', color: 'white' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, opacity: 0.9 }}>Available balance</p>
-            <div onClick={toggleHidden} style={{ cursor: 'pointer', display: 'flex', padding: '2px' }}>
-              <Icon name={hidden ? 'eyeOff' : 'eye'} size={19} color="white" />
+        <div style={{
+          position: 'relative', borderRadius: '24px', padding: '18px', border: `1px solid ${COLORS.border}`, overflow: 'hidden',
+          background: 'linear-gradient(145deg, #0F3A27 0%, #0B2A1C 55%, #082015 100%)', boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+        }}>
+          <div style={{ position: 'absolute', right: '-40px', bottom: '-50px', width: '190px', height: '190px', borderRadius: '50%', background: 'rgba(34,197,94,0.10)' }} />
+
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+              <span style={{ display: 'flex', width: '30px', height: '30px', borderRadius: '10px', background: 'rgba(34,197,94,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="wallet" size={17} color={COLORS.greenLight} />
+              </span>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: COLORS.text }}>Wallet Balance</p>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <div onClick={() => setCurOpen((v) => !v)} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 11px', borderRadius: '999px', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)', border: `1px solid ${COLORS.border}`, fontSize: '13px', fontWeight: 800, color: COLORS.text,
+              }}>
+                <span>{activeCur?.flag}</span> {currency}
+                <Icon name="chevronDown" size={14} color={COLORS.text} />
+              </div>
+              {curOpen && (
+                <div style={{ position: 'absolute', right: 0, top: '40px', zIndex: 20, background: '#0C2418', border: `1px solid ${COLORS.border}`, borderRadius: '14px', padding: '6px', minWidth: '130px', boxShadow: '0 10px 24px rgba(0,0,0,0.5)' }}>
+                  {currencies.map((c: { code: string; flag?: string }) => (
+                    <div key={c.code} onClick={() => { setCurrency(c.code as Currency); setCurOpen(false) }} style={{
+                      padding: '9px 10px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', gap: '8px',
+                      color: c.code === currency ? COLORS.greenLight : COLORS.text, background: c.code === currency ? 'rgba(34,197,94,0.12)' : 'transparent',
+                    }}>
+                      <span>{c.flag}</span> {c.code}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <p style={{ fontSize: '28px', fontWeight: 800, marginTop: '6px', letterSpacing: hidden ? '2px' : 0 }}>
-            {loading || !wallet ? '...' : show(wallet.available)}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+            <p style={{ fontSize: '34px', fontWeight: 800, color: COLORS.text, letterSpacing: hidden ? '3px' : '-0.5px', lineHeight: 1.1 }}>
+              {loading || !wallet ? '...' : show(wallet.available)}
+            </p>
+            <div onClick={toggleHidden} style={{ cursor: 'pointer', display: 'flex', padding: '4px' }}>
+              <Icon name={hidden ? 'eyeOff' : 'eye'} size={20} color={COLORS.textMuted} />
+            </div>
+          </div>
+          <p style={{ position: 'relative', fontSize: '12px', fontWeight: 600, color: COLORS.greenLight, marginTop: '6px' }}>
+            {loading || !wallet ? ' ' : hidden ? '≈ ••••' : `≈ ${money.formatNgn(wallet.available)}`}
           </p>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-            <MiniStat label="Pending (in escrow)" value={loading || !wallet ? '...' : show(wallet.held)} />
-            <MiniStat label="Incoming sales" value={loading ? '...' : show(incoming)} />
+          <div style={{ position: 'relative', display: 'flex', marginTop: '16px', background: 'rgba(0,0,0,0.22)', border: `1px solid ${COLORS.border}`, borderRadius: '16px', overflow: 'hidden' }}>
+            <Stat icon="arrowUp" label="Pending (in escrow)" value={loading || !wallet ? '...' : show(wallet.held)} />
+            <div style={{ width: '1px', background: COLORS.border }} />
+            <Stat icon="arrowDown" label="Incoming sales" value={loading ? '...' : show(incoming)} />
           </div>
 
-          {/* Currency switch (display only) */}
-          <div style={{ display: 'flex', gap: '6px', marginTop: '14px', flexWrap: 'wrap' }}>
-            {currencies.map((c: { code: string; flag?: string }) => {
-              const active = c.code === currency
-              return (
-                <div key={c.code} onClick={() => setCurrency(c.code as Currency)} style={{
-                  padding: '5px 11px', borderRadius: '999px', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer',
-                  background: active ? 'white' : 'rgba(255,255,255,0.18)', color: active ? COLORS.green : 'white',
-                }}>
-                  {c.flag ? `${c.flag} ` : ''}{c.code}
-                </div>
-              )
-            })}
-          </div>
           {money.isForeign && (
-            <p style={{ fontSize: '10.5px', opacity: 0.85, marginTop: '8px' }}>
+            <p style={{ position: 'relative', fontSize: '10.5px', color: COLORS.textMuted, marginTop: '10px', lineHeight: 1.4 }}>
               Shown in {currency} for reference{money.live ? '' : ' (approximate rate)'}. Your money is held and paid in NGN.
             </p>
           )}
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-          <ActionButton icon="plus" label="Top up" onClick={() => setSheet('topup')} primary />
-          <ActionButton icon="qr" label="Verify QR" onClick={() => setSheet('verify')} />
-          <ActionButton icon="arrowUp" label="Withdraw" onClick={() => setSheet('withdraw')} />
+        {/* Quick actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '9px', marginTop: '14px' }}>
+          <Action icon="send" label="Top Up" sub="Add funds" onClick={() => setSheet('topup')} />
+          <Action icon="qr" label="Receive" sub="Enter code" onClick={() => setSheet('verify')} />
+          <Action icon="arrowUp" label="Withdraw" sub="To bank" onClick={() => setSheet('withdraw')} />
+          <Action icon="clock" label="History" sub="View all" onClick={() => { setShowAll(true); document.getElementById('wallet-activity')?.scrollIntoView({ behavior: 'smooth' }) }} />
         </div>
+
         <div onClick={() => navigate('/orders')} style={{
-          marginTop: '10px', background: COLORS.card, borderRadius: '12px', padding: '13px 14px',
+          marginTop: '12px', background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px', padding: '14px',
           display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer',
         }}>
-          <Icon name="fileText" size={17} color={COLORS.textMuted} />
-          <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>My Orders</p>
-          <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+          <span style={{ display: 'flex', width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(96,165,250,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="fileText" size={16} color={COLORS.blue} />
+          </span>
+          <p style={{ flex: 1, fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>My Orders</p>
+          <Icon name="chevronRight" size={16} color={COLORS.textMuted} />
         </div>
 
         {/* Withdrawals */}
         {withdrawals.length > 0 && (
           <>
-            <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '20px 0 8px' }}>
-              Withdrawals
-            </p>
-            <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>
-              {withdrawals.map((w) => {
+            <SectionTitle title="Withdrawals" />
+            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '20px', overflow: 'hidden' }}>
+              {withdrawals.map((w, i) => {
                 const st = WITHDRAWAL_STATUS[w.status]
+                const tone = chipTone(w.status)
                 return (
-                  <div key={w.id} style={{ padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                      <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text }}>{hidden ? '••••' : money.formatNgn(w.amount)}</p>
-                      <span style={{ fontSize: '10.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '999px', background: st.bg, color: st.color }}>{st.label}</span>
+                  <div key={w.id} style={{ padding: '13px 14px', borderTop: i === 0 ? 'none' : `1px solid ${COLORS.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <IconBubble icon="arrowUp" bg="rgba(248,113,113,0.16)" color={COLORS.red} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>Withdrawal</p>
+                        <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>
+                          {w.bank_name} ••••{w.account_number.slice(-4)} · {new Date(w.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>- {hidden ? '••••' : money.formatNgn(w.amount)}</p>
+                        <span style={{ display: 'inline-block', marginTop: '4px', fontSize: '10.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '999px', background: tone.bg, color: tone.color }}>{st.label}</span>
+                      </div>
                     </div>
-                    <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '3px' }}>
-                      {w.bank_name} ••••{w.account_number.slice(-4)} · {new Date(w.created_at).toLocaleDateString()}
-                    </p>
                     {w.status === 'rejected' && w.admin_note && (
-                      <p style={{ fontSize: '11px', color: '#B91C1C', marginTop: '4px' }}>Reason: {w.admin_note}</p>
+                      <p style={{ fontSize: '11px', color: COLORS.red, marginTop: '6px' }}>Reason: {w.admin_note}</p>
                     )}
                     {w.status === 'pending' && (
                       <p
@@ -204,7 +259,7 @@ export default function WalletPage() {
                           try { await cancelWithdrawal(w.id); setBanner({ type: 'ok', text: 'Withdrawal cancelled. The money is back in your wallet.' }); load() }
                           catch (e) { setBanner({ type: 'error', text: (e as Error).message }) }
                         }}
-                        style={{ fontSize: '11.5px', fontWeight: 700, color: '#B91C1C', marginTop: '6px', cursor: 'pointer' }}>
+                        style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.red, marginTop: '8px', cursor: 'pointer' }}>
                         Cancel withdrawal
                       </p>
                     )}
@@ -215,17 +270,23 @@ export default function WalletPage() {
           </>
         )}
 
-        {/* Activity */}
-        <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '20px 0 8px' }}>
-          Recent activity
-        </p>
-        <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>
+        {/* Recent transactions */}
+        <div id="wallet-activity">
+          <SectionTitle
+            title="Recent Transactions"
+            action={txs.length > 5 ? (showAll ? 'Show less' : 'View All') : undefined}
+            onAction={() => setShowAll((v) => !v)}
+          />
+        </div>
+        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '20px', overflow: 'hidden' }}>
           {loading ? (
             <p style={{ padding: '16px', fontSize: '12.5px', color: COLORS.textMuted }}>Loading...</p>
           ) : txs.length === 0 ? (
-            <p style={{ padding: '16px', fontSize: '12.5px', color: COLORS.textMuted }}>No activity yet. Top up your wallet to start buying with escrow.</p>
+            <p style={{ padding: '18px 16px', fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>No activity yet. Top up your wallet to start buying with escrow.</p>
           ) : (
-            txs.map((t) => <TxRow key={t.id} tx={t} hidden={hidden} money={money} onClick={t.order_id ? () => navigate(`/orders/${t.order_id}`) : undefined} />)
+            visibleTxs.map((t, i) => (
+              <TxRow key={t.id} tx={t} first={i === 0} hidden={hidden} money={money} onClick={t.order_id ? () => navigate(`/orders/${t.order_id}`) : undefined} />
+            ))
           )}
         </div>
       </div>
@@ -260,7 +321,7 @@ export default function WalletPage() {
           }}
         />
       )}
-    </div>
+    </Page>
   )
 }
 
@@ -310,7 +371,7 @@ function PayFarmDeskSheet({ paymentId, available, onClose, onTopUp }: {
   return (
     <Sheet title="Farm Desk payment" onClose={onClose}>
       {loadError ? (
-        <p style={{ fontSize: '12.5px', color: '#B91C1C' }}>{loadError}</p>
+        <p style={{ fontSize: '12.5px', color: COLORS.red }}>{loadError}</p>
       ) : !info ? (
         <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>Loading...</p>
       ) : paid || alreadyPaid ? (
@@ -344,10 +405,10 @@ function PayFarmDeskSheet({ paymentId, available, onClose, onTopUp }: {
               <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>{available == null ? '...' : money.formatNgn(available)}</span>
             </div>
           </div>
-          {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+          {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
           {available != null && !enough ? (
             <>
-              <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, marginBottom: '10px' }}>
+              <p style={{ fontSize: '12px', color: COLORS.amber, fontWeight: 600, marginBottom: '10px' }}>
                 You need {money.formatNgn(info.amount - available)} more in your wallet.
               </p>
               <PrimaryButton label="Top up wallet" onClick={onTopUp} />
@@ -426,7 +487,7 @@ function WithdrawSheet({ available, onClose, onDone }: { available: number; onCl
       <input type="number" inputMode="numeric" placeholder="Amount (NGN, minimum 1,000)" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} />
 
       {banksError ? (
-        <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{banksError}</p>
+        <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{banksError}</p>
       ) : (
         <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} style={inputStyle}>
           <option value="">{banks.length ? 'Choose bank' : 'Loading banks...'}</option>
@@ -439,16 +500,16 @@ function WithdrawSheet({ available, onClose, onDone }: { available: number; onCl
 
       {resolving && <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>Checking account...</p>}
       {verified && (
-        <p style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', marginBottom: '10px' }}>{accountName}</p>
+        <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.greenLight, marginBottom: '10px' }}>{accountName}</p>
       )}
       {manualName && (
         <>
-          <p style={{ fontSize: '11px', color: '#B45309', marginBottom: '6px' }}>Test mode cannot verify accounts. Type the account name.</p>
+          <p style={{ fontSize: '11px', color: COLORS.amber, marginBottom: '6px' }}>Test mode cannot verify accounts. Type the account name.</p>
           <input placeholder="Account name" value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inputStyle} />
         </>
       )}
 
-      {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
       <PrimaryButton label={busy ? 'Sending request...' : 'Request withdrawal'} onClick={submit} disabled={busy || resolving || !accountName} />
     </Sheet>
   )
@@ -486,13 +547,13 @@ function TopUpSheet({ onClose }: { onClose: () => void }) {
         {QUICK_AMOUNTS.map((a) => (
           <div key={a} onClick={() => setAmount(String(a))} style={{
             padding: '7px 12px', borderRadius: '999px', border: `1px solid ${COLORS.border}`, fontSize: '12px', fontWeight: 700,
-            color: COLORS.text, cursor: 'pointer', background: Number(amount) === a ? '#DCFCE7' : COLORS.card,
+            color: COLORS.text, cursor: 'pointer', background: Number(amount) === a ? 'rgba(34,197,94,0.16)' : COLORS.card,
           }}>
             {a.toLocaleString()}
           </div>
         ))}
       </div>
-      {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
       <PrimaryButton label={busy ? 'Opening Paystack...' : 'Continue to payment'} onClick={submit} disabled={busy} />
     </Sheet>
   )
@@ -526,58 +587,100 @@ function VerifySheet({ onClose, onDone }: { onClose: () => void; onDone: (amount
         placeholder="QR-00000000" value={code} autoCapitalize="characters"
         onChange={(e) => setCode(e.target.value)} style={{ ...inputStyle, letterSpacing: '1px', fontWeight: 700 }}
       />
-      {error && <p style={{ fontSize: '12px', color: '#DC2626', marginBottom: '10px' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
       <PrimaryButton label={busy ? 'Verifying...' : 'Verify and receive payment'} onClick={submit} disabled={busy} />
     </Sheet>
   )
 }
 
-function TxRow({ tx, hidden, money, onClick }: { tx: WalletTx; hidden: boolean; money: ReturnType<typeof useMoney>; onClick?: () => void }) {
+function chipTone(status: string): { bg: string; color: string } {
+  if (status === 'paid' || status === 'completed') return { bg: 'rgba(34,197,94,0.16)', color: COLORS.greenLight }
+  if (status === 'rejected' || status === 'failed') return { bg: 'rgba(248,113,113,0.16)', color: COLORS.red }
+  if (status === 'cancelled') return { bg: 'rgba(143,176,156,0.16)', color: COLORS.textMuted }
+  return { bg: 'rgba(96,165,250,0.16)', color: COLORS.blue } // pending / processing
+}
+
+function IconBubble({ icon, bg, color }: { icon: string; bg: string; color: string }) {
+  return (
+    <span style={{ display: 'flex', width: '40px', height: '40px', borderRadius: '50%', background: bg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon name={icon} size={18} color={color} />
+    </span>
+  )
+}
+
+function TxRow({ tx, first, hidden, money, onClick }: { tx: WalletTx; first: boolean; hidden: boolean; money: ReturnType<typeof useMoney>; onClick?: () => void }) {
   // Net effect on the person's total money: available + held. Escrow hold only moves money between the two, so show the held amount.
   const isHold = tx.type === 'escrow_hold'
   const value = isHold ? -tx.held_delta : tx.available_delta + tx.held_delta
   const positive = value > 0
-  const color = isHold ? COLORS.textMuted : positive ? '#166534' : '#B91C1C'
   const label = TX_LABELS[tx.type] || tx.type
+  const tone = isHold ? chipTone('processing') : chipTone('completed')
+  const bubble = isHold
+    ? { icon: 'building', bg: 'rgba(96,165,250,0.18)', color: COLORS.blue }
+    : positive
+      ? { icon: 'arrowDown', bg: 'rgba(34,197,94,0.18)', color: COLORS.greenLight }
+      : { icon: 'arrowUp', bg: 'rgba(248,113,113,0.16)', color: COLORS.red }
 
   return (
     <div onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}`,
+      display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', borderTop: first ? 'none' : `1px solid ${COLORS.border}`,
       cursor: onClick ? 'pointer' : 'default',
     }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '16px', background: '#F1F8F1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon name={isHold ? 'clock' : positive ? 'arrowDown' : 'arrowUp'} size={15} color={color} />
-      </div>
+      <IconBubble icon={bubble.icon} bg={bubble.bg} color={bubble.color} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{label}</p>
-        <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '2px' }}>
-          {new Date(tx.created_at).toLocaleString()}{tx.type !== 'topup' && tx.reference ? ` · ${tx.reference}` : ''}
+        <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{label}</p>
+        <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>
+          {new Date(tx.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
-      <p style={{ fontSize: '12.5px', fontWeight: 800, color }}>
-        {hidden ? '••••' : `${isHold ? '' : positive ? '+' : '-'}${money.format(Math.abs(value))}`}
-      </p>
+      <div style={{ textAlign: 'right' }}>
+        <p style={{ fontSize: '13.5px', fontWeight: 800, color: isHold ? COLORS.text : positive ? COLORS.greenLight : COLORS.text }}>
+          {hidden ? '••••' : `${isHold ? '- ' : positive ? '+ ' : '- '}${money.format(Math.abs(value))}`}
+        </p>
+        <span style={{ display: 'inline-block', marginTop: '4px', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: tone.bg, color: tone.color }}>
+          {isHold ? 'In escrow' : 'Completed'}
+        </span>
+      </div>
     </div>
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function Stat({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div style={{ flex: 1, background: 'rgba(255,255,255,0.16)', borderRadius: '12px', padding: '10px' }}>
-      <p style={{ fontSize: '10.5px', opacity: 0.9 }}>{label}</p>
-      <p style={{ fontSize: '14px', fontWeight: 800, marginTop: '3px' }}>{value}</p>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '12px' }}>
+      <span style={{ display: 'flex', width: '34px', height: '34px', borderRadius: '50%', background: 'rgba(34,197,94,0.22)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name={icon} size={16} color={COLORS.greenLight} />
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>{label}</p>
+        <p style={{ fontSize: '14.5px', fontWeight: 800, color: COLORS.text, marginTop: '2px' }}>{value}</p>
+      </div>
     </div>
   )
 }
 
-function ActionButton({ icon, label, onClick, primary }: { icon: string; label: string; onClick: () => void; primary?: boolean }) {
+function Action({ icon, label, sub, onClick }: { icon: string; label: string; sub: string; onClick: () => void }) {
   return (
     <div onClick={onClick} style={{
-      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '13px', borderRadius: '12px', cursor: 'pointer',
-      background: primary ? COLORS.card : COLORS.card, border: `1px solid ${primary ? COLORS.green : COLORS.border}`,
-      fontSize: '13px', fontWeight: 800, color: primary ? COLORS.green : COLORS.text,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', padding: '14px 4px 12px', borderRadius: '18px', cursor: 'pointer',
+      background: COLORS.card, border: `1px solid ${COLORS.border}`,
     }}>
-      <Icon name={icon} size={17} color={primary ? COLORS.green : COLORS.text} /> {label}
+      <span style={{ display: 'flex', width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(34,197,94,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={18} color={COLORS.greenLight} />
+      </span>
+      <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text }}>{label}</p>
+      <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '-3px' }}>{sub}</p>
+    </div>
+  )
+}
+
+function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '22px 2px 10px' }}>
+      <p style={{ fontSize: '17px', fontWeight: 800, color: COLORS.text }}>{title}</p>
+      {action && (
+        <span onClick={onAction} style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.textMuted, cursor: 'pointer' }}>{action} ›</span>
+      )}
     </div>
   )
 }
@@ -585,8 +688,9 @@ function ActionButton({ icon, label, onClick, primary }: { icon: string; label: 
 function PrimaryButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <div onClick={disabled ? undefined : onClick} style={{
-      textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white',
-      fontSize: '13px', fontWeight: 800, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
+      textAlign: 'center', padding: '14px', borderRadius: '14px', background: 'linear-gradient(135deg, #22C55E, #15803D)', color: 'white',
+      fontSize: '14px', fontWeight: 800, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1,
+      boxShadow: '0 8px 18px rgba(34,197,94,0.22)',
     }}>
       {label}
     </div>
@@ -595,11 +699,16 @@ function PrimaryButton({ label, onClick, disabled }: { label: string; onClick: (
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.card, width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '18px 16px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text }}>{title}</p>
-          <div onClick={onClose} style={{ cursor: 'pointer', display: 'flex' }}><Icon name="close" size={20} color={COLORS.textMuted} /></div>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#0B2116', border: `1px solid ${COLORS.border}`, borderBottom: 'none', width: '100%', maxWidth: '480px',
+        borderRadius: '24px 24px 0 0', padding: '18px 16px 26px', maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>{title}</p>
+          <div onClick={onClose} style={{ cursor: 'pointer', display: 'flex', width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="close" size={16} color={COLORS.textMuted} />
+          </div>
         </div>
         {children}
       </div>
@@ -607,18 +716,41 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   )
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Page({ children }: { children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-      <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-        <Icon name="arrowLeft" size={22} color={COLORS.text} />
+    <div style={{ minHeight: '100vh', background: COLORS.bg }}>
+      <div style={{
+        position: 'relative', minHeight: '100vh', maxWidth: '480px', margin: '0 auto', paddingBottom: '36px', overflow: 'hidden',
+        background: 'radial-gradient(120% 60% at 80% 0%, rgba(34,197,94,0.16) 0%, rgba(4,19,12,0) 60%), #04130C',
+      }}>
+        <div style={{ position: 'absolute', top: '40px', right: '-30px', opacity: 0.10, transform: 'rotate(18deg)', pointerEvents: 'none' }}>
+          <Icon name="leaf" size={170} color="#4ADE80" strokeWidth={1.2} />
+        </div>
+        <div style={{ position: 'relative' }}>{children}</div>
       </div>
-      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Wallet</p>
+    </div>
+  )
+}
+
+function Header({ onBack, onBell }: { onBack: () => void; onBell: () => void }) {
+  const circle: CSSProperties = {
+    cursor: 'pointer', display: 'flex', width: '40px', height: '40px', borderRadius: '50%', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(255,255,255,0.07)', border: `1px solid ${COLORS.border}`,
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px' }}>
+      <div onClick={onBack} style={circle}><Icon name="arrowLeft" size={19} color={COLORS.text} /></div>
+      <FarmLiteLogo size={34} />
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, lineHeight: 1.1 }}>Wallet</p>
+        <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>Your money, held safely</p>
+      </div>
+      <div onClick={onBell} style={circle}><Icon name="bell" size={18} color={COLORS.text} /></div>
     </div>
   )
 }
 
 const inputStyle: CSSProperties = {
-  width: '100%', padding: '11px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`,
-  marginBottom: '10px', fontSize: '14px', boxSizing: 'border-box', background: COLORS.bg,
+  width: '100%', padding: '13px 14px', borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+  marginBottom: '10px', fontSize: '14px', boxSizing: 'border-box', background: COLORS.bg, color: COLORS.text, outline: 'none', colorScheme: 'dark',
 }
