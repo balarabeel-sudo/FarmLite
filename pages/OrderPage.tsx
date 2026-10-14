@@ -9,7 +9,7 @@ import ImageUploader from '../ImageUploader'
 import { COLORS } from '../shared'
 import {
   ORDER_COLUMNS, EVIDENCE_COLUMNS, MAX_EVIDENCE_PHOTOS, STATUS_INFO, useMoney, verifyOrderCode, verifyErrorMessage,
-  openOrderDispute, addDisputeEvidence,
+  openOrderDispute, addDisputeEvidence, cancelOrder, formatDeliveryDate, timeLeftLabel,
 } from '../walletShared'
 import type { Order, DisputeEvidence } from '../walletShared'
 
@@ -37,6 +37,7 @@ export default function OrderPage() {
   const [showEvidenceForm, setShowEvidenceForm] = useState(false)
   const [showDispute, setShowDispute] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
 
   const load = async () => {
@@ -58,6 +59,12 @@ export default function OrderPage() {
   }
 
   useEffect(() => { load() }, [user, id])
+
+  // Keeps the countdown fresh so the Cancel button appears by itself when the time has passed.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 15_000)
+    return () => clearInterval(t)
+  }, [])
 
   const isBuyer = !!order && order.buyer_id === user?.id
   const isSeller = !!order && order.seller_id === user?.id
@@ -86,6 +93,22 @@ export default function OrderPage() {
       }
     } catch (e) {
       setMessage({ type: 'error', text: (e as Error).message })
+    }
+    setBusy(false)
+  }
+
+  const doCancel = async () => {
+    if (!order) return
+    if (!window.confirm('Cancel this order? Your money will return to your wallet.')) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      await cancelOrder(order.id)
+      setMessage({ type: 'ok', text: 'Order cancelled. Your money is back in your wallet.' })
+      await load()
+    } catch (e) {
+      setMessage({ type: 'error', text: (e as Error).message })
+      await load()
     }
     setBusy(false)
   }
@@ -162,6 +185,8 @@ export default function OrderPage() {
             <Line label={isBuyer ? 'Seller' : 'Buyer'} value={otherName} />
             <Line label="Quantity" value={`${order.quantity.toLocaleString()} x ${money.formatNgn(order.unit_price)}`} />
             <Line label="Ordered" value={new Date(order.created_at).toLocaleString()} />
+            {order.expected_delivery_at && <Line label="Expected delivery" value={formatDeliveryDate(new Date(order.expected_delivery_at))} />}
+            {order.cancelled_at && <Line label="Cancelled" value={new Date(order.cancelled_at).toLocaleString()} />}
             {order.completed_at && <Line label="Completed" value={new Date(order.completed_at).toLocaleString()} />}
             <Line label="Order code" value={isSeller ? 'Held by the buyer' : order.code} />
           </div>
@@ -181,12 +206,43 @@ export default function OrderPage() {
           </div>
         )}
 
+        {/* Buyer: cancel only after the expected delivery time */}
+        {isBuyer && order.status === 'escrow_held' && order.expected_delivery_at && (() => {
+          const due = new Date(order.expected_delivery_at)
+          const passed = now >= due.getTime()
+          return (
+            <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginTop: '14px', border: passed ? '1px solid #FCA5A5' : 'none' }}>
+              {passed ? (
+                <>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#B91C1C' }}>Delivery time has passed</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '4px 0 10px', lineHeight: 1.5 }}>
+                    If you did not receive your goods, you can cancel this order. Your money returns to your wallet.
+                  </p>
+                  <div onClick={busy ? undefined : doCancel} style={{ textAlign: 'center', padding: '12px', borderRadius: '10px', background: '#DC2626', color: 'white', fontSize: '13px', fontWeight: 800, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+                    {busy ? 'Cancelling...' : 'Cancel order and get refund'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Waiting for delivery</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '4px 0 10px', lineHeight: 1.5 }}>
+                    You can cancel and get a refund only after {formatDeliveryDate(due)}. That is in {timeLeftLabel(due, now)}.
+                  </p>
+                  <div style={{ textAlign: 'center', padding: '12px', borderRadius: '10px', background: COLORS.bg, color: COLORS.textMuted, fontSize: '13px', fontWeight: 800 }}>
+                    Cancel available in {timeLeftLabel(due, now)}
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
+
         {/* Seller: enter the buyer's code */}
         {isSeller && order.status === 'escrow_held' && (
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginTop: '14px' }}>
             <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Received the buyer's code?</p>
             <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '4px 0 10px', lineHeight: 1.5 }}>
-              The buyer's payment is held in escrow. After delivery, enter the code to receive it.
+              The buyer's payment is held in escrow. After delivery, enter the code to receive it.{order.expected_delivery_at ? ` Deliver by ${formatDeliveryDate(new Date(order.expected_delivery_at))}. After that time the buyer can cancel the order.` : ''}
             </p>
             <input
               placeholder="QR-00000000" value={code} autoCapitalize="characters" onChange={(e) => setCode(e.target.value)}
@@ -258,7 +314,7 @@ export default function OrderPage() {
           </div>
         )}
 
-        {(order.status === 'completed' || order.status === 'refunded') && order.resolution_note && (
+        {(order.status === 'completed' || order.status === 'refunded' || order.status === 'cancelled') && order.resolution_note && (
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginTop: '14px' }}>
             <p style={{ fontSize: '12px', fontWeight: 800, color: COLORS.text }}>Staff note</p>
             <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '4px', lineHeight: 1.5 }}>{order.resolution_note}</p>
