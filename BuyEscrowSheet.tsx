@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Icon from './Icons'
 import { COLORS } from './shared'
-import { getMyWallet, placeOrder, useMoney } from './walletShared'
+import {
+  getMyWallet, placeOrder, useMoney, DELIVERY_UNITS, addDuration, deliveryProblem, formatDeliveryDate,
+} from './walletShared'
+import type { DeliveryUnit } from './walletShared'
 import type { Wallet } from './walletShared'
 
 export type BuyListing = {
@@ -20,6 +23,11 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
 
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [qty, setQty] = useState('1')
+  // Expected delivery: either an exact date and time, or "in X hours/days/weeks/months".
+  const [mode, setMode] = useState<'duration' | 'date'>('duration')
+  const [durAmount, setDurAmount] = useState('')
+  const [durUnit, setDurUnit] = useState<DeliveryUnit>('hours')
+  const [dateValue, setDateValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,11 +42,34 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
   const enough = !!wallet && wallet.available >= total
   const shortfall = wallet ? Math.max(0, total - wallet.available) : 0
 
+  const durN = Number(durAmount)
+  let deliveryAt: Date | null = null
+  if (mode === 'duration') {
+    if (Number.isFinite(durN) && durN > 0) deliveryAt = addDuration(new Date(), durN, durUnit)
+  } else if (dateValue) {
+    const d = new Date(dateValue)
+    if (!Number.isNaN(d.getTime())) deliveryAt = d
+  }
+  const deliveryError = deliveryAt ? deliveryProblem(deliveryAt) : ''
+  const deliveryOk = !!deliveryAt && !deliveryError
+
+  const presets: { label: string; amount: number; unit: DeliveryUnit }[] = [
+    { label: '6 hours', amount: 6, unit: 'hours' },
+    { label: '1 day', amount: 1, unit: 'days' },
+    { label: '3 days', amount: 3, unit: 'days' },
+    { label: '1 week', amount: 1, unit: 'weeks' },
+  ]
+  const toLocalInput = (d: Date) => {
+    const p2 = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`
+  }
+
   const pay = async () => {
+    if (!deliveryAt || !deliveryOk) return
     setBusy(true)
     setError('')
     try {
-      const res = await placeOrder(listing.id, q)
+      const res = await placeOrder(listing.id, q, deliveryAt)
       navigate(`/orders/${res.order_id}`, { replace: true })
     } catch (e) {
       setError((e as Error).message)
@@ -76,6 +107,52 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
               <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '4px' }}>{Number(listing.quantity).toLocaleString()} available</p>
             )}
 
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, margin: '14px 0 6px' }}>Expected delivery</p>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+              {([['duration', 'In how long'], ['date', 'Date and time']] as const).map(([key, label]) => (
+                <div key={key} onClick={() => setMode(key)} style={{
+                  flex: 1, textAlign: 'center', padding: '8px', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  background: mode === key ? COLORS.green : COLORS.bg, color: mode === key ? 'white' : COLORS.textMuted,
+                  border: `1px solid ${mode === key ? COLORS.green : COLORS.border}`,
+                }}>{label}</div>
+              ))}
+            </div>
+
+            {mode === 'duration' ? (
+              <>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="number" inputMode="decimal" min="1" value={durAmount} onChange={(e) => setDurAmount(e.target.value)} placeholder="e.g. 5"
+                    style={{ width: '90px', padding: '11px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, fontSize: '14px', boxSizing: 'border-box', background: COLORS.bg }}
+                  />
+                  <div style={{ flex: 1, display: 'flex', gap: '4px' }}>
+                    {DELIVERY_UNITS.map((u) => (
+                      <div key={u.value} onClick={() => setDurUnit(u.value)} style={{
+                        flex: 1, textAlign: 'center', padding: '11px 2px', borderRadius: '10px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer',
+                        background: durUnit === u.value ? '#ECFDF3' : COLORS.bg, color: durUnit === u.value ? COLORS.green : COLORS.textMuted,
+                        border: `1px solid ${durUnit === u.value ? COLORS.green : COLORS.border}`,
+                      }}>{u.label}</div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  {presets.map((pr) => (
+                    <span key={pr.label} onClick={() => { setDurAmount(String(pr.amount)); setDurUnit(pr.unit) }} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, background: '#ECFDF3', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer' }}>{pr.label}</span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <input
+                type="datetime-local" value={dateValue} min={toLocalInput(new Date(Date.now() + 3600_000))} onChange={(e) => setDateValue(e.target.value)}
+                style={{ width: '100%', padding: '11px 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, fontSize: '14px', boxSizing: 'border-box', background: COLORS.bg }}
+              />
+            )}
+
+            {deliveryAt && !deliveryError && (
+              <p style={{ fontSize: '12px', color: COLORS.text, marginTop: '8px', fontWeight: 600 }}>The seller should deliver by {formatDeliveryDate(deliveryAt)}.</p>
+            )}
+            {deliveryError && <p style={{ fontSize: '12px', color: '#DC2626', marginTop: '8px' }}>{deliveryError}</p>}
+
             <div style={{ background: COLORS.bg, borderRadius: '12px', padding: '12px', marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
               <Row label="Total to pay" value={qtyValid ? money.formatNgn(total) : '-'} bold />
               {money.isForeign && qtyValid && <Row label={`In ${money.currency}`} value={`≈ ${money.format(total)}`} />}
@@ -83,7 +160,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
             </div>
 
             <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '12px', lineHeight: 1.5 }}>
-              Your money is held in escrow. You get a code. Give it to the seller only after you receive your goods, then the payment is released.
+              Your money is held in escrow. You get a code. Give it to the seller only after you receive your goods, then the payment is released. You cannot cancel before the expected delivery time. If the goods have not arrived after that time, you can cancel and your money returns to your wallet.
             </p>
 
             {error && <p style={{ fontSize: '12px', color: '#DC2626', marginTop: '10px' }}>{error}</p>}
@@ -99,8 +176,8 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
               </>
             ) : (
               <div
-                onClick={busy || !qtyValid || !wallet ? undefined : pay}
-                style={{ marginTop: '14px', textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '13px', fontWeight: 800, cursor: busy || !qtyValid || !wallet ? 'default' : 'pointer', opacity: busy || !qtyValid || !wallet ? 0.6 : 1 }}>
+                onClick={busy || !qtyValid || !wallet || !deliveryOk ? undefined : pay}
+                style={{ marginTop: '14px', textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '13px', fontWeight: 800, cursor: busy || !qtyValid || !wallet || !deliveryOk ? 'default' : 'pointer', opacity: busy || !qtyValid || !wallet || !deliveryOk ? 0.6 : 1 }}>
                 {busy ? 'Placing order...' : 'Pay with Escrow'}
               </div>
             )}
