@@ -24,6 +24,8 @@ export type Order = {
   resolution_note: string | null
   created_at: string
   completed_at: string | null
+  expected_delivery_at: string | null
+  cancelled_at: string | null
 }
 
 export type DisputeEvidence = {
@@ -76,7 +78,7 @@ export const WITHDRAWAL_STATUS: Record<WithdrawalStatus, { label: string; color:
 }
 
 export const ORDER_COLUMNS =
-  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at'
+  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at, expected_delivery_at, cancelled_at'
 
 export const STATUS_INFO: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   escrow_held: { label: 'In escrow', color: '#B45309', bg: '#FEF3C7' },
@@ -169,10 +171,66 @@ export async function getMyWallet(): Promise<Wallet> {
   return { user_id: w.user_id, available: Number(w.available), held: Number(w.held), currency: w.currency }
 }
 
-export async function placeOrder(listingId: string, quantity: number): Promise<{ order_id: string; code: string; amount: number }> {
-  const { data, error } = await supabase.rpc('place_order', { p_listing_id: listingId, p_quantity: quantity })
+export async function placeOrder(listingId: string, quantity: number, expectedDeliveryAt: Date): Promise<{ order_id: string; code: string; amount: number }> {
+  const { data, error } = await supabase.rpc('place_order', {
+    p_listing_id: listingId,
+    p_quantity: quantity,
+    p_expected_delivery_at: expectedDeliveryAt.toISOString(),
+  })
   if (error) throw new Error(error.message)
   return data as any
+}
+
+// The buyer can cancel only after the expected delivery time has passed. The money returns to their wallet.
+export async function cancelOrder(orderId: string): Promise<{ ok: boolean; amount?: number }> {
+  const { data, error } = await supabase.rpc('buyer_cancel_order', { p_order_id: orderId })
+  if (error) {
+    if (error.message.includes('too_early')) throw new Error('You can cancel only after the expected delivery time has passed.')
+    if (error.message.includes('order_not_cancellable')) throw new Error('This order can no longer be cancelled.')
+    throw new Error(error.message)
+  }
+  return data as any
+}
+
+// ---------- Expected delivery ----------
+export type DeliveryUnit = 'hours' | 'days' | 'weeks' | 'months'
+export const DELIVERY_UNITS: { value: DeliveryUnit; label: string }[] = [
+  { value: 'hours', label: 'Hours' },
+  { value: 'days', label: 'Days' },
+  { value: 'weeks', label: 'Weeks' },
+  { value: 'months', label: 'Months' },
+]
+export const MIN_DELIVERY_MS = 60 * 60 * 1000
+export const MAX_DELIVERY_MS = 90 * 24 * 60 * 60 * 1000
+
+export function addDuration(from: Date, amount: number, unit: DeliveryUnit): Date {
+  const d = new Date(from.getTime())
+  if (unit === 'hours') d.setTime(d.getTime() + amount * 3600_000)
+  else if (unit === 'days') d.setTime(d.getTime() + amount * 86_400_000)
+  else if (unit === 'weeks') d.setTime(d.getTime() + amount * 7 * 86_400_000)
+  else d.setMonth(d.getMonth() + Math.round(amount))
+  return d
+}
+
+export function deliveryProblem(at: Date | null, now: number = Date.now()): string {
+  if (!at || Number.isNaN(at.getTime())) return 'Choose when you expect the goods to arrive.'
+  if (at.getTime() - now < MIN_DELIVERY_MS) return 'Expected delivery must be at least 1 hour from now.'
+  if (at.getTime() - now > MAX_DELIVERY_MS) return 'Expected delivery cannot be more than 3 months away.'
+  return ''
+}
+
+export function formatDeliveryDate(d: Date): string {
+  return d.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+export function timeLeftLabel(target: Date, now: number = Date.now()): string {
+  const ms = target.getTime() - now
+  if (ms <= 0) return 'now'
+  const mins = Math.ceil(ms / 60_000)
+  if (mins < 60) return `${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 48) return `${hours} h ${mins % 60} min`
+  return `${Math.floor(hours / 24)} days ${hours % 24} h`
 }
 
 export async function verifyOrderCode(rawCode: string): Promise<{ ok: boolean; error?: string; amount?: number; order_id?: string }> {
