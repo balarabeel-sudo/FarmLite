@@ -8,6 +8,9 @@ import SplashScreen from './SplashScreen'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import HelpPage from './pages/HelpPage'
 import MarketplacePage from './pages/MarketplacePage'
 import CompaniesPage from './pages/CompaniesPage'
 import CommunitiesPage from './pages/CommunitiesPage'
@@ -99,6 +102,9 @@ function App() {
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            {/* Legal pages are public so they can be read before signing up */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             {/* Protected routes: redirect to /login if there is no session */}
             <Route
@@ -154,6 +160,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EquipmentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <HelpPage />
                 </ProtectedRoute>
               }
             />
