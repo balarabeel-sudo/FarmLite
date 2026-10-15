@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
+import {
+  DEFAULT_MAX_FARMBOT_PHOTOS, FARMBOT_BUSY_TEXT, FARMBOT_FREE_LIMIT_TEXT, FARMBOT_PHOTO_PREMIUM_TEXT,
+  isPermissionError, removeFarmbotPhotos, signFarmbotPhotos, uploadFarmbotPhotos,
+} from '../farmbotPhotos'
 
 const COLORS = {
   bg: '#F0FDF4',
@@ -14,19 +18,26 @@ const COLORS = {
   greenDark: '#14532D',
   text: '#1A2E1A',
   textMuted: '#5B6B5B',
+  red: '#B91C1C',
 }
 
 type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   message: string
+  images?: string[]
 }
 
 type Chat = {
   id: string
   title: string
   updated_at: string
+  pinned_at: string | null
 }
+
+type Usage = { used: number; limit: number; premium: boolean; photos?: number }
+type Attachment = { id: string; file: File; url: string }
+type Notice = { kind: 'network' | 'limit' | 'generic'; text: string; retry?: string; upgrade?: boolean }
 
 const SUGGESTIONS = [
   'How do I control pests on maize?',
@@ -40,17 +51,19 @@ function groupChats(chats: Chat[]) {
   startOfToday.setHours(0, 0, 0, 0)
   const day = 24 * 60 * 60 * 1000
   const groups: { label: string; items: Chat[] }[] = [
+    { label: 'Pinned', items: [] },
     { label: 'Today', items: [] },
     { label: 'Yesterday', items: [] },
     { label: 'Previous 7 days', items: [] },
     { label: 'Older', items: [] },
   ]
   chats.forEach((c) => {
+    if (c.pinned_at) { groups[0].items.push(c); return }
     const t = new Date(c.updated_at).getTime()
-    if (t >= startOfToday.getTime()) groups[0].items.push(c)
-    else if (t >= startOfToday.getTime() - day) groups[1].items.push(c)
-    else if (t >= startOfToday.getTime() - 7 * day) groups[2].items.push(c)
-    else groups[3].items.push(c)
+    if (t >= startOfToday.getTime()) groups[1].items.push(c)
+    else if (t >= startOfToday.getTime() - day) groups[2].items.push(c)
+    else if (t >= startOfToday.getTime() - 7 * day) groups[3].items.push(c)
+    else groups[4].items.push(c)
   })
   return groups.filter((g) => g.items.length > 0)
 }
@@ -63,16 +76,24 @@ export default function FarmBotPage() {
   const [netError, setNetError] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
-  const [notice, setNotice] = useState<{ kind: 'network' | 'limit' | 'generic'; text: string; retry?: string; upgrade?: boolean } | null>(null)
-  const [usage, setUsage] = useState<{ used: number; limit: number; premium: boolean } | null>(null)
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const [usage, setUsage] = useState<Usage | null>(null)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   const [chatId, setChatId] = useState<string | null>(null)
   const [chats, setChats] = useState<Chat[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [menuChat, setMenuChat] = useState<Chat | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const pressTimer = useRef<number | null>(null)
+  const longPressed = useRef(false)
+  const attachmentsRef = useRef<Attachment[]>([])
+  attachmentsRef.current = attachments
 
   // The page itself never scrolls; only the message list does.
   useEffect(() => {
@@ -81,12 +102,16 @@ export default function FarmBotPage() {
     return () => { document.body.style.overflow = prev }
   }, [])
 
+  // Free the temporary previews of photos that were never sent
+  useEffect(() => () => { attachmentsRef.current.forEach((a) => URL.revokeObjectURL(a.url)) }, [])
+
   const loadChats = async (): Promise<Chat[]> => {
     if (!user) return []
     const { data } = await supabase
       .from('farmbot_chats')
-      .select('id, title, updated_at')
+      .select('id, title, updated_at, pinned_at')
       .eq('user_id', user.id)
+      .order('pinned_at', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })
       .limit(50)
     const list = (data || []) as Chat[]
@@ -99,7 +124,7 @@ export default function FarmBotPage() {
     setLoading(true)
     const { data, error: fetchError } = await supabase
       .from('ai_conversations')
-      .select('id, role, message')
+      .select('id, role, message, image_paths')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true })
 
@@ -108,7 +133,14 @@ export default function FarmBotPage() {
       setLoading(false)
       return
     }
-    setMessages((data || []) as any)
+    const rows = (data || []) as { id: string; role: 'user' | 'assistant'; message: string; image_paths: string[] | null }[]
+    const signed = await signFarmbotPhotos(rows.flatMap((r) => r.image_paths || []))
+    setMessages(rows.map((r) => ({
+      id: r.id,
+      role: r.role,
+      message: r.message,
+      images: (r.image_paths || []).map((p) => signed[p]).filter(Boolean),
+    })))
     setLoading(false)
   }
 
@@ -118,8 +150,10 @@ export default function FarmBotPage() {
     setLoading(true)
     const list = await loadChats()
     if (list.length > 0) {
-      setChatId(list[0].id)
-      await loadMessages(list[0].id)
+      // Open the chat that was used most recently (pinned chats are only sorted first in the list)
+      const latest = [...list].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
+      setChatId(latest.id)
+      await loadMessages(latest.id)
     } else {
       setLoading(false)
     }
@@ -127,15 +161,17 @@ export default function FarmBotPage() {
 
   useEffect(() => { init() }, [user])
 
-  // Real usage for today (counted on the server)
+  // Real usage for today (counted on the server). The numbers are never shown; they only decide what is allowed.
   useEffect(() => {
     if (!user) return
     supabase.rpc('farmbot_usage').then(({ data }) => {
-      if (data && typeof (data as any).used === 'number') setUsage(data as any)
+      if (data && typeof (data as any).used === 'number') setUsage(data as Usage)
     })
   }, [user])
 
   const limitReached = !!usage && usage.used >= usage.limit
+  const maxPhotos = typeof usage?.photos === 'number' && usage.photos > 0 ? usage.photos : DEFAULT_MAX_FARMBOT_PHOTOS
+  const canPhotos = usage ? (typeof usage.photos === 'number' ? usage.photos > 0 : usage.premium) : true
 
   useEffect(() => {
     const el = scrollRef.current
@@ -170,25 +206,85 @@ export default function FarmBotPage() {
     await loadMessages(id)
   }
 
-  const deleteChat = async (id: string) => {
+  const togglePin = async (c: Chat) => {
+    setMenuChat(null)
+    const { error: pinError } = await supabase.rpc('farmbot_set_pinned', { p_chat: c.id, p_pinned: !c.pinned_at })
+    if (pinError) {
+      alert('Could not update the chat. Please try again.')
+      return
+    }
+    loadChats()
+  }
+
+  const deleteChat = async (c: Chat) => {
+    setMenuChat(null)
     if (sending) return
     if (!window.confirm('Delete this chat?')) return
-    const { error: delError } = await supabase.from('farmbot_chats').delete().eq('id', id)
+    // Photos of this chat are removed together with it
+    const { data: imgRows } = await supabase.from('ai_conversations').select('image_paths').eq('conversation_id', c.id)
+    const paths = ((imgRows || []) as { image_paths: string[] | null }[]).flatMap((r) => r.image_paths || [])
+    const { error: delError } = await supabase.from('farmbot_chats').delete().eq('id', c.id)
     if (delError) {
       alert('Could not delete the chat. Please try again.')
       return
     }
-    setChats((prev) => prev.filter((c) => c.id !== id))
-    if (id === chatId) {
+    removeFarmbotPhotos(paths)
+    setChats((prev) => prev.filter((x) => x.id !== c.id))
+    if (c.id === chatId) {
       setChatId(null)
       setMessages([])
       setNotice(null)
     }
   }
 
+  // Long press (or right click) on a chat in the history opens the same menu as the "..." button
+  const startPress = (c: Chat) => {
+    longPressed.current = false
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true
+      pressTimer.current = null
+      setMenuChat(c)
+    }, 500)
+  }
+  const endPress = () => {
+    if (pressTimer.current) { window.clearTimeout(pressTimer.current); pressTimer.current = null }
+  }
+
+  const pickPhotos = () => {
+    if (sending) return
+    if (!canPhotos) {
+      setNotice({ kind: 'limit', text: FARMBOT_PHOTO_PREMIUM_TEXT, upgrade: true })
+      return
+    }
+    fileRef.current?.click()
+  }
+
+  const onFilesChosen = (e: ChangeEvent<HTMLInputElement>) => {
+    const picked = (Array.from(e.target.files || []) as File[]).filter((f) => f.type.startsWith('image/'))
+    e.target.value = ''
+    if (picked.length === 0) return
+    const room = maxPhotos - attachments.length
+    if (room <= 0) {
+      setNotice({ kind: 'generic', text: `You can attach up to ${maxPhotos} photos per question.` })
+      return
+    }
+    if (picked.length > room) setNotice({ kind: 'generic', text: `You can attach up to ${maxPhotos} photos per question.` })
+    const take = picked.slice(0, room)
+    setAttachments((prev) => [...prev, ...take.map((file) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, file, url: URL.createObjectURL(file) }))])
+  }
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => {
+      const gone = prev.find((a) => a.id === id)
+      if (gone) URL.revokeObjectURL(gone.url)
+      return prev.filter((a) => a.id !== id)
+    })
+  }
+
   const send = async (text?: string, isRetry = false) => {
     const content = (text ?? draft).trim()
-    if (!content || sending || limitReached) return
+    const pending = isRetry ? [] : attachments
+    if ((!content && pending.length === 0) || sending || limitReached) return
 
     setNotice(null)
     setSending(true)
@@ -196,44 +292,88 @@ export default function FarmBotPage() {
     // Show the user's message immediately (a resend reuses the bubble that is already there).
     if (!isRetry) {
       setDraft('')
-      setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content }])
+      setAttachments([])
+      setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content, images: pending.map((a) => a.url) }])
     }
 
-    const networkNotice = { kind: 'network' as const, text: 'No internet connection. Check your network, then tap Resend.', retry: content }
+    // Takes the bubble back and gives the text and photos back to the message box
+    const restore = () => {
+      if (isRetry) return
+      setMessages((prev) => prev.slice(0, -1))
+      setDraft(content)
+      setAttachments(pending)
+    }
+
+    const networkNotice: Notice = pending.length === 0
+      ? { kind: 'network', text: 'No internet connection. Check your network, then tap Resend.', retry: content }
+      : { kind: 'network', text: 'No internet connection. Check your network, then send again.' }
 
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       setSending(false)
+      if (pending.length > 0) restore()
       setNotice(networkNotice)
       return
     }
 
+    // Upload the photos first (Premium only; the database enforces this too)
+    let imagePaths: string[] = []
+    if (pending.length > 0) {
+      try {
+        if (!user) throw new Error('Not signed in')
+        imagePaths = await uploadFarmbotPhotos(user.id, pending.map((a) => a.file))
+      } catch (err) {
+        setSending(false)
+        restore()
+        if (isPermissionError(err)) setNotice({ kind: 'limit', text: FARMBOT_PHOTO_PREMIUM_TEXT, upgrade: true })
+        else setNotice({ kind: 'generic', text: 'Could not upload your photos. Check your connection and try again.' })
+        return
+      }
+    }
+
     const { data, error: fnError } = await supabase.functions.invoke('farmbot-chat', {
-      body: { message: content, conversation_id: chatId, new_chat: !chatId },
+      body: { message: content, image_paths: imagePaths, conversation_id: chatId, new_chat: !chatId },
     })
 
     setSending(false)
 
-    // The user's own daily message limit (Free / Premium) was reached: nothing was sent, so take the
-    // bubble back and keep the text in the box.
+    // The photos were not used, so they are removed again
+    const dropPhotos = () => { if (imagePaths.length > 0) removeFarmbotPhotos(imagePaths) }
+
+    // The daily message limit was reached: nothing was sent, so take the bubble back and keep the text.
+    // The numbers are never shown; Premium members only see that FarmBot is busy.
     if (data?.code === 'user_limit') {
       if (data.usage) setUsage(data.usage)
-      if (!isRetry) {
-        setMessages((prev) => prev.slice(0, -1))
-        setDraft(content)
-      }
-      setNotice({ kind: 'limit', text: data.error, upgrade: !data.usage?.premium })
+      dropPhotos()
+      restore()
+      const premium = !!data.usage?.premium
+      setNotice({ kind: 'limit', text: premium ? FARMBOT_BUSY_TEXT : FARMBOT_FREE_LIMIT_TEXT, upgrade: !premium })
       return
     }
 
-    // Daily AI limit reached: friendly message, nothing technical shown.
+    // AI provider quota reached: friendly message, nothing technical shown.
     if (data?.code === 'daily_limit') {
-      setNotice({ kind: 'limit', text: data.error })
+      dropPhotos()
+      restore()
+      setNotice({ kind: 'limit', text: FARMBOT_BUSY_TEXT })
+      return
+    }
+
+    if (data?.code === 'photos_premium' || data?.code === 'too_many_photos' || data?.code === 'photo_error') {
+      dropPhotos()
+      restore()
+      setNotice({ kind: 'limit', text: data.error, upgrade: data.code === 'photos_premium' })
       return
     }
 
     if (fnError || data?.error) {
       const msg = fnError?.message || ''
       const isNetwork = fnError?.name === 'FunctionsFetchError' || /failed to (send|fetch)|network|load failed/i.test(msg)
+      if (pending.length > 0) {
+        dropPhotos()
+        restore()
+        setNotice(isNetwork ? networkNotice : { kind: 'generic', text: data?.code && data?.error ? data.error : 'Something went wrong. Please try again.' })
+        return
+      }
       if (isNetwork) {
         setNotice(networkNotice)
       } else {
@@ -260,7 +400,7 @@ export default function FarmBotPage() {
   if (netError) {
     return (
       <div style={shell}>
-        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} usage={usage} />
+        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <NetworkError onRetry={() => (chatId ? loadMessages(chatId) : init())} />
         </div>
@@ -269,18 +409,20 @@ export default function FarmBotPage() {
   }
 
   const empty = !loading && messages.length === 0
+  const canSend = (!!draft.trim() || attachments.length > 0) && !sending && !limitReached
 
   return (
     <div style={shell}>
       <style>{`
         @keyframes fbDot { 0%, 80%, 100% { opacity: .25; transform: translateY(0) } 40% { opacity: 1; transform: translateY(-3px) } }
         @keyframes fbSlide { from { transform: translateX(-100%) } to { transform: translateX(0) } }
+        @keyframes fbRise { from { transform: translateY(100%) } to { transform: translateY(0) } }
       `}</style>
 
-      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} usage={usage} />
+      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
 
       {/* Messages (the only scrolling area) */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {loading ? (
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', marginTop: '30px' }}>Loading conversation...</p>
         ) : empty ? (
@@ -289,8 +431,8 @@ export default function FarmBotPage() {
               <Icon name="robot" size={30} color="white" />
             </div>
             <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '14px' }}>Sannu! I'm FarmBot</p>
-            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '5px', lineHeight: 1.5, maxWidth: '280px' }}>
-              Your AI farming assistant. Ask me about crops, livestock, soil, pests, weather or market prices.
+            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '5px', lineHeight: 1.5, maxWidth: '300px' }}>
+              Your AI farming assistant. Ask me about crops, seeds, livestock, equipment, soil, pests, weather or market prices. Premium members can also send photos of crops, animals, seeds or equipment.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px', width: '100%' }}>
               {SUGGESTIONS.map((s) => (
@@ -304,7 +446,7 @@ export default function FarmBotPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => <Bubble key={m.id} role={m.role} text={m.message} />)
+          messages.map((m) => <Bubble key={m.id} role={m.role} text={m.message} images={m.images} onOpenImage={setLightbox} />)
         )}
 
         {sending && <TypingBubble />}
@@ -334,13 +476,11 @@ export default function FarmBotPage() {
         )}
       </div>
 
-      {/* Daily limit reached: the box is locked until tomorrow (or Premium) */}
+      {/* Limit reached: the box is locked for now. No numbers are shown. */}
       {limitReached && usage && (
         <div style={{ background: '#F0FDF4', borderTop: `1px solid ${COLORS.border}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: COLORS.greenDark }}>
-            {usage.premium
-              ? `You've used all ${usage.limit} FarmBot messages for today. They reset tomorrow.`
-              : `You've used your ${usage.limit} free messages for today. Limited use: upgrade to Premium for more.`}
+            {usage.premium ? FARMBOT_BUSY_TEXT : FARMBOT_FREE_LIMIT_TEXT}
           </p>
           {!usage.premium && (
             <div onClick={() => navigate('/premium')} style={{ background: COLORS.green, color: 'white', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
@@ -351,21 +491,54 @@ export default function FarmBotPage() {
       )}
 
       {/* Composer (always pinned to the bottom) */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 14px calc(10px + env(safe-area-inset-bottom, 0px))', background: COLORS.card, borderTop: `1px solid ${COLORS.border}` }}>
-        <textarea
-          ref={inputRef}
-          rows={1}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-          disabled={limitReached}
-          placeholder={limitReached ? 'Daily limit reached' : 'Ask FarmBot anything...'}
-          style={{ flex: 1, resize: 'none', padding: '10px 14px', borderRadius: '20px', border: `1px solid ${COLORS.border}`, background: COLORS.bg, fontSize: '13px', lineHeight: 1.4, color: COLORS.text, outline: 'none', fontFamily: 'inherit', maxHeight: '110px' }}
-        />
-        <div
-          onClick={() => send()}
-          style={{ width: '40px', height: '40px', borderRadius: '20px', background: draft.trim() && !sending && !limitReached ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: draft.trim() && !sending && !limitReached ? 'pointer' : 'default', flexShrink: 0 }}>
-          <Icon name="send" size={16} color="white" />
+      <div style={{ padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))', background: COLORS.card, borderTop: `1px solid ${COLORS.border}` }}>
+        {attachments.length > 0 && (
+          <div style={{ display: 'flex', gap: '8px', paddingBottom: '10px', overflowX: 'auto' }}>
+            {attachments.map((a) => (
+              <div key={a.id} style={{ position: 'relative', width: '58px', height: '58px', flexShrink: 0 }}>
+                <img src={a.url} alt="Selected photo" style={{ width: '58px', height: '58px', objectFit: 'cover', borderRadius: '10px', border: `1px solid ${COLORS.border}` }} />
+                <div
+                  role="button"
+                  aria-label="Remove photo"
+                  onClick={() => removeAttachment(a.id)}
+                  style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '10px', background: COLORS.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={onFilesChosen} style={{ display: 'none' }} />
+          <div
+            role="button"
+            aria-label="Add photos"
+            onClick={pickPhotos}
+            style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '20px', border: `1px solid ${COLORS.border}`, background: COLORS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: limitReached ? 'default' : 'pointer', flexShrink: 0, opacity: limitReached ? 0.5 : 1 }}>
+            <Icon name="camera" size={18} color={canPhotos ? COLORS.green : COLORS.textMuted} />
+            {!canPhotos && (
+              <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '16px', height: '16px', borderRadius: '8px', background: '#F5D060', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="crown" size={10} color="#7A5B00" />
+              </span>
+            )}
+          </div>
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+            disabled={limitReached}
+            placeholder={limitReached ? (usage?.premium ? 'FarmBot is busy. Try again later' : 'Free limit reached') : attachments.length > 0 ? 'Add a question about the photo(s)...' : 'Ask FarmBot anything...'}
+            style={{ flex: 1, minWidth: 0, resize: 'none', padding: '10px 14px', borderRadius: '20px', border: `1px solid ${COLORS.border}`, background: COLORS.bg, fontSize: '13px', lineHeight: 1.4, color: COLORS.text, outline: 'none', fontFamily: 'inherit', maxHeight: '110px' }}
+          />
+          <div
+            role="button"
+            aria-label="Send"
+            onClick={() => send()}
+            style={{ width: '40px', height: '40px', borderRadius: '20px', background: canSend ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canSend ? 'pointer' : 'default', flexShrink: 0 }}>
+            <Icon name="send" size={16} color="white" />
+          </div>
         </div>
       </div>
 
@@ -405,11 +578,21 @@ export default function FarmBotPage() {
                   {g.items.map((c) => (
                     <div
                       key={c.id}
-                      onClick={() => openChat(c.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 8px', borderRadius: '10px', cursor: 'pointer', background: c.id === chatId ? COLORS.bg : 'transparent' }}>
+                      onClick={() => { if (longPressed.current) { longPressed.current = false; return } openChat(c.id) }}
+                      onTouchStart={() => startPress(c)}
+                      onTouchEnd={endPress}
+                      onTouchMove={endPress}
+                      onTouchCancel={endPress}
+                      onContextMenu={(e) => { e.preventDefault(); setMenuChat(c) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 8px', borderRadius: '10px', cursor: 'pointer', background: c.id === chatId ? COLORS.bg : 'transparent', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
+                      {c.pinned_at && <PinIcon size={13} color={COLORS.green} />}
                       <p style={{ flex: 1, fontSize: '12.5px', fontWeight: c.id === chatId ? 700 : 500, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</p>
-                      <div onClick={(e) => { e.stopPropagation(); deleteChat(c.id) }} style={{ display: 'flex', padding: '2px', cursor: 'pointer' }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+                      <div
+                        role="button"
+                        aria-label="Chat options"
+                        onClick={(e) => { e.stopPropagation(); setMenuChat(c) }}
+                        style={{ display: 'flex', padding: '4px', cursor: 'pointer' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={COLORS.textMuted}><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
                       </div>
                     </div>
                   ))}
@@ -424,6 +607,37 @@ export default function FarmBotPage() {
           </div>
         </div>
       )}
+
+      {/* Chat options: pin or delete */}
+      {menuChat && (
+        <div onClick={() => setMenuChat(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 30, display: 'flex', alignItems: 'flex-end' }}>
+          <div
+            role="dialog"
+            aria-label="Chat options"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', background: COLORS.card, borderRadius: '18px 18px 0 0', padding: '14px 16px calc(16px + env(safe-area-inset-bottom, 0px))', animation: 'fbRise .2s ease-out' }}>
+            <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingBottom: '10px' }}>{menuChat.title}</p>
+            <div onClick={() => togglePin(menuChat)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 4px', cursor: 'pointer', borderTop: `1px solid ${COLORS.border}` }}>
+              <PinIcon size={18} color={COLORS.text} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: COLORS.text }}>{menuChat.pinned_at ? 'Unpin chat' : 'Pin chat'}</p>
+            </div>
+            <div onClick={() => deleteChat(menuChat)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 4px', cursor: 'pointer', borderTop: `1px solid ${COLORS.border}` }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={COLORS.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: COLORS.red }}>Delete chat</p>
+            </div>
+            <div onClick={() => setMenuChat(null)} style={{ textAlign: 'center', padding: '13px 4px 2px', cursor: 'pointer', borderTop: `1px solid ${COLORS.border}`, fontSize: '14px', fontWeight: 700, color: COLORS.textMuted }}>
+              Cancel
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-screen photo */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <img src={lightbox} alt="Photo" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px' }} />
+        </div>
+      )}
     </div>
   )
 }
@@ -431,6 +645,12 @@ export default function FarmBotPage() {
 function PlusIcon({ color }: { color: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+  )
+}
+
+function PinIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z" /></svg>
   )
 }
 
@@ -474,9 +694,10 @@ function FormattedText({ text }: { text: string }) {
   )
 }
 
-function Bubble({ role, text }: { role: 'user' | 'assistant'; text: string }) {
+function Bubble({ role, text, images, onOpenImage }: { role: 'user' | 'assistant'; text: string; images?: string[]; onOpenImage: (url: string) => void }) {
   const mine = role === 'user'
   const [copied, setCopied] = useState(false)
+  const hasImages = !!images && images.length > 0
 
   const copy = async () => {
     try {
@@ -487,38 +708,41 @@ function Bubble({ role, text }: { role: 'user' | 'assistant'; text: string }) {
   }
 
   return (
-    <div style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '86%', display: 'flex', gap: '8px' }}>
-      {!mine && (
-        <div style={{ width: '26px', height: '26px', borderRadius: '13px', background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-          <Icon name="robot" size={14} color="white" />
-        </div>
-      )}
-      <div style={{ minWidth: 0 }}>
-        <div style={{
-          background: mine ? COLORS.green : COLORS.card, color: mine ? 'white' : COLORS.text,
-          padding: '10px 14px', borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', fontSize: '13px', lineHeight: 1.5,
-          boxShadow: mine ? 'none' : '0 1px 4px rgba(0,0,0,0.05)',
-          border: mine ? 'none' : `1px solid ${COLORS.border}`, wordBreak: 'break-word',
-          whiteSpace: mine ? 'pre-wrap' : 'normal',
-        }}>
-          {mine ? text : <FormattedText text={text} />}
-        </div>
-        {!mine && (
-          <span onClick={copy} style={{ display: 'inline-block', fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer', padding: '4px 4px 0' }}>
-            {copied ? 'Copied!' : 'Copy'}
-          </span>
+    <div style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: mine ? '88%' : '100%', minWidth: 0 }}>
+      <div style={{
+        background: mine ? COLORS.green : COLORS.card, color: mine ? 'white' : COLORS.text,
+        padding: '10px 14px', borderRadius: mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', fontSize: '13px', lineHeight: 1.5,
+        boxShadow: mine ? 'none' : '0 1px 4px rgba(0,0,0,0.05)',
+        border: mine ? 'none' : `1px solid ${COLORS.border}`, wordBreak: 'break-word',
+        whiteSpace: mine ? 'pre-wrap' : 'normal',
+      }}>
+        {hasImages && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: text ? '8px' : 0 }}>
+            {images!.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt="Photo"
+                onClick={() => onOpenImage(src)}
+                style={{ width: images!.length === 1 ? '180px' : '86px', height: images!.length === 1 ? '180px' : '86px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer', background: 'rgba(0,0,0,0.06)' }}
+              />
+            ))}
+          </div>
         )}
+        {mine ? text : <FormattedText text={text} />}
       </div>
+      {!mine && (
+        <span onClick={copy} style={{ display: 'inline-block', fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer', padding: '4px 4px 0' }}>
+          {copied ? 'Copied!' : 'Copy'}
+        </span>
+      )}
     </div>
   )
 }
 
 function TypingBubble() {
   return (
-    <div style={{ alignSelf: 'flex-start', display: 'flex', gap: '8px' }}>
-      <div style={{ width: '26px', height: '26px', borderRadius: '13px', background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon name="robot" size={14} color="white" />
-      </div>
+    <div style={{ alignSelf: 'flex-start' }}>
       <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px 16px 16px 4px', padding: '13px 16px', display: 'flex', gap: '4px' }}>
         {[0, 1, 2].map((i) => (
           <span key={i} style={{ width: '6px', height: '6px', borderRadius: '3px', background: COLORS.green, animation: `fbDot 1.2s infinite ${i * 0.18}s` }} />
@@ -528,7 +752,7 @@ function TypingBubble() {
   )
 }
 
-function Header({ onMenu, onNew, usage }: { onMenu: () => void; onNew: () => void; usage: { used: number; limit: number; premium: boolean } | null }) {
+function Header({ onMenu, onNew }: { onMenu: () => void; onNew: () => void }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '12px', padding: 'calc(12px + env(safe-area-inset-top, 0px)) 14px 12px',
@@ -541,11 +765,6 @@ function Header({ onMenu, onNew, usage }: { onMenu: () => void; onNew: () => voi
         <Icon name="robot" size={20} color={COLORS.green} />
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>FarmBot</p>
       </div>
-      {usage && (
-        <div style={{ background: usage.used >= usage.limit ? '#FEF3C7' : COLORS.bg, border: `1px solid ${usage.used >= usage.limit ? '#FDE68A' : COLORS.border}`, borderRadius: '999px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: usage.used >= usage.limit ? '#92400E' : COLORS.greenDark, whiteSpace: 'nowrap' }}>
-          {usage.used} / {usage.limit} today
-        </div>
-      )}
       <div onClick={onNew} style={{ cursor: 'pointer', display: 'flex', padding: '4px' }}>
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
       </div>
