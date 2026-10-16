@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
@@ -43,12 +43,17 @@ export type PostCardData = {
 // One post card used by Home, company pages and (later) user profiles.
 // It owns its like / save state; the parent only passes the initial values.
 export default function PostCard({
-  post, initialLiked, initialSaved, onCommentCountChange,
+  post, initialLiked, initialSaved, onCommentCountChange, pinned, menuActions, emphasize, children,
 }: {
   post: PostCardData
   initialLiked: boolean
   initialSaved: boolean
   onCommentCountChange?: (delta: number) => void
+  // Optional extras used by group pages (pin badge, edit/delete/pin menu entries, poll widget under the text)
+  pinned?: boolean
+  menuActions?: { label: string; danger?: boolean; onClick: () => void }[]
+  emphasize?: boolean
+  children?: ReactNode
 }) {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -117,6 +122,7 @@ export default function PostCard({
 
   return (
     <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      {pinned && <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.green, marginBottom: '8px' }}>📌 Pinned post</p>}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
         {group ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
@@ -157,7 +163,7 @@ export default function PostCard({
           </div>
         </div>
         )}
-        {!isOwn && (
+        {(!isOwn || (menuActions && menuActions.length > 0)) && (
           <div>
             <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ padding: '6px', cursor: 'pointer', display: 'flex' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill={COLORS.textMuted} aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
@@ -166,10 +172,15 @@ export default function PostCard({
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
                 <div style={{ position: 'absolute', right: 0, top: '32px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '150px', overflow: 'hidden' }}>
+                  {(menuActions || []).map((a) => (
+                    <div key={a.label} onClick={() => { setMenuOpen(false); a.onClick() }} style={{ padding: '11px 14px', fontSize: '12.5px', fontWeight: 600, color: a.danger ? '#DC2626' : COLORS.text, cursor: 'pointer', borderBottom: `1px solid ${COLORS.border}` }}>{a.label}</div>
+                  ))}
+                  {!isOwn && (
                   <div onClick={() => { setMenuOpen(false); setReportOpen(true) }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 14px', fontSize: '12.5px', fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
                     Report post
                   </div>
+                  )}
                 </div>
               </>
             )}
@@ -177,9 +188,10 @@ export default function PostCard({
         )}
       </div>
 
-      <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginBottom: '10px' }}>{post.content}</p>
+      <p style={{ fontSize: emphasize ? '14px' : '13px', fontWeight: emphasize ? 700 : 400, color: COLORS.text, lineHeight: 1.5, marginBottom: '10px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{post.content}</p>
 
       <div style={{ marginBottom: '10px' }}><PostImages images={post.images} /></div>
+      {children}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
         <span onClick={toggleLike} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: liked ? '#DC2626' : COLORS.textMuted, cursor: 'pointer' }}>
