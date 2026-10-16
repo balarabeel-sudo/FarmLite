@@ -26,6 +26,7 @@ type ChatMessage = {
   role: 'user' | 'assistant'
   message: string
   images?: string[]
+  uploading?: boolean
 }
 
 type Chat = {
@@ -38,6 +39,18 @@ type Chat = {
 type Usage = { used: number; limit: number; premium: boolean; photos?: number }
 type Attachment = { id: string; file: File; url: string }
 type Notice = { kind: 'network' | 'limit' | 'generic'; text: string; retry?: string; upgrade?: boolean }
+
+// Remembered between visits (while the app stays open) so the page opens instantly
+// with the last chat instead of showing a loader every time. It is refreshed quietly in the background.
+const memory: { userId: string; chats: Chat[] | null; chatId: string | null; messages: Record<string, ChatMessage[]> } = {
+  userId: '', chats: null, chatId: null, messages: {},
+}
+
+function isWarm(userId: string | undefined): boolean {
+  if (!userId || memory.userId !== userId || !memory.chats) return false
+  if (memory.chats.length === 0) return true
+  return !!memory.chatId && !!memory.messages[memory.chatId]
+}
 
 const SUGGESTIONS = [
   'How do I control pests on maize?',
@@ -72,9 +85,10 @@ export default function FarmBotPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [loading, setLoading] = useState(true)
+  const warmStart = isWarm(user?.id)
+  const [loading, setLoading] = useState(!warmStart)
   const [netError, setNetError] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>(warmStart && memory.chatId ? (memory.messages[memory.chatId] || []) : [])
   const [draft, setDraft] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
@@ -82,11 +96,16 @@ export default function FarmBotPage() {
   const [usage, setUsage] = useState<Usage | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
 
-  const [chatId, setChatId] = useState<string | null>(null)
-  const [chats, setChats] = useState<Chat[]>([])
+  const [chatId, setChatId] = useState<string | null>(warmStart ? memory.chatId : null)
+  const [chats, setChats] = useState<Chat[]>(warmStart ? memory.chats || [] : [])
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [menuChat, setMenuChat] = useState<Chat | null>(null)
 
+  const chatIdRef = useRef<string | null>(chatId)
+  chatIdRef.current = chatId
+  const loadSeq = useRef(0)
+  const instantScroll = useRef(true)
+  const prevLen = useRef(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -119,22 +138,29 @@ export default function FarmBotPage() {
     return list
   }
 
-  const loadMessages = async (id: string) => {
+  // silent = the chat is already on screen (from memory), so refresh it quietly without a loader
+  const loadMessages = async (id: string, silent = false) => {
+    const seq = ++loadSeq.current
     setNetError(false)
-    setLoading(true)
+    if (!silent) setLoading(true)
     const { data, error: fetchError } = await supabase
       .from('ai_conversations')
       .select('id, role, message, image_paths')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true })
 
+    if (seq !== loadSeq.current) return
     if (fetchError) {
-      setNetError(true)
+      if (!silent) setNetError(true)
       setLoading(false)
       return
     }
     const rows = (data || []) as { id: string; role: 'user' | 'assistant'; message: string; image_paths: string[] | null }[]
     const signed = await signFarmbotPhotos(rows.flatMap((r) => r.image_paths || []))
+    if (seq !== loadSeq.current) return
+    // A message that is being sent right now must not be wiped by a background refresh
+    if (silent && sendingRef.current) { setLoading(false); return }
+    if (!silent) instantScroll.current = true
     setMessages(rows.map((r) => ({
       id: r.id,
       role: r.role,
@@ -147,19 +173,34 @@ export default function FarmBotPage() {
   const init = async () => {
     if (!user) return
     setNetError(false)
-    setLoading(true)
+    const warm = isWarm(user.id)
+    if (!warm) setLoading(true)
     const list = await loadChats()
     if (list.length > 0) {
-      // Open the chat that was used most recently (pinned chats are only sorted first in the list)
+      // Keep the chat that is already open; otherwise open the one used most recently
+      // (pinned chats are only sorted first in the list)
+      const open = chatIdRef.current ? list.find((c) => c.id === chatIdRef.current) : undefined
       const latest = [...list].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
-      setChatId(latest.id)
-      await loadMessages(latest.id)
+      const target = open ? open.id : latest.id
+      setChatId(target)
+      await loadMessages(target, warm && !!open)
     } else {
+      setChatId(null)
       setLoading(false)
     }
   }
 
-  useEffect(() => { init() }, [user])
+  // Depends on the user's id (not the user object), so a background token refresh never reloads the page
+  useEffect(() => { init() }, [user?.id])
+
+  // Remember what is on screen for the next visit
+  useEffect(() => {
+    if (!user || loading) return
+    if (memory.userId !== user.id) { memory.userId = user.id; memory.messages = {} }
+    memory.chats = chats
+    memory.chatId = chatId
+    if (chatId) memory.messages[chatId] = messages
+  }, [messages, chatId, chats, loading, user?.id])
 
   // Real usage for today (counted on the server). The numbers are never shown; they only decide what is allowed.
   useEffect(() => {
@@ -173,9 +214,17 @@ export default function FarmBotPage() {
   const maxPhotos = typeof usage?.photos === 'number' && usage.photos > 0 ? usage.photos : DEFAULT_MAX_FARMBOT_PHOTOS
   const canPhotos = usage ? (typeof usage.photos === 'number' ? usage.photos > 0 : usage.premium) : true
 
+  const sendingRef = useRef(false)
+  sendingRef.current = sending
+
+  // Opening a chat jumps straight to the newest message; new messages scroll smoothly
   useEffect(() => {
     const el = scrollRef.current
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    if (!el) return
+    const jump = instantScroll.current || prevLen.current === 0
+    el.scrollTo({ top: el.scrollHeight, behavior: jump ? 'auto' : 'smooth' })
+    if (!loading && messages.length > 0) instantScroll.current = false
+    prevLen.current = messages.length
   }, [messages, sending, loading])
 
   const autoGrow = () => {
@@ -293,7 +342,7 @@ export default function FarmBotPage() {
     if (!isRetry) {
       setDraft('')
       setAttachments([])
-      setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content, images: pending.map((a) => a.url) }])
+      setMessages((prev) => [...prev, { id: `local-${Date.now()}`, role: 'user', message: content, images: pending.map((a) => a.url), uploading: pending.length > 0 }])
     }
 
     // Takes the bubble back and gives the text and photos back to the message box
@@ -329,6 +378,9 @@ export default function FarmBotPage() {
         return
       }
     }
+
+    // Photos are uploaded: the bubble stops showing the "sending" shade
+    if (!isRetry) setMessages((prev) => prev.map((m, i) => (i === prev.length - 1 && m.uploading ? { ...m, uploading: false } : m)))
 
     const { data, error: fnError } = await supabase.functions.invoke('farmbot-chat', {
       body: { message: content, image_paths: imagePaths, conversation_id: chatId, new_chat: !chatId },
@@ -446,7 +498,7 @@ export default function FarmBotPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => <Bubble key={m.id} role={m.role} text={m.message} images={m.images} onOpenImage={setLightbox} />)
+          messages.map((m) => <Bubble key={m.id} role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox} />)
         )}
 
         {sending && <TypingBubble />}
@@ -694,7 +746,7 @@ function FormattedText({ text }: { text: string }) {
   )
 }
 
-function Bubble({ role, text, images, onOpenImage }: { role: 'user' | 'assistant'; text: string; images?: string[]; onOpenImage: (url: string) => void }) {
+function Bubble({ role, text, images, uploading, onOpenImage }: { role: 'user' | 'assistant'; text: string; images?: string[]; uploading?: boolean; onOpenImage: (url: string) => void }) {
   const mine = role === 'user'
   const [copied, setCopied] = useState(false)
   const hasImages = !!images && images.length > 0
@@ -723,8 +775,10 @@ function Bubble({ role, text, images, onOpenImage }: { role: 'user' | 'assistant
                 key={i}
                 src={src}
                 alt="Photo"
+                loading="lazy"
+                decoding="async"
                 onClick={() => onOpenImage(src)}
-                style={{ width: images!.length === 1 ? '180px' : '86px', height: images!.length === 1 ? '180px' : '86px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer', background: 'rgba(0,0,0,0.06)' }}
+                style={{ width: images!.length === 1 ? '180px' : '86px', height: images!.length === 1 ? '180px' : '86px', objectFit: 'cover', borderRadius: '10px', cursor: 'pointer', background: 'rgba(0,0,0,0.06)', opacity: uploading ? 0.55 : 1, transition: 'opacity .2s' }}
               />
             ))}
           </div>
