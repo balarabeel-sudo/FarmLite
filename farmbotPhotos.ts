@@ -58,14 +58,32 @@ export async function uploadFarmbotPhotos(userId: string, files: File[]): Promis
 }
 
 // Turns stored paths into temporary links that the browser can display.
+// Links are remembered for 50 minutes (they are valid for 60), so opening a chat again shows the
+// same photo links instantly and the browser can reuse the photos it already downloaded.
+const SIGN_SECONDS = 3600
+const REUSE_MS = 50 * 60 * 1000
+const signedCache = new Map<string, { url: string; at: number }>()
+
 export async function signFarmbotPhotos(paths: string[]): Promise<Record<string, string>> {
   const unique = Array.from(new Set(paths.filter(Boolean)))
   if (unique.length === 0) return {}
-  const { data } = await supabase.storage.from(BUCKET).createSignedUrls(unique, 3600)
+  const now = Date.now()
   const out: Record<string, string> = {}
-  ;(data || []).forEach((d: { path: string | null; signedUrl: string }) => {
-    if (d.path && d.signedUrl) out[d.path] = d.signedUrl
+  const missing: string[] = []
+  unique.forEach((p) => {
+    const hit = signedCache.get(p)
+    if (hit && now - hit.at < REUSE_MS) out[p] = hit.url
+    else missing.push(p)
   })
+  if (missing.length > 0) {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrls(missing, SIGN_SECONDS)
+    ;(data || []).forEach((d: { path: string | null; signedUrl: string }) => {
+      if (d.path && d.signedUrl) {
+        out[d.path] = d.signedUrl
+        signedCache.set(d.path, { url: d.signedUrl, at: now })
+      }
+    })
+  }
   return out
 }
 
