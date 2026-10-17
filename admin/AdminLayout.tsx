@@ -38,6 +38,7 @@ const NAV: NavGroup[] = [
       { label: 'FarmBot', path: '/admin/farmbot', permission: 'farmbot.view_analytics' },
       { label: 'Farm Desk', path: '/admin/farm-desk', permission: 'trade_desk.view' },
       { label: 'Exchange Rates', path: '/admin/exchange-rates', permission: 'wallet.view' },
+      { label: 'Finance Check', path: '/admin/finance-check', permission: 'wallet.view' },
     ],
   },
   {
