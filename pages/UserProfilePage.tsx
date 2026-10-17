@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
@@ -9,21 +8,14 @@ import { ProfileHeaderSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
-import PremiumTick from '../PremiumTick'
 import { isPremiumActive } from '../premiumShared'
 import { cleanPhone, whatsappLink } from '../phoneUtils'
-
-const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
-  green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  orange: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-}
+import {
+  PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
+  CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
+  softLink, useCopyLink, useDebounced, likePattern, compact,
+} from '../ProfileLayout'
+import type { ListingCardData } from '../ProfileLayout'
 
 const ROLE_LABELS: Record<string, string> = { farmer: 'Farmer', buyer: 'Buyer', agribusiness: 'Agribusiness' }
 
@@ -49,23 +41,19 @@ type Profile = {
   created_at: string
 }
 
-type Listing = {
-  id: string
-  title: string
-  price: number
-  unit: string | null
-  images: string[] | null
-}
+type Listing = ListingCardData
 
 type Tab = 'posts' | 'media' | 'about'
 
-// Route: /u/:username  (public profile; also shows your own profile with Edit Profile)
+// Route: /u/:username  (public profile; also shows your own profile with Edit profile)
+// X-style layout: cover, full photo circle, action buttons, name + ticks, bio, meta row, counts, tabs.
 // Profile = public identity + social presence. Account, My Farm and Marketplace management live elsewhere.
 export default function UserProfilePage() {
   const navigate = useNavigate()
   const { username } = useParams<{ username: string }>()
   const { user } = useAuth()
   const { formatPrice } = useLocale()
+  const { copy, toast } = useCopyLink()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -81,8 +69,14 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+
+  // Search inside this profile (posts + listings)
+  const [searching, setSearching] = useState(false)
+  const [q, setQ] = useState('')
+  const dq = useDebounced(q.trim(), 300)
+  const [sPosts, setSPosts] = useState<PostCardData[]>([])
+  const [sListings, setSListings] = useState<Listing[]>([])
+  const [sBusy, setSBusy] = useState(false)
 
   const load = async () => {
     if (!user || !username) return
@@ -143,6 +137,34 @@ export default function UserProfilePage() {
 
   useEffect(() => { load() }, [user, username])
 
+  // Search this user's public posts and listings
+  const profileUserId = profile?.user_id
+  useEffect(() => {
+    if (!searching || !profileUserId) return
+    if (dq.length < 2) {
+      setSPosts([])
+      setSListings([])
+      setSBusy(false)
+      return
+    }
+    let cancelled = false
+    setSBusy(true)
+    const pat = likePattern(dq)
+    Promise.all([
+      supabase.from('posts').select(POST_SELECT).eq('user_id', profileUserId).is('company_id', null).eq('visibility', 'public').ilike('content', pat).order('created_at', { ascending: false }).limit(30),
+      supabase.from('marketplace_listings').select('id, title, price, unit, location, images').eq('seller_id', profileUserId).is('company_id', null).eq('status', 'available').ilike('title', pat).order('created_at', { ascending: false }).limit(20),
+    ]).then(([pr, lr]) => {
+      if (cancelled) return
+      setSPosts((pr.data || []) as any)
+      setSListings((lr.data || []) as any)
+      setSBusy(false)
+    }, () => {
+      if (cancelled) return
+      setSBusy(false)
+    })
+    return () => { cancelled = true }
+  }, [dq, searching, profileUserId])
+
   const toggleFollow = async () => {
     if (!user || !profile || followBusy) return
     setFollowBusy(true)
@@ -162,28 +184,19 @@ export default function UserProfilePage() {
     setFollowBusy(false)
   }
 
-  const copyLink = async () => {
-    setMenuOpen(false)
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/u/${username}`)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    } catch { /* clipboard blocked */ }
-  }
-
   if (netError) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Profile" />
         <NetworkError onRetry={load} />
-      </Shell>
+      </ProfileShell>
     )
   }
 
   if (notFound) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Profile" />
         <div style={{ padding: '48px 24px', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
             <Icon name="user" size={30} color={COLORS.textMuted} />
@@ -191,29 +204,60 @@ export default function UserProfilePage() {
           <p style={{ fontSize: '14px', fontWeight: 700, color: COLORS.text }}>User not found</p>
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '6px' }}>@{username} does not exist or was removed.</p>
         </div>
-      </Shell>
+      </ProfileShell>
     )
   }
 
   if (loading || !profile) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Profile" />
         <div style={{ padding: '16px' }}>
           <ProfileHeaderSkeleton />
           <div style={{ marginTop: '24px' }}><FeedPostSkeleton count={2} /></div>
         </div>
-      </Shell>
+      </ProfileShell>
     )
   }
 
   const isSelf = !!user && profile.user_id === user.id
   const premium = isPremiumActive(profile.is_premium, profile.premium_until)
+  const displayName = profile.full_name || profile.username || 'Farmxie user'
   const roleLabel = ROLE_LABELS[profile.role]
   const websiteHref = profile.website ? (profile.website.startsWith('http') ? profile.website : `https://${profile.website}`) : null
   const websiteLabel = profile.website ? profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const mediaImages = mediaPosts.flatMap((m) => m.images)
+  const postsLabel = `${compact(profile.posts_count || 0)} ${profile.posts_count === 1 ? 'post' : 'posts'}`
+  const menuItems = [{ label: 'Copy profile link', onClick: () => copy(`${window.location.origin}/u/${username}`) }]
+
+  // Search view: sits under the header, results are this user's posts and listings.
+  if (searching) {
+    const noResults = dq.length >= 2 && !sBusy && sPosts.length === 0 && sListings.length === 0
+    return (
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title={displayName} subtitle={postsLabel} />
+        <ProfileSearchBar value={q} onChange={setQ} onClose={() => { setSearching(false); setQ('') }} placeholder={`Search ${isSelf ? 'your' : `${profile.full_name?.split(' ')[0] || 'their'}'s`} posts`} />
+        <div style={{ padding: '14px 16px' }}>
+          {dq.length < 2 && <EmptyCard icon="search" text="Type at least 2 letters to search posts and listings." />}
+          {dq.length >= 2 && sBusy && <FeedPostSkeleton count={2} />}
+          {noResults && <EmptyCard icon="search" text={`No posts or listings match “${dq}”.`} />}
+          {!sBusy && sPosts.length > 0 && (
+            <>
+              <SectionLabel>Posts</SectionLabel>
+              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)}
+            </>
+          )}
+          {!sBusy && sListings.length > 0 && (
+            <>
+              <SectionLabel>Listings</SectionLabel>
+              <ListingGrid listings={sListings} formatPrice={formatPrice} onOpen={(id) => navigate(`/marketplace?listing=${id}`)} />
+            </>
+          )}
+        </div>
+      </ProfileShell>
+    )
+  }
 
   // Own profile only: which of the public fields are still empty.
   const checks: [string, boolean][] = [
@@ -227,108 +271,85 @@ export default function UserProfilePage() {
   const completeness = Math.round(((checks.length - missing.length) / checks.length) * 100)
 
   return (
-    <Shell>
-      <Header onBack={() => navigate(-1)} right={
-        <div style={{ position: 'relative' }}>
-          <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill={COLORS.text} aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
-          </div>
-          {menuOpen && (
-            <>
-              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-              <div style={{ position: 'absolute', right: 0, top: '34px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '160px', overflow: 'hidden' }}>
-                <div onClick={copyLink} style={{ padding: '11px 14px', fontSize: '12.5px', fontWeight: 600, color: COLORS.text, cursor: 'pointer' }}>Copy profile link</div>
-              </div>
-            </>
-          )}
-        </div>
-      } />
+    <ProfileShell>
+      <ProfileHeader onBack={() => navigate(-1)} title={displayName} subtitle={postsLabel} />
 
-      {/* Cover */}
-      <div style={{ height: '128px', background: profile.cover_image ? '#E5EFE5' : 'linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 55%, #86EFAC 100%)', position: 'relative', overflow: 'hidden' }}>
-        {profile.cover_image
-          ? <img src={profile.cover_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ position: 'absolute', right: '-12px', bottom: '-18px', opacity: 0.35 }}><Icon name="leaf" size={110} color={COLORS.green} /></div>}
-      </div>
+      <ProfileCover src={profile.cover_image} />
 
-      <div style={{ padding: '0 16px' }}>
-        {/* Photo overlapping the cover */}
-        <div style={{ marginTop: '-42px' }}>
-          <div style={{ width: '84px', height: '84px', borderRadius: '42px', border: `4px solid ${COLORS.bg}`, background: COLORS.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box' }}>
-            {profile.profile_image ? <img src={profile.profile_image} alt={profile.full_name || 'Profile photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={34} color={COLORS.green} />}
-          </div>
-        </div>
+      <ProfileTop
+        image={profile.profile_image}
+        alt={displayName}
+        fallbackIcon="user"
+        actions={
+          <>
+            <DotsMenu items={menuItems} />
+            <RoundIconButton label="Search this profile" onClick={() => setSearching(true)}>
+              <Icon name="search" size={17} color={COLORS.text} />
+            </RoundIconButton>
+            {isSelf ? (
+              <PillButton onClick={() => navigate('/profile/edit')} filled={false}>Edit profile</PillButton>
+            ) : (
+              <>
+                <RoundIconButton label="Message" onClick={() => navigate(`/messages?to=${profile.user_id}`)}>
+                  <Icon name="message" size={17} color={COLORS.text} />
+                </RoundIconButton>
+                <PillButton onClick={toggleFollow} filled={!isFollowing} disabled={followBusy}>
+                  {isFollowing ? 'Following' : 'Follow'}
+                </PillButton>
+              </>
+            )}
+          </>
+        }
+      />
 
-        {/* Name + badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-          <p style={{ fontSize: '19px', fontWeight: 800, color: COLORS.text }}>{profile.full_name || profile.username || 'Farmxie user'}</p>
-          {profile.is_verified && <span title="Verified" style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={COLORS.green} /></span>}
-          {premium && <PremiumTick size={19} label="Premium member" />}
-        </div>
-        <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '2px' }}>@{profile.username}</p>
-        {roleLabel && <p style={{ fontSize: '12.5px', fontWeight: 600, color: COLORS.greenDark, marginTop: '6px' }}>{roleLabel}</p>}
-
-        {isSelf && !premium && (
-          <div onClick={() => navigate('/premium')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', padding: '6px 12px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-            <PremiumTick size={14} /> Upgrade to Premium
-          </div>
-        )}
+      <div style={{ padding: '10px 16px 0' }}>
+        <NameRow
+          name={displayName}
+          verified={profile.is_verified}
+          verifiedLabel="Verified"
+          premium={premium}
+          premiumLabel="Premium member"
+          onUpgrade={isSelf ? () => navigate('/premium') : undefined}
+        />
+        <p style={{ fontSize: '13.5px', color: COLORS.textMuted, marginTop: '2px' }}>@{profile.username}</p>
 
         {profile.bio ? (
-          <p style={{ fontSize: '13px', color: COLORS.text, marginTop: '10px', lineHeight: 1.55 }}>{profile.bio}</p>
+          <p style={{ fontSize: '14px', color: COLORS.text, marginTop: '10px', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{profile.bio}</p>
         ) : isSelf ? (
-          <p onClick={() => navigate('/profile/edit')} style={{ fontSize: '12.5px', color: COLORS.green, fontWeight: 700, marginTop: '10px', cursor: 'pointer' }}>+ Add a bio</p>
+          <p onClick={() => navigate('/profile/edit')} style={{ fontSize: '13px', color: COLORS.green, fontWeight: 700, marginTop: '10px', cursor: 'pointer' }}>+ Add a bio</p>
         ) : null}
 
-        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {profile.location && <InfoRow icon="mapPin">{profile.location}</InfoRow>}
+        <MetaRow>
+          {roleLabel && <MetaItem icon={<Icon name="briefcase" size={14} color={COLORS.textMuted} />}>{roleLabel}</MetaItem>}
+          {profile.location && <MetaItem icon={<Icon name="mapPin" size={14} color={COLORS.textMuted} />}>{profile.location}</MetaItem>}
           {websiteHref && (
-            <InfoRow icon="link">
+            <MetaItem icon={<Icon name="link" size={14} color={COLORS.textMuted} />}>
               <a href={websiteHref} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.green, fontWeight: 600, textDecoration: 'none' }}>{websiteLabel}</a>
-            </InfoRow>
+            </MetaItem>
           )}
-          <InfoRow icon={<CalendarIcon />}>Joined Farmxie {joined}</InfoRow>
-        </div>
+          <MetaItem icon={<CalendarIcon />}>Joined {joined}</MetaItem>
+        </MetaRow>
 
-        {/* Actions */}
-        {isSelf ? (
-          <div onClick={() => navigate('/profile/edit')} style={{ ...btn(false), marginTop: '16px' }}>
-            <Icon name="edit" size={14} color={COLORS.text} /> Edit Profile
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-            <div onClick={toggleFollow} style={{ ...btn(!isFollowing), flex: 1, opacity: followBusy ? 0.6 : 1 }}>
-              <Icon name={isFollowing ? 'check' : 'plus'} size={14} color={isFollowing ? COLORS.text : 'white'} />
-              {isFollowing ? 'Following' : 'Follow'}
-            </div>
-            <div onClick={() => navigate(`/messages?to=${profile.user_id}`)} style={{ ...btn(false), flex: 1 }}>
-              <Icon name="message" size={14} color={COLORS.text} /> Message
-            </div>
-          </div>
-        )}
+        <CountsRow items={[
+          { value: compact(profile.following_count || 0), label: 'Following' },
+          { value: compact(profile.followers_count || 0), label: 'Followers' },
+          { value: compact(likesReceived), label: 'Likes' },
+        ]} />
 
         {!isSelf && (profile.whatsapp || profile.phone) && (
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
             {profile.whatsapp && (
-              <a href={whatsappLink(profile.whatsapp)} target="_blank" rel="noopener noreferrer" style={{ ...soft, flex: 1 }}>
+              <a href={whatsappLink(profile.whatsapp)} target="_blank" rel="noopener noreferrer" style={{ ...softLink, flex: 1 }}>
                 <Icon name="message" size={14} color={COLORS.greenDark} /> WhatsApp
               </a>
             )}
             {profile.phone && (
-              <a href={`tel:${cleanPhone(profile.phone)}`} style={{ ...soft, flex: 1 }}>
+              <a href={`tel:${cleanPhone(profile.phone)}`} style={{ ...softLink, flex: 1 }}>
                 <Icon name="phone" size={14} color={COLORS.greenDark} /> Call
               </a>
             )}
           </div>
         )}
-
-        {/* Stats: real values from the database */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <Stat label="Posts" value={compact(profile.posts_count || 0)} />
-          <Stat label="Followers" value={compact(profile.followers_count || 0)} />
-          <Stat label="Following" value={compact(profile.following_count || 0)} />
-          <Stat label="Likes" value={compact(likesReceived)} />
-        </div>
 
         {isSelf && missing.length > 0 && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '12px', marginTop: '14px' }}>
@@ -343,38 +364,20 @@ export default function UserProfilePage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: `1px solid ${COLORS.border}`, marginTop: '18px' }}>
-          {(['posts', 'media', 'about'] as Tab[]).map((t) => (
-            <div key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} style={{
-              flex: 1, textAlign: 'center', padding: '11px 0', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
-              color: tab === t ? COLORS.green : COLORS.textMuted, borderBottom: `2px solid ${tab === t ? COLORS.green : 'transparent'}`,
-            }}>
-              {t}
-            </div>
-          ))}
-        </div>
+        <ProfileTabs<Tab>
+          tabs={[{ key: 'posts', label: 'Posts' }, { key: 'media', label: 'Media' }, { key: 'about', label: 'About' }]}
+          active={tab}
+          onChange={setTab}
+        />
 
         <div style={{ paddingTop: '16px' }}>
           {tab === 'posts' && (
             posts.length === 0
-              ? <Empty icon="comment" text="No posts yet." />
+              ? <EmptyCard icon="comment" text="No posts yet." />
               : posts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)
           )}
 
-          {tab === 'media' && (
-            mediaImages.length === 0 ? (
-              <Empty icon="leaf" text="No photos shared yet." />
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                {mediaImages.map((src, i) => (
-                  <a key={`${src}-${i}`} href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', aspectRatio: '1 / 1', background: '#E5EFE5', borderRadius: '8px', overflow: 'hidden' }}>
-                    <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </a>
-                ))}
-              </div>
-            )
-          )}
+          {tab === 'media' && <PhotoGrid images={mediaImages} empty="No photos shared yet." />}
 
           {tab === 'about' && (
             <>
@@ -411,93 +414,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {copied && (
-        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', background: COLORS.text, color: 'white', fontSize: '12px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', zIndex: 30 }}>
-          Link copied
-        </div>
-      )}
-    </Shell>
-  )
-}
-
-const btn = (filled: boolean): React.CSSProperties => ({
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px',
-  fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
-  background: filled ? COLORS.green : COLORS.card, color: filled ? 'white' : COLORS.text,
-  border: `1px solid ${filled ? COLORS.green : COLORS.border}`,
-})
-
-const soft: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px',
-  background: COLORS.greenSoft, color: COLORS.greenDark, fontSize: '12.5px', fontWeight: 700, textDecoration: 'none',
-}
-
-function Shell({ children }: { children: ReactNode }) {
-  return <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>{children}</div>
-}
-
-function InfoRow({ icon, children }: { icon: string | ReactNode; children: ReactNode }) {
-  return (
-    <div style={{ fontSize: '12.5px', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: '7px' }}>
-      {typeof icon === 'string' ? <Icon name={icon} size={13} color={COLORS.textMuted} /> : icon}
-      <span style={{ minWidth: 0, wordBreak: 'break-word' }}>{children}</span>
-    </div>
-  )
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" />
-    </svg>
-  )
-}
-
-function AboutRow({ label, value, href }: { label: string; value?: string | null; href?: string }) {
-  if (!value) return null
-  return (
-    <div style={{ padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
-      <p style={{ fontSize: '11px', color: COLORS.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</p>
-      {href
-        ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', fontWeight: 600, color: COLORS.green, textDecoration: 'none', marginTop: '3px', display: 'block', wordBreak: 'break-word' }}>{value}</a>
-        : <p style={{ fontSize: '13px', color: COLORS.text, marginTop: '3px', lineHeight: 1.5, wordBreak: 'break-word' }}>{value}</p>}
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ flex: 1, background: COLORS.card, borderRadius: '12px', padding: '10px 4px', textAlign: 'center' }}>
-      <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text }}>{value}</p>
-      <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '2px' }}>{label}</p>
-    </div>
-  )
-}
-
-function Empty({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div style={{ background: COLORS.card, borderRadius: '14px', padding: '28px 16px', textAlign: 'center' }}>
-      <Icon name={icon} size={26} color={COLORS.textMuted} />
-      <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '10px' }}>{text}</p>
-    </div>
-  )
-}
-
-// 1200 -> 1.2K, 10500 -> 10.5K
-function compact(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`
-  return String(n)
-}
-
-function Header({ onBack, right }: { onBack: () => void; right?: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-      <div role="button" aria-label="Back" onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-        <Icon name="arrowLeft" size={22} color={COLORS.text} />
-      </div>
-      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, flex: 1 }}>Profile</p>
-      {right}
-    </div>
+      {toast}
+    </ProfileShell>
   )
 }
