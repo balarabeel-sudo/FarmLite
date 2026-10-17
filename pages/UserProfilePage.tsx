@@ -12,7 +12,7 @@ import { isPremiumActive } from '../premiumShared'
 import { cleanPhone, whatsappLink } from '../phoneUtils'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
-  CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
+  BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
   softLink, useCopyLink, useDebounced, likePattern, compact,
 } from '../ProfileLayout'
 import type { ListingCardData } from '../ProfileLayout'
@@ -302,7 +302,7 @@ export default function UserProfilePage() {
         }
       />
 
-      <div style={{ padding: '10px 16px 0' }}>
+      <div style={{ padding: '8px 16px 0' }}>
         <NameRow
           name={displayName}
           verified={profile.is_verified}
@@ -311,12 +311,12 @@ export default function UserProfilePage() {
           premiumLabel="Premium member"
           onUpgrade={isSelf ? () => navigate('/premium') : undefined}
         />
-        <p style={{ fontSize: '13.5px', color: COLORS.textMuted, marginTop: '2px' }}>@{profile.username}</p>
+        <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '1px' }}>@{profile.username}</p>
 
         {profile.bio ? (
-          <p style={{ fontSize: '14px', color: COLORS.text, marginTop: '10px', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{profile.bio}</p>
+          <BioText text={profile.bio} />
         ) : isSelf ? (
-          <p onClick={() => navigate('/profile/edit')} style={{ fontSize: '13px', color: COLORS.green, fontWeight: 700, marginTop: '10px', cursor: 'pointer' }}>+ Add a bio</p>
+          <p onClick={() => navigate('/profile/edit')} style={{ fontSize: '12.5px', color: COLORS.green, fontWeight: 700, marginTop: '8px', cursor: 'pointer' }}>+ Add a bio</p>
         ) : null}
 
         <MetaRow>
