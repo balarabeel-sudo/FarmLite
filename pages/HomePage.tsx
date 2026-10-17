@@ -348,18 +348,24 @@ export default function HomePage() {
             ) : feed.length === 0 ? (
               <EmptyState icon="message" text="No posts yet. Be the first to share something!" />
             ) : (
-              feed.map((post, i) => (
-                <Fragment key={post.id}>
-                  {i > 0 && i % homeEvery === 0 && homeAds[i / homeEvery - 1] && (
-                    <SponsoredCard ad={homeAds[i / homeEvery - 1]} layout="wide" placement="home" />
-                  )}
-                  <PostCard
-                    post={post}
-                    initialLiked={likedPostIds.has(post.id)}
-                    initialSaved={savedPostIds.has(post.id)}
-                  />
-                </Fragment>
-              ))
+              <>
+                {feed.map((post, i) => (
+                  <Fragment key={post.id}>
+                    {i > 0 && i % homeEvery === 0 && homeAds[i / homeEvery - 1] && (
+                      <SponsoredCard ad={homeAds[i / homeEvery - 1]} layout="wide" placement="home" />
+                    )}
+                    <PostCard
+                      post={post}
+                      initialLiked={likedPostIds.has(post.id)}
+                      initialSaved={savedPostIds.has(post.id)}
+                    />
+                  </Fragment>
+                ))}
+                {/* With only a few posts the first ad still shows, at the end of the feed. */}
+                {feed.length <= homeEvery && homeAds[0] && (
+                  <SponsoredCard ad={homeAds[0]} layout="wide" placement="home" />
+                )}
+              </>
             )
           ) : tabError ? (
             <NetworkError onRetry={() => loadTab(feedTab)} />
