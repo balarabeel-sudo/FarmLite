@@ -18,6 +18,8 @@ export const PCOLORS = {
 }
 
 const HEADER_HEIGHT = 56
+const AVATAR = 72
+const BTN = 32
 
 export function ProfileShell({ children }: { children: ReactNode }) {
   return <div style={{ minHeight: '100vh', background: PCOLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>{children}</div>
@@ -53,17 +55,18 @@ export function ProfileCover({ src }: { src?: string | null }) {
 // The photo has its own stacking level: the cover is a positioned element and would otherwise paint over the top half of it.
 export function ProfileTop({ image, alt, fallbackIcon, actions }: { image?: string | null; alt: string; fallbackIcon: string; actions: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0 16px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', padding: '0 16px' }}>
       <div style={{
-        position: 'relative', zIndex: 2, marginTop: '-44px', width: '88px', height: '88px', borderRadius: '50%', flexShrink: 0,
-        border: `4px solid ${PCOLORS.bg}`, boxSizing: 'border-box', background: PCOLORS.greenSoft, overflow: 'hidden',
+        position: 'relative', zIndex: 2, marginTop: `-${AVATAR / 2}px`, width: `${AVATAR}px`, height: `${AVATAR}px`, borderRadius: '50%', flexShrink: 0,
+        border: `3px solid ${PCOLORS.bg}`, boxSizing: 'border-box', background: PCOLORS.greenSoft, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {image
           ? <img src={image} alt={alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <Icon name={fallbackIcon} size={34} color={PCOLORS.green} />}
+          : <Icon name={fallbackIcon} size={28} color={PCOLORS.green} />}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>{actions}</div>
+      {/* One row, never wraps: keeps Follow level with the other buttons on every phone width */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '10px', flexWrap: 'nowrap', flexShrink: 0 }}>{actions}</div>
     </div>
   )
 }
@@ -71,7 +74,7 @@ export function ProfileTop({ image, alt, fallbackIcon, actions }: { image?: stri
 export function RoundIconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
     <div role="button" aria-label={label} onClick={onClick} style={{
-      width: '36px', height: '36px', borderRadius: '50%', border: `1px solid ${PCOLORS.border}`, background: PCOLORS.card,
+      width: `${BTN}px`, height: `${BTN}px`, borderRadius: '50%', border: `1px solid ${PCOLORS.border}`, background: PCOLORS.card,
       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
     }}>
       {children}
@@ -82,8 +85,8 @@ export function RoundIconButton({ label, onClick, children }: { label: string; o
 export function PillButton({ onClick, filled, disabled, children }: { onClick: () => void; filled: boolean; disabled?: boolean; children: ReactNode }) {
   return (
     <div role="button" aria-disabled={disabled} onClick={disabled ? undefined : onClick} style={{
-      height: '36px', padding: '0 18px', borderRadius: '999px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-      fontWeight: 700, fontSize: '13px', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1, whiteSpace: 'nowrap',
+      height: `${BTN}px`, padding: '0 16px', borderRadius: '999px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0,
+      fontWeight: 700, fontSize: '12.5px', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1, whiteSpace: 'nowrap',
       background: filled ? PCOLORS.green : PCOLORS.card, color: filled ? 'white' : PCOLORS.text,
       border: `1px solid ${filled ? PCOLORS.green : PCOLORS.border}`,
     }}>
@@ -109,7 +112,7 @@ export function DotsMenu({ items }: { items: MenuItem[] }) {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-          <div style={{ position: 'absolute', right: 0, top: '42px', zIndex: 21, background: PCOLORS.card, border: `1px solid ${PCOLORS.border}`, borderRadius: '12px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '190px', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', right: 0, top: `${BTN + 6}px`, zIndex: 21, background: PCOLORS.card, border: `1px solid ${PCOLORS.border}`, borderRadius: '12px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '190px', overflow: 'hidden' }}>
             {items.map((it) => (
               <div key={it.label} onClick={() => { setOpen(false); it.onClick() }} style={{ padding: '12px 14px', fontSize: '13px', fontWeight: 600, color: it.danger ? '#DC2626' : PCOLORS.text, cursor: 'pointer' }}>
                 {it.label}
@@ -134,13 +137,33 @@ export function NameRow({ name, verified, verifiedLabel, premium, premiumLabel, 
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-      <p style={{ fontSize: '20px', fontWeight: 800, color: PCOLORS.text, lineHeight: 1.25, wordBreak: 'break-word' }}>{name}</p>
-      {verified && <span title={verifiedLabel || 'Verified'} style={{ display: 'flex' }}><Icon name="checkCircle" size={17} color={PCOLORS.green} /></span>}
-      {premium && <PremiumTick size={20} label={premiumLabel} />}
+      <p style={{ fontSize: '18px', fontWeight: 800, color: PCOLORS.text, lineHeight: 1.25, wordBreak: 'break-word' }}>{name}</p>
+      {verified && <span title={verifiedLabel || 'Verified'} style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={PCOLORS.green} /></span>}
+      {premium && <PremiumTick size={18} label={premiumLabel} />}
       {!premium && onUpgrade && (
-        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px 3px 6px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer' }}>
-          <PremiumTick size={15} /> Upgrade
+        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
+          <PremiumTick size={14} /> Upgrade
         </div>
+      )}
+    </div>
+  )
+}
+
+// Bio / description: 13px, folded to 4 lines with "Show more" when it is long.
+export function BioText({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  const long = text.length > 170 || text.split('\n').length > 4
+  const folded = long && !open
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <p style={{
+        fontSize: '13px', lineHeight: 1.5, color: PCOLORS.text, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        ...(folded ? { display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}),
+      }}>{text}</p>
+      {long && (
+        <span role="button" onClick={() => setOpen((o) => !o)} style={{ display: 'inline-block', marginTop: '3px', fontSize: '12.5px', fontWeight: 700, color: PCOLORS.green, cursor: 'pointer' }}>
+          {open ? 'Show less' : 'Show more'}
+        </span>
       )}
     </div>
   )
@@ -161,7 +184,7 @@ export function MetaRow({ children }: { children: ReactNode }) {
 
 export function MetaItem({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: PCOLORS.textMuted, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', color: PCOLORS.textMuted, minWidth: 0 }}>
       {icon}
       <span style={{ minWidth: 0, wordBreak: 'break-word' }}>{children}</span>
     </div>
@@ -173,7 +196,7 @@ export function CountsRow({ items }: { items: { value: string; label: string }[]
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 18px', marginTop: '10px' }}>
       {items.map((it) => (
-        <div key={it.label} style={{ fontSize: '13px', color: PCOLORS.textMuted }}>
+        <div key={it.label} style={{ fontSize: '12.5px', color: PCOLORS.textMuted }}>
           <span style={{ fontWeight: 800, color: PCOLORS.text }}>{it.value}</span> {it.label}
         </div>
       ))}
@@ -189,7 +212,7 @@ export function ProfileTabs<T extends string>({ tabs, active, onChange }: { tabs
         const on = active === t.key
         return (
           <div key={t.key} role="tab" aria-selected={on} onClick={() => onChange(t.key)} style={{ flex: 1, textAlign: 'center', cursor: 'pointer', paddingTop: '13px' }}>
-            <span style={{ display: 'inline-block', paddingBottom: '11px', fontSize: '13.5px', fontWeight: on ? 800 : 600, color: on ? PCOLORS.text : PCOLORS.textMuted, borderBottom: `4px solid ${on ? PCOLORS.green : 'transparent'}`, borderRadius: '2px' }}>
+            <span style={{ display: 'inline-block', paddingBottom: '11px', fontSize: '13px', fontWeight: on ? 800 : 600, color: on ? PCOLORS.text : PCOLORS.textMuted, borderBottom: `4px solid ${on ? PCOLORS.green : 'transparent'}`, borderRadius: '2px' }}>
               {t.label}
             </span>
           </div>
