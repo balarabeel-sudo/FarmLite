@@ -26,6 +26,11 @@ export type Order = {
   completed_at: string | null
   expected_delivery_at: string | null
   cancelled_at: string | null
+  // Set only when the listing was priced in another currency: the original price and the rate locked at purchase.
+  orig_currency?: string | null
+  orig_unit_price?: number | null
+  orig_amount?: number | null
+  fx_rate?: number | null
 }
 
 export type DisputeEvidence = {
@@ -78,7 +83,7 @@ export const WITHDRAWAL_STATUS: Record<WithdrawalStatus, { label: string; color:
 }
 
 export const ORDER_COLUMNS =
-  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at, expected_delivery_at, cancelled_at'
+  'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at, expected_delivery_at, cancelled_at, orig_currency, orig_unit_price, orig_amount, fx_rate'
 
 export const STATUS_INFO: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   escrow_held: { label: 'In escrow', color: '#B45309', bg: '#FEF3C7' },
@@ -171,13 +176,31 @@ export async function getMyWallet(): Promise<Wallet> {
   return { user_id: w.user_id, available: Number(w.available), held: Number(w.held), currency: w.currency }
 }
 
-export async function placeOrder(listingId: string, quantity: number, expectedDeliveryAt: Date): Promise<{ order_id: string; code: string; amount: number }> {
-  const { data, error } = await supabase.rpc('place_order', {
+// Price of an order in NGN. For a listing priced in another currency the NGN amount uses the current Farmxie rate.
+export type FxQuote = { currency: string; orig_unit_price: number; orig_amount: number; rate: number; amount_ngn: number }
+
+export async function getFxQuote(listingId: string, quantity: number): Promise<FxQuote> {
+  const { data, error } = await supabase.rpc('fx_quote', { p_listing: listingId, p_quantity: quantity })
+  if (error) throw new Error(error.message)
+  const d = data as any
+  if (d?.error === 'rate_unavailable') throw new Error(`Escrow is not available for ${d.currency} prices right now. Please contact the seller directly or try again later.`)
+  if (d?.error) throw new Error('This listing is not available.')
+  return { currency: d.currency, orig_unit_price: Number(d.orig_unit_price), orig_amount: Number(d.orig_amount), rate: Number(d.rate), amount_ngn: Number(d.amount_ngn) }
+}
+
+// expectedNgn is the total the buyer saw; if the rate changed in the meantime the order is refused so nobody pays a different price.
+export async function placeOrder(listingId: string, quantity: number, expectedDeliveryAt: Date, expectedNgn?: number): Promise<{ order_id: string; code: string; amount: number }> {
+  const { data, error } = await supabase.rpc('place_order_v2', {
     p_listing_id: listingId,
     p_quantity: quantity,
     p_expected_delivery_at: expectedDeliveryAt.toISOString(),
+    p_expected_ngn: expectedNgn ?? null,
   })
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (error.message.includes('rate_changed')) throw new Error('The exchange rate changed. Please check the new total and try again.')
+    if (error.message.includes('rate_unavailable')) throw new Error('Escrow is not available for this currency right now. Please contact the seller directly or try again later.')
+    throw new Error(error.message)
+  }
   return data as any
 }
 
