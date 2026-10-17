@@ -1,7 +1,7 @@
 // Shared helpers for the company Ads pages.
 
 export type AdStatus = 'pending_review' | 'approved' | 'rejected' | 'active' | 'paused' | 'completed' | 'cancelled'
-export type Placement = 'home' | 'marketplace' | 'companies' | 'search'
+export type Placement = 'home' | 'marketplace' | 'companies' | 'search' | 'groups'
 
 export type AdRow = {
   id: string
@@ -21,6 +21,7 @@ export type AdRow = {
   paused_at?: string | null
   created_at: string
   placements: Placement[]
+  group_ids?: string[]
   audience_roles?: string[]
   locations?: string[]
   impressions?: number
@@ -50,6 +51,7 @@ export const PLACEMENTS: { key: Placement; label: string; help: string; companyO
   { key: 'marketplace', label: 'Marketplace', help: 'Shown among listings in the Marketplace.' },
   { key: 'companies', label: 'Companies page', help: 'Shown on the Companies page. Company ads only.', companyOnly: true },
   { key: 'search', label: 'Search results', help: 'Shown when a search matches your ad.' },
+  { key: 'groups', label: 'Groups', help: 'Shown inside the groups you choose, after every 10 posts. Priced as an add-on.' },
 ]
 
 export const placementLabel = (p: string) => PLACEMENTS.find((x) => x.key === p)?.label ?? (p === 'other' ? 'Other' : p)
@@ -98,6 +100,8 @@ export const AD_ERRORS: Record<string, string> = {
   invalid_image: 'The image could not be used. Please upload it again.',
   invalid_duration: 'Choose a duration.',
   invalid_placement: 'Choose at least one valid placement.',
+  invalid_groups: 'Choose between 1 and 10 public groups.',
+  groups_not_available: 'Group ads are not available for your country yet.',
   invalid_target: 'Choose what you want to promote.',
   too_many_open: 'You already have 5 ads waiting for review or payment. Finish or cancel one first.',
   no_price: 'Ads are not available for your country yet.',
