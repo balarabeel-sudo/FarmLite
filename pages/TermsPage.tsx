@@ -134,7 +134,7 @@ const SECTIONS: Section[] = [
     blocks: [
       { p: 'This section describes only the features that exist in Farmxie today. Features are clearly separated into available and planned.' },
       { sub: 'Available today', list: [
-        'Wallet: every account has a wallet. You can top up through our payment partner Paystack. Wallet amounts are held in Nigerian Naira (NGN); other currencies shown in the app are for display only, using approximate exchange rates.',
+        'Wallet: every account has a wallet. You can top up through our payment partner Paystack. Wallet amounts are held in Nigerian Naira (NGN); other currencies shown in the app are for display only, using approximate exchange rates. When you buy a listing priced in another currency with Escrow, you pay in NGN at the exchange rate shown at checkout, and that rate is locked when you place the order.',
         'Escrow: when you pay for a Marketplace order from your wallet, the amount is held in escrow instead of going to the seller at once. The buyer sets an expected delivery time when ordering. The seller receives the money after the buyer gives the seller the order code and the seller verifies it.',
         'Cancellation: the buyer cannot cancel before the expected delivery time. After that time, if the seller has not delivered, the buyer can cancel and the held amount is returned to the buyer’s wallet.',
         'Disputes: either side can open a dispute with a written reason and up to four photos. Farmxie staff review the evidence and decide whether the money is released to the seller or refunded to the buyer. That decision is final within the platform, without limiting your legal rights.',
