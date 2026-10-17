@@ -13,7 +13,7 @@ import { isPremiumActive } from '../premiumShared'
 import { trackView } from '../analyticsShared'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
-  CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, Block, Tags, PhotoGrid, ListingGrid,
+  BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, Block, Tags, PhotoGrid, ListingGrid,
   useCopyLink, useDebounced, likePattern, compact,
 } from '../ProfileLayout'
 import type { ListingCardData } from '../ProfileLayout'
@@ -284,7 +284,7 @@ export default function CompanyDetailsPage() {
         }
       />
 
-      <div style={{ padding: '10px 16px 0' }}>
+      <div style={{ padding: '8px 16px 0' }}>
         <NameRow
           name={company.name}
           verified={verified}
@@ -293,7 +293,7 @@ export default function CompanyDetailsPage() {
           premiumLabel="Premium company"
           onUpgrade={isOwner ? () => navigate(COMPANY_PREMIUM_PATH) : undefined}
         />
-        {typeLine && <p style={{ fontSize: '13.5px', color: COLORS.textMuted, marginTop: '2px', textTransform: 'capitalize' }}>{typeLine}</p>}
+        {typeLine && <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '1px', textTransform: 'capitalize' }}>{typeLine}</p>}
 
         {(company.trusted_partner || (isOwner && !verified)) && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
@@ -302,11 +302,7 @@ export default function CompanyDetailsPage() {
           </div>
         )}
 
-        {company.description && (
-          <p style={{ fontSize: '14px', color: COLORS.text, lineHeight: 1.55, marginTop: '10px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {company.description}
-          </p>
-        )}
+        {company.description && <BioText text={company.description} />}
 
         <MetaRow>
           {place && <MetaItem icon={<Icon name="mapPin" size={14} color={COLORS.textMuted} />}>{place}</MetaItem>}
