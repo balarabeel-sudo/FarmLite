@@ -4,8 +4,9 @@ import { useAuth } from './AuthContext'
 
 const COLORS = { bg: '#F8FAF6', green: '#16A34A' }
 
-export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth()
+// allowPending: the "choose your username" page itself, which new accounts must pass through first.
+export default function ProtectedRoute({ children, allowPending = false }: { children: ReactNode; allowPending?: boolean }) {
+  const { session, user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -17,6 +18,11 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!session) {
     return <Navigate to="/login" replace />
+  }
+
+  // A new account first picks its username (and can keep the one it was given)
+  if (!allowPending && (user?.user_metadata as Record<string, unknown> | undefined)?.username_pending === true) {
+    return <Navigate to="/choose-username" replace />
   }
 
   return <>{children}</>
