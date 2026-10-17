@@ -9,6 +9,9 @@ import PullToRefresh from './PullToRefresh'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ChooseUsernamePage from './pages/ChooseUsernamePage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import HelpPage from './pages/HelpPage'
@@ -110,6 +113,16 @@ function App() {
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route
+              path="/choose-username"
+              element={
+                <ProtectedRoute allowPending>
+                  <ChooseUsernamePage />
+                </ProtectedRoute>
+              }
+            />
             {/* Legal pages are public so they can be read before signing up */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
