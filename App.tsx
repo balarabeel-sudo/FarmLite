@@ -4,6 +4,7 @@ import { AuthProvider } from './AuthContext'
 import { LocaleProvider } from './LocaleContext'
 import ProtectedRoute from './ProtectedRoute'
 import SplashScreen from './SplashScreen'
+import PullToRefresh from './PullToRefresh'
 
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -84,8 +85,13 @@ import AdminAdPricingPage from './admin/pages/AdPricingPage'
 import MaintenanceGate from './MaintenanceGate'
 import PresenceTracker from './PresenceTracker'
 
+// The logo animation is for opening the app, not for every reload: it plays once per visit.
+function splashAlreadySeen(): boolean {
+  try { return sessionStorage.getItem('farmxie_splash_seen') === '1' } catch { return false }
+}
+
 function App() {
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(() => !splashAlreadySeen())
 
   return (
     <BrowserRouter>
@@ -94,11 +100,13 @@ function App() {
           <PresenceTracker />
           {showSplash && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
-              <SplashScreen onFinish={() => setShowSplash(false)} />
+              <SplashScreen onFinish={() => { try { sessionStorage.setItem('farmxie_splash_seen', '1') } catch { /* ignore */ } setShowSplash(false) }} />
             </div>
           )}
           <MaintenanceGate>
-          <Routes>
+          <PullToRefresh>
+          {(refreshKey) => (
+          <Routes key={refreshKey}>
             {/* Public routes: no session required */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -652,6 +660,8 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          )}
+          </PullToRefresh>
           </MaintenanceGate>
         </AuthProvider>
       </LocaleProvider>
