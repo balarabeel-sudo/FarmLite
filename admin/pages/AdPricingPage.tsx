@@ -8,8 +8,9 @@ import { logAdminAction } from '../adminAuth'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', bg: '#F7F8F7', red: '#DC2626', amber: '#B45309' }
 
-type PriceRow = { country: string; days: 3 | 7 | 14; amount: number; currency: string; active: boolean }
-type Region = { country: string; currency: string; p3: string; p7: string; p14: string; active: boolean; dirty: boolean }
+type PriceRow = { country: string; days: 3 | 7 | 14; amount: number; currency: string; active: boolean; groups_amount?: number | null }
+// g3/g7/g14 are the extra amounts added when a company also advertises inside Groups (0 = group ads off for that region).
+type Region = { country: string; currency: string; p3: string; p7: string; p14: string; g3: string; g7: string; g14: string; active: boolean; dirty: boolean }
 
 const ERRORS: Record<string, string> = {
   invalid_region: 'Enter a region name (2 to 60 characters).',
@@ -27,10 +28,11 @@ function toRegions(rows: PriceRow[]): Region[] {
   const map = new Map<string, Region>()
   rows.forEach((r) => {
     const key = r.country.toLowerCase()
-    const cur = map.get(key) || { country: r.country, currency: r.currency, p3: '', p7: '', p14: '', active: r.active, dirty: false }
-    if (r.days === 3) cur.p3 = String(r.amount)
-    if (r.days === 7) cur.p7 = String(r.amount)
-    if (r.days === 14) cur.p14 = String(r.amount)
+    const cur = map.get(key) || { country: r.country, currency: r.currency, p3: '', p7: '', p14: '', g3: '0', g7: '0', g14: '0', active: r.active, dirty: false }
+    const g = String(r.groups_amount ?? 0)
+    if (r.days === 3) { cur.p3 = String(r.amount); cur.g3 = g }
+    if (r.days === 7) { cur.p7 = String(r.amount); cur.g7 = g }
+    if (r.days === 14) { cur.p14 = String(r.amount); cur.g14 = g }
     cur.active = cur.active && r.active
     map.set(key, cur)
   })
@@ -49,7 +51,7 @@ export default function AdPricingPage() {
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
-  const [draft, setDraft] = useState({ country: '', currency: 'NGN', p3: '', p7: '', p14: '' })
+  const [draft, setDraft] = useState({ country: '', currency: 'NGN', p3: '', p7: '', p14: '', g3: '0', g7: '0', g14: '0' })
 
   const load = async () => {
     setError(false)
@@ -70,19 +72,24 @@ export default function AdPricingPage() {
   const edit = (country: string, patch: Partial<Region>) =>
     setRegions((prev) => prev.map((r) => (r.country === country ? { ...r, ...patch, dirty: true } : r)))
 
-  const saveRegion = async (r: Pick<Region, 'country' | 'currency' | 'p3' | 'p7' | 'p14' | 'active'>, isNew = false) => {
+  const saveRegion = async (r: Pick<Region, 'country' | 'currency' | 'p3' | 'p7' | 'p14' | 'g3' | 'g7' | 'g14' | 'active'>, isNew = false) => {
     setMessage(null)
     const nums = [Number(r.p3), Number(r.p7), Number(r.p14)]
     if (nums.some((n) => !Number.isFinite(n) || n <= 0)) return setMessage({ kind: 'error', text: ERRORS.invalid_price })
+    // Group add-ons may be 0 (group ads off for this region) but never negative.
+    const extra = [r.g3, r.g7, r.g14].map((v) => (v.trim() === '' ? 0 : Number(v)))
+    if (extra.some((n) => !Number.isFinite(n) || n < 0)) return setMessage({ kind: 'error', text: ERRORS.invalid_price })
     setBusy(r.country || 'new')
     const { error: e } = await supabase.rpc('ad_region_set', {
       p_country: r.country, p_currency: r.currency, p_p3: nums[0], p_p7: nums[1], p_p14: nums[2], p_active: r.active,
     })
+    if (e) { setBusy(''); return setMessage({ kind: 'error', text: errorText(e) }) }
+    const { error: e2 } = await supabase.rpc('ad_groups_price_set', { p_country: r.country, p_g3: extra[0], p_g7: extra[1], p_g14: extra[2] })
     setBusy('')
-    if (e) return setMessage({ kind: 'error', text: errorText(e) })
-    await logAdminAction(isNew ? 'Added ad prices for a region' : 'Updated ad prices for a region', { type: 'ad_prices', id: r.country, label: `${r.country}: ${r.currency} ${nums.join(' / ')}${r.active ? '' : ' (off)'}` })
+    if (e2) return setMessage({ kind: 'error', text: errorText(e2) })
+    await logAdminAction(isNew ? 'Added ad prices for a region' : 'Updated ad prices for a region', { type: 'ad_prices', id: r.country, label: `${r.country}: ${r.currency} ${nums.join(' / ')}, groups add-on ${extra.join(' / ')}${r.active ? '' : ' (off)'}` })
     setMessage({ kind: 'ok', text: `${r.country} saved.` })
-    if (isNew) setDraft({ country: '', currency: draft.currency, p3: '', p7: '', p14: '' })
+    if (isNew) setDraft({ country: '', currency: draft.currency, p3: '', p7: '', p14: '', g3: '0', g7: '0', g14: '0' })
     load()
   }
 
@@ -140,7 +147,7 @@ export default function AdPricingPage() {
             </div>
           </Card>
 
-          <Card title="Prices by region" hint='The region name must match the country a company lists on its profile (for example "Nigeria"). Add a region called "Default" for every other country. Prices are per package, for 3, 7 and 14 days.'>
+          <Card title="Prices by region" hint='The region name must match the country a company lists on its profile (for example "Nigeria"). Add a region called "Default" for every other country. Prices are per package, for 3, 7 and 14 days. "Groups +" is the fixed extra amount added when a company also advertises inside Groups; leave it at 0 to keep group ads switched off for that region.'>
             {loading ? (
               <p style={{ fontSize: '13px', color: A.textMuted }}>Loading prices...</p>
             ) : error ? (
@@ -150,15 +157,15 @@ export default function AdPricingPage() {
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1020 }}>
                   <thead>
-                    <tr>{['Region', 'Currency', '3 days', '7 days', '14 days', 'On', ''].map((h) => (
+                    <tr>{['Region', 'Currency', '3 days', '7 days', '14 days', 'Groups +3d', 'Groups +7d', 'Groups +14d', 'On', ''].map((h) => (
                       <th key={h} style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: A.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', padding: '8px 8px' }}>{h}</th>
                     ))}</tr>
                   </thead>
                   <tbody>
                     {regions.length === 0 && (
-                      <tr><td colSpan={7} style={{ padding: '14px 8px', fontSize: '13px', color: A.textMuted }}>No regions yet. Add one below. Until you do, companies cannot create ads.</td></tr>
+                      <tr><td colSpan={10} style={{ padding: '14px 8px', fontSize: '13px', color: A.textMuted }}>No regions yet. Add one below. Until you do, companies cannot create ads.</td></tr>
                     )}
                     {regions.map((r) => (
                       <tr key={r.country} style={{ borderTop: `1px solid ${A.border}` }}>
@@ -167,6 +174,9 @@ export default function AdPricingPage() {
                         <td style={{ padding: '6px 8px' }}><input value={r.p3} inputMode="decimal" onChange={(e) => edit(r.country, { p3: e.target.value })} style={{ ...input, width: 110 }} /></td>
                         <td style={{ padding: '6px 8px' }}><input value={r.p7} inputMode="decimal" onChange={(e) => edit(r.country, { p7: e.target.value })} style={{ ...input, width: 110 }} /></td>
                         <td style={{ padding: '6px 8px' }}><input value={r.p14} inputMode="decimal" onChange={(e) => edit(r.country, { p14: e.target.value })} style={{ ...input, width: 110 }} /></td>
+                        <td style={{ padding: '6px 8px' }}><input value={r.g3} inputMode="decimal" onChange={(e) => edit(r.country, { g3: e.target.value })} style={{ ...input, width: 90 }} /></td>
+                        <td style={{ padding: '6px 8px' }}><input value={r.g7} inputMode="decimal" onChange={(e) => edit(r.country, { g7: e.target.value })} style={{ ...input, width: 90 }} /></td>
+                        <td style={{ padding: '6px 8px' }}><input value={r.g14} inputMode="decimal" onChange={(e) => edit(r.country, { g14: e.target.value })} style={{ ...input, width: 90 }} /></td>
                         <td style={{ padding: '6px 8px' }}><input type="checkbox" checked={r.active} onChange={(e) => edit(r.country, { active: e.target.checked })} /></td>
                         <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
                           <Btn onClick={() => saveRegion(r)} disabled={!r.dirty || busy === r.country}>{busy === r.country ? 'Saving...' : 'Save'}</Btn>
@@ -187,6 +197,9 @@ export default function AdPricingPage() {
               <Field label="3 days"><input value={draft.p3} inputMode="decimal" onChange={(e) => setDraft({ ...draft, p3: e.target.value })} style={{ ...input, width: 110 }} /></Field>
               <Field label="7 days"><input value={draft.p7} inputMode="decimal" onChange={(e) => setDraft({ ...draft, p7: e.target.value })} style={{ ...input, width: 110 }} /></Field>
               <Field label="14 days"><input value={draft.p14} inputMode="decimal" onChange={(e) => setDraft({ ...draft, p14: e.target.value })} style={{ ...input, width: 110 }} /></Field>
+              <Field label="Groups +3d"><input value={draft.g3} inputMode="decimal" onChange={(e) => setDraft({ ...draft, g3: e.target.value })} style={{ ...input, width: 90 }} /></Field>
+              <Field label="Groups +7d"><input value={draft.g7} inputMode="decimal" onChange={(e) => setDraft({ ...draft, g7: e.target.value })} style={{ ...input, width: 90 }} /></Field>
+              <Field label="Groups +14d"><input value={draft.g14} inputMode="decimal" onChange={(e) => setDraft({ ...draft, g14: e.target.value })} style={{ ...input, width: 90 }} /></Field>
               <Btn onClick={() => saveRegion({ ...draft, active: true }, true)} disabled={busy === 'new' || !draft.country.trim()}>{busy === 'new' ? 'Adding...' : 'Add region'}</Btn>
             </div>
             <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: '10px' }}>New regions are switched on straight away. Untick "On" in the table to hide a region without deleting it.</p>
