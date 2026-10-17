@@ -1,53 +1,95 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../AuthContext'
-import { AUTH, AuthPage, BrandHeader, PageTitle, ErrorBox, PasswordField, authPrimaryButton, authLinkStyle } from '../AuthShared'
+import Icon from '../Icons'
+import {
+  AUTH, AuthPage, BrandHeader, PageTitle, ErrorBox, OrDivider, GoogleButton,
+  AuthField, PasswordField, authPrimaryButton, authLinkStyle,
+} from '../AuthShared'
 
-// Opened from the link in the "reset your password" email. The link signs the person in for a moment,
-// so a new password can be saved.
-export default function ResetPasswordPage() {
+export default function LoginPage() {
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
+  const location = useLocation() as any
+
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [show, setShow] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const submit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
-    if (password !== confirm) { setError('The two passwords do not match.'); return }
-    setSaving(true)
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    setSaving(false)
-    if (updateError) { setError(updateError.message || 'Could not save the new password. Please try again.'); return }
-    navigate('/', { replace: true })
+
+    const email = identifier.trim()
+    if (!email || !password) {
+      setError('Please enter your email and password.')
+      return
+    }
+    if (!email.includes('@')) {
+      setError('Please sign in with your email address.')
+      return
+    }
+
+    setLoading(true)
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+
+    if (signInError) {
+      setError(signInError.message || 'Could not sign in. Please check your details and try again.')
+      return
+    }
+
+    const redirectTo = location.state?.from?.pathname || '/'
+    navigate(redirectTo, { replace: true })
   }
 
   return (
     <AuthPage>
-      <BrandHeader compact />
-      <PageTitle title="New password" subtitle="Choose a new password for your account." />
-      {authLoading ? (
-        <p style={{ textAlign: 'center', color: AUTH.textMuted, fontSize: '14px' }}>Loading...</p>
-      ) : !user ? (
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '14.5px', color: AUTH.textMuted, lineHeight: 1.6 }}>This link has expired or was already used. Ask for a new one.</p>
-          <Link to="/forgot-password" style={{ ...authPrimaryButton(false), display: 'inline-flex', width: 'auto', padding: '0 34px', marginTop: '22px', textDecoration: 'none' }}>Get a new link</Link>
-          <p style={{ marginTop: '22px', fontSize: '14px' }}><Link to="/login" style={authLinkStyle}>Back to Sign In</Link></p>
+      <BrandHeader />
+      <PageTitle title="Welcome Back" subtitle="Sign in to your FarmXie account" />
+
+      <form onSubmit={handleSubmit}>
+        <ErrorBox message={error} />
+
+        <AuthField
+          icon="mail"
+          type="email"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          placeholder="Email Address"
+          autoComplete="username"
+          autoCapitalize="none"
+        />
+
+        <PasswordField
+          show={showPassword}
+          onToggle={() => setShowPassword((v) => !v)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          autoComplete="current-password"
+          marginBottom={10}
+        />
+
+        <div style={{ textAlign: 'right', margin: '0 2px 26px' }}>
+          <Link to="/forgot-password" style={{ fontSize: '14px', ...authLinkStyle }}>Forgot password?</Link>
         </div>
-      ) : (
-        <form onSubmit={submit}>
-          <ErrorBox message={error} />
-          <PasswordField show={show} onToggle={() => setShow((v) => !v)} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" autoComplete="new-password" />
-          <PasswordField show={show} onToggle={() => setShow((v) => !v)} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm New Password" autoComplete="new-password" marginBottom={22} />
-          <button type="submit" disabled={saving} style={authPrimaryButton(saving)}>{saving ? 'Saving...' : 'Save new password'}</button>
-        </form>
-      )}
+
+        <button type="submit" disabled={loading} style={authPrimaryButton(loading)}>
+          {loading ? 'Signing in...' : 'Sign In'}
+          {!loading && <Icon name="arrowRight" size={20} color="#FFFFFF" />}
+        </button>
+      </form>
+
+      <OrDivider text="or continue with" />
+      <GoogleButton label="Continue with Google" onError={setError} />
+
+      <p style={{ textAlign: 'center', fontSize: '14.5px', color: AUTH.text, marginTop: '44px' }}>
+        Don't have an account?{' '}
+        <Link to="/register" style={authLinkStyle}>Sign Up</Link>
+      </p>
     </AuthPage>
   )
 }
