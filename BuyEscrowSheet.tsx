@@ -3,10 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import Icon from './Icons'
 import { COLORS } from './shared'
 import {
-  getMyWallet, placeOrder, useMoney, DELIVERY_UNITS, addDuration, deliveryProblem, formatDeliveryDate,
+  getMyWallet, placeOrder, getFxQuote, useMoney, DELIVERY_UNITS, addDuration, deliveryProblem, formatDeliveryDate,
 } from './walletShared'
 import type { DeliveryUnit } from './walletShared'
-import type { Wallet } from './walletShared'
+import type { Wallet, FxQuote } from './walletShared'
+
+// Money in the currency the listing is priced in
+const fmtIn = (value: number, cur: string) => {
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(value)
+  } catch {
+    return `${cur} ${value.toLocaleString()}`
+  }
+}
 
 export type BuyListing = {
   id: string
@@ -35,11 +44,28 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
     getMyWallet().then(setWallet).catch(() => setError('Could not load your wallet. Check your connection.'))
   }, [])
 
-  const isNgn = (listing.currency || 'NGN') === 'NGN'
+  const listingCur = (listing.currency || 'NGN').toUpperCase()
+  const isNgn = listingCur === 'NGN'
   const q = Number(qty)
   const qtyValid = Number.isFinite(q) && q > 0 && (listing.quantity == null || q <= Number(listing.quantity))
-  const total = qtyValid ? Math.round(Number(listing.price) * q * 100) / 100 : 0
-  const enough = !!wallet && wallet.available >= total
+
+  // A listing priced in another currency is paid in NGN at the current Farmxie rate; the server confirms the same rate when ordering.
+  const [quote, setQuote] = useState<FxQuote | null>(null)
+  const [quoteError, setQuoteError] = useState('')
+  useEffect(() => {
+    if (isNgn || !qtyValid) { setQuote(null); setQuoteError(''); return }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      getFxQuote(listing.id, q)
+        .then((r) => { if (!cancelled) { setQuote(r); setQuoteError('') } })
+        .catch((e) => { if (!cancelled) { setQuote(null); setQuoteError((e as Error).message) } })
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [isNgn, qtyValid, q, listing.id])
+
+  const totalReady = qtyValid && (isNgn || !!quote)
+  const total = !qtyValid ? 0 : isNgn ? Math.round(Number(listing.price) * q * 100) / 100 : quote?.amount_ngn ?? 0
+  const enough = !!wallet && totalReady && wallet.available >= total
   const shortfall = wallet ? Math.max(0, total - wallet.available) : 0
 
   const durN = Number(durAmount)
@@ -69,7 +95,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
     setBusy(true)
     setError('')
     try {
-      const res = await placeOrder(listing.id, q, deliveryAt)
+      const res = await placeOrder(listing.id, q, deliveryAt, total)
       navigate(`/orders/${res.order_id}`, { replace: true })
     } catch (e) {
       setError((e as Error).message)
@@ -87,14 +113,10 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
 
         <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>{listing.title}</p>
         <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '2px' }}>
-          {money.formatNgn(Number(listing.price))}{listing.unit ? ` / ${listing.unit}` : ''}
+          {fmtIn(Number(listing.price), listingCur)}{listing.unit ? ` / ${listing.unit}` : ''}
         </p>
 
-        {!isNgn ? (
-          <p style={{ fontSize: '12.5px', color: '#B91C1C', marginTop: '14px', lineHeight: 1.5 }}>
-            Escrow is available for listings priced in NGN only. Please contact the seller directly for this item.
-          </p>
-        ) : (
+        {(
           <>
             <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, margin: '14px 0 6px' }}>
               Quantity{listing.unit ? ` (${listing.unit})` : ''}
@@ -154,10 +176,18 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
             {deliveryError && <p style={{ fontSize: '12px', color: '#DC2626', marginTop: '8px' }}>{deliveryError}</p>}
 
             <div style={{ background: COLORS.bg, borderRadius: '12px', padding: '12px', marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              <Row label="Total to pay" value={qtyValid ? money.formatNgn(total) : '-'} bold />
-              {money.isForeign && qtyValid && <Row label={`In ${money.currency}`} value={`≈ ${money.format(total)}`} />}
+              {!isNgn && quote && qtyValid && <Row label={`Price (${listingCur})`} value={fmtIn(quote.orig_amount, listingCur)} />}
+              {!isNgn && quote && qtyValid && <Row label="Exchange rate" value={`1 ${listingCur} = ${money.formatNgn(quote.rate)}`} />}
+              <Row label="Total to pay (NGN)" value={totalReady ? money.formatNgn(total) : qtyValid && !isNgn && !quoteError ? '...' : '-'} bold />
+              {money.isForeign && money.currency !== listingCur && totalReady && <Row label={`In ${money.currency}`} value={`≈ ${money.format(total)}`} />}
               <Row label="Your wallet" value={wallet ? money.formatNgn(wallet.available) : '...'} />
             </div>
+            {!isNgn && quoteError && <p style={{ fontSize: '12px', color: '#B91C1C', marginTop: '8px', lineHeight: 1.5 }}>{quoteError}</p>}
+            {!isNgn && quote && (
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '8px', lineHeight: 1.5 }}>
+                This listing is priced in {listingCur}. You pay in NGN at the rate above, and that rate is locked when you place the order.
+              </p>
+            )}
 
             <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '12px', lineHeight: 1.5 }}>
               Your money is held in escrow. You get a code. Give it to the seller only after you receive your goods, then the payment is released. You cannot cancel before the expected delivery time. If the goods have not arrived after that time, you can cancel and your money returns to your wallet.
@@ -165,7 +195,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
 
             {error && <p style={{ fontSize: '12px', color: '#DC2626', marginTop: '10px' }}>{error}</p>}
 
-            {wallet && qtyValid && !enough ? (
+            {wallet && totalReady && !enough ? (
               <>
                 <p style={{ fontSize: '12px', color: '#B45309', marginTop: '10px', fontWeight: 600 }}>
                   You need {money.formatNgn(shortfall)} more in your wallet.
@@ -176,8 +206,8 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
               </>
             ) : (
               <div
-                onClick={busy || !qtyValid || !wallet || !deliveryOk ? undefined : pay}
-                style={{ marginTop: '14px', textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '13px', fontWeight: 800, cursor: busy || !qtyValid || !wallet || !deliveryOk ? 'default' : 'pointer', opacity: busy || !qtyValid || !wallet || !deliveryOk ? 0.6 : 1 }}>
+                onClick={busy || !totalReady || !wallet || !deliveryOk ? undefined : pay}
+                style={{ marginTop: '14px', textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '13px', fontWeight: 800, cursor: busy || !totalReady || !wallet || !deliveryOk ? 'default' : 'pointer', opacity: busy || !totalReady || !wallet || !deliveryOk ? 0.6 : 1 }}>
                 {busy ? 'Placing order...' : 'Pay with Escrow'}
               </div>
             )}
