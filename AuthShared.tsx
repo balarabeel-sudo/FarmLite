@@ -19,6 +19,9 @@ export const AUTH = {
   red: '#DC2626',
 }
 
+// The same clean sans-serif look as the design (the phone's default font is a serif one).
+const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
 // Soft leaves in the corners, like the design.
 function Leaf({ style, rotate = 0 }: { style: CSSProperties; rotate?: number }) {
   return (
@@ -34,7 +37,7 @@ function Leaf({ style, rotate = 0 }: { style: CSSProperties; rotate?: number }) 
 export function AuthPage({ children }: { children: ReactNode }) {
   return (
     <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${AUTH.bg} 0%, #FFFFFF 55%, #F3F9F2 100%)`, display: 'flex', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: '100%', maxWidth: '480px', minHeight: '100vh', overflow: 'hidden', padding: '0 24px 32px' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: '480px', minHeight: '100vh', overflow: 'hidden', padding: '0 24px 32px', fontFamily: AUTH_FONT }}>
         <Leaf style={{ top: '30px', left: '-34px', width: '110px', height: '110px' }} rotate={-35} />
         <Leaf style={{ top: '60px', right: '-30px', width: '100px', height: '100px' }} rotate={35} />
         <Leaf style={{ bottom: '10px', left: '-20px', width: '120px', height: '120px' }} rotate={-20} />
