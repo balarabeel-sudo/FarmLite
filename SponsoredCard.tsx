@@ -44,7 +44,7 @@ function priceLabel(l: NonNullable<AdData['listing']>) {
 // `placement` is where it is shown (used for per-placement analytics).
 // layout "grid" matches a Marketplace listing card, "wide" fits the Home feed.
 // With `preview` it is a static preview (used while creating an ad): nothing is tracked or clickable.
-export default function SponsoredCard({ ad, layout = 'grid', preview = false, placement }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean; placement?: 'home' | 'marketplace' | 'companies' | 'search' }) {
+export default function SponsoredCard({ ad, layout = 'grid', preview = false, placement }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean; placement?: 'home' | 'marketplace' | 'companies' | 'search' | 'groups' }) {
   const navigate = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
   const counted = useRef(false)
