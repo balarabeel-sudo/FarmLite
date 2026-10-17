@@ -184,6 +184,9 @@ export default function OrderPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginTop: '14px' }}>
             <Line label={isBuyer ? 'Seller' : 'Buyer'} value={otherName} />
             <Line label="Quantity" value={`${order.quantity.toLocaleString()} x ${money.formatNgn(order.unit_price)}`} />
+            {order.orig_currency && order.orig_amount != null && order.fx_rate != null && (
+              <Line label="Listed price" value={`${order.orig_currency} ${Number(order.orig_amount).toLocaleString()} (rate locked: 1 ${order.orig_currency} = ${money.formatNgn(Number(order.fx_rate))})`} />
+            )}
             <Line label="Ordered" value={new Date(order.created_at).toLocaleString()} />
             {order.expected_delivery_at && <Line label="Expected delivery" value={formatDeliveryDate(new Date(order.expected_delivery_at))} />}
             {order.cancelled_at && <Line label="Cancelled" value={new Date(order.cancelled_at).toLocaleString()} />}
