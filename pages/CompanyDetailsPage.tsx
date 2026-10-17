@@ -1,29 +1,22 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLocale } from '../LocaleContext'
 import Icon from '../Icons'
-import { ListCardSkeleton } from '../LoadingSkeleton'
+import { ListCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import PremiumTick from '../PremiumTick'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
 import { isPremiumActive } from '../premiumShared'
 import { trackView } from '../analyticsShared'
-
-const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
-  green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  orange: '#F59E0B',
-}
+import {
+  PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
+  CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, Block, Tags, PhotoGrid, ListingGrid,
+  useCopyLink, useDebounced, likePattern, compact,
+} from '../ProfileLayout'
+import type { ListingCardData } from '../ProfileLayout'
 
 // Owner buttons: /company/edit is the Edit Company page, /company/premium is Company Premium (both in App.tsx).
 const COMPANY_EDIT_PATH = '/company/edit'
@@ -55,24 +48,20 @@ type Company = {
   trusted_partner: boolean
   status: string
   followers_count: number
+  created_at: string | null
 }
 
-type Listing = {
-  id: string
-  title: string
-  price: number
-  unit: string | null
-  location: string | null
-  images: string[] | null
-}
+type Listing = ListingCardData
 
-type Tab = 'overview' | 'posts' | 'listings' | 'about'
+type Tab = 'posts' | 'listings' | 'media' | 'about'
 
+// Route: /companies/:id (public company page). Same X-style layout as the user profile.
 export default function CompanyDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { formatPrice } = useLocale()
+  const { copy, toast } = useCopyLink()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -83,7 +72,16 @@ export default function CompanyDetailsPage() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState(false)
-  const [tab, setTab] = useState<Tab>('overview')
+  const [followBusy, setFollowBusy] = useState(false)
+  const [tab, setTab] = useState<Tab>('posts')
+
+  // Search inside this company (posts + listings)
+  const [searching, setSearching] = useState(false)
+  const [q, setQ] = useState('')
+  const dq = useDebounced(q.trim(), 300)
+  const [sPosts, setSPosts] = useState<PostCardData[]>([])
+  const [sListings, setSListings] = useState<Listing[]>([])
+  const [sBusy, setSBusy] = useState(false)
 
   const load = async () => {
     if (!id || !user) return
@@ -92,7 +90,7 @@ export default function CompanyDetailsPage() {
 
     try {
       const [companyRes, listingsRes, followRes, postsRes, postsCountRes, likedRes, savedRes] = await Promise.all([
-        supabase.from('companies').select('id, owner_id, name, category, business_type, description, location, logo_url, cover_url, phone, whatsapp, website, address, city, state, country, products, services, gallery, social_links, is_premium, premium_until, trusted_partner, status, followers_count').eq('id', id).maybeSingle(),
+        supabase.from('companies').select('id, owner_id, name, category, business_type, description, location, logo_url, cover_url, phone, whatsapp, website, address, city, state, country, products, services, gallery, social_links, is_premium, premium_until, trusted_partner, status, followers_count, created_at').eq('id', id).maybeSingle(),
         supabase.from('marketplace_listings').select('id, title, price, unit, location, images').eq('company_id', id).eq('status', 'available').order('created_at', { ascending: false }),
         supabase.from('company_followers').select('company_id').eq('user_id', user.id).eq('company_id', id).maybeSingle(),
         supabase.from('posts').select(POST_SELECT).eq('company_id', id).eq('visibility', 'public').order('created_at', { ascending: false }).limit(20),
@@ -124,8 +122,37 @@ export default function CompanyDetailsPage() {
 
   useEffect(() => { load() }, [id, user])
 
+  // Search this company's public posts and listings
+  const companyId = company?.id
+  useEffect(() => {
+    if (!searching || !companyId) return
+    if (dq.length < 2) {
+      setSPosts([])
+      setSListings([])
+      setSBusy(false)
+      return
+    }
+    let cancelled = false
+    setSBusy(true)
+    const pat = likePattern(dq)
+    Promise.all([
+      supabase.from('posts').select(POST_SELECT).eq('company_id', companyId).eq('visibility', 'public').ilike('content', pat).order('created_at', { ascending: false }).limit(30),
+      supabase.from('marketplace_listings').select('id, title, price, unit, location, images').eq('company_id', companyId).eq('status', 'available').ilike('title', pat).order('created_at', { ascending: false }).limit(20),
+    ]).then(([pr, lr]) => {
+      if (cancelled) return
+      setSPosts((pr.data || []) as any)
+      setSListings((lr.data || []) as any)
+      setSBusy(false)
+    }, () => {
+      if (cancelled) return
+      setSBusy(false)
+    })
+    return () => { cancelled = true }
+  }, [dq, searching, companyId])
+
   const toggleFollow = async () => {
-    if (!user || !company) return
+    if (!user || !company || followBusy) return
+    setFollowBusy(true)
     if (following) {
       await supabase.from('company_followers').delete().eq('user_id', user.id).eq('company_id', company.id)
       setFollowing(false)
@@ -135,32 +162,33 @@ export default function CompanyDetailsPage() {
       setFollowing(true)
       setCompany((prev) => prev ? { ...prev, followers_count: prev.followers_count + 1 } : prev)
     }
+    setFollowBusy(false)
   }
 
   if (netError) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Company" />
         <NetworkError onRetry={load} />
-      </Shell>
+      </ProfileShell>
     )
   }
 
   if (loading) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Company" />
         <div style={{ padding: '16px' }}><ListCardSkeleton count={4} /></div>
-      </Shell>
+      </ProfileShell>
     )
   }
 
   if (!company) {
     return (
-      <Shell>
-        <Header onBack={() => navigate(-1)} />
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title="Company" />
         <div style={{ padding: '40px 20px', textAlign: 'center', color: COLORS.textMuted, fontSize: '13px' }}>Company not found.</div>
-      </Shell>
+      </ProfileShell>
     )
   }
 
@@ -176,6 +204,38 @@ export default function CompanyDetailsPage() {
     : company.phone ? `tel:${company.phone}` : null
   const websiteHref = company.website ? (company.website.startsWith('http') ? company.website : `https://${company.website}`) : null
   const websiteLabel = company.website ? company.website.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''
+  const joined = company.created_at ? new Date(company.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : null
+  const postsLabel = `${compact(postsCount)} ${postsCount === 1 ? 'post' : 'posts'}`
+  const typeLine = [company.category, company.business_type].filter(Boolean).join(' · ')
+  const menuItems = [{ label: 'Copy company link', onClick: () => copy(`${window.location.origin}/companies/${company.id}`) }]
+
+  // Search view: sits under the header, results are this company's posts and listings.
+  if (searching) {
+    const noResults = dq.length >= 2 && !sBusy && sPosts.length === 0 && sListings.length === 0
+    return (
+      <ProfileShell>
+        <ProfileHeader onBack={() => navigate(-1)} title={company.name} subtitle={postsLabel} />
+        <ProfileSearchBar value={q} onChange={setQ} onClose={() => { setSearching(false); setQ('') }} placeholder={`Search ${company.name}`} />
+        <div style={{ padding: '14px 16px' }}>
+          {dq.length < 2 && <EmptyCard icon="search" text="Type at least 2 letters to search posts and listings." />}
+          {dq.length >= 2 && sBusy && <FeedPostSkeleton count={2} />}
+          {noResults && <EmptyCard icon="search" text={`No posts or listings match “${dq}”.`} />}
+          {!sBusy && sPosts.length > 0 && (
+            <>
+              <SectionLabel>Posts</SectionLabel>
+              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)}
+            </>
+          )}
+          {!sBusy && sListings.length > 0 && (
+            <>
+              <SectionLabel>Listings</SectionLabel>
+              <ListingGrid listings={sListings} formatPrice={formatPrice} onOpen={(lid) => navigate(`/marketplace?listing=${lid}`)} by={company.name} />
+            </>
+          )}
+        </div>
+      </ProfileShell>
+    )
+  }
 
   // Owner-only completeness hint: only checks fields that actually exist on the company.
   const checks: [string, boolean][] = [
@@ -191,74 +251,77 @@ export default function CompanyDetailsPage() {
   const completeness = Math.round(((checks.length - missing.length) / checks.length) * 100)
 
   return (
-    <Shell>
-      <Header onBack={() => navigate(-1)} />
+    <ProfileShell>
+      <ProfileHeader onBack={() => navigate(-1)} title={company.name} subtitle={postsLabel} />
 
-      {/* Cover */}
-      <div style={{
-        height: '130px', background: company.cover_url ? '#E5EFE5' : 'linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 55%, #86EFAC 100%)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {company.cover_url
-          ? <img src={company.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ position: 'absolute', right: '-14px', bottom: '-18px', opacity: 0.35 }}><Icon name="leaf" size={110} color={COLORS.green} /></div>}
-      </div>
+      <ProfileCover src={company.cover_url} />
 
-      <div style={{ padding: '0 16px' }}>
-        {/* Logo overlapping the cover */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '-38px' }}>
-          <div style={{ width: '76px', height: '76px', borderRadius: '18px', background: COLORS.card, border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-            {company.logo_url ? <img src={company.logo_url} alt={`${company.name} logo`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={32} color={COLORS.green} />}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', paddingBottom: '4px' }}>
+      <ProfileTop
+        image={company.logo_url}
+        alt={`${company.name} logo`}
+        fallbackIcon="building"
+        actions={
+          <>
+            <DotsMenu items={menuItems} />
+            <RoundIconButton label="Search this company" onClick={() => setSearching(true)}>
+              <Icon name="search" size={17} color={COLORS.text} />
+            </RoundIconButton>
             {isOwner ? (
-              <Pill onClick={() => navigate(COMPANY_EDIT_PATH)} filled={false}>Edit Company</Pill>
+              <PillButton onClick={() => navigate(COMPANY_EDIT_PATH)} filled={false}>Edit company</PillButton>
             ) : (
               <>
-                {contactHref && <Pill onClick={() => window.open(contactHref, '_blank', 'noopener')} filled={false}>Contact</Pill>}
-                <Pill onClick={toggleFollow} filled={!following}>{following ? 'Following' : 'Follow'}</Pill>
+                {contactHref && (
+                  <RoundIconButton label="Contact" onClick={() => window.open(contactHref, '_blank', 'noopener')}>
+                    <Icon name="message" size={17} color={COLORS.text} />
+                  </RoundIconButton>
+                )}
+                <PillButton onClick={toggleFollow} filled={!following} disabled={followBusy}>
+                  {following ? 'Following' : 'Follow'}
+                </PillButton>
               </>
             )}
+          </>
+        }
+      />
+
+      <div style={{ padding: '10px 16px 0' }}>
+        <NameRow
+          name={company.name}
+          verified={verified}
+          verifiedLabel="Verified company"
+          premium={premium}
+          premiumLabel="Premium company"
+          onUpgrade={isOwner ? () => navigate(COMPANY_PREMIUM_PATH) : undefined}
+        />
+        {typeLine && <p style={{ fontSize: '13.5px', color: COLORS.textMuted, marginTop: '2px', textTransform: 'capitalize' }}>{typeLine}</p>}
+
+        {(company.trusted_partner || (isOwner && !verified)) && (
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+            {company.trusted_partner && <Chip bg="#FEF3C7" color="#92400E">★ Trusted Partner</Chip>}
+            {isOwner && !verified && <Chip bg="#FEF3C7" color="#92400E">{company.status === 'rejected' ? 'Verification rejected' : 'Verification pending'}</Chip>}
           </div>
-        </div>
-
-        {/* Name + badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
-          <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text }}>{company.name}</p>
-          {verified && <span title="Verified company" style={{ display: 'flex' }}><Icon name="checkCircle" size={17} color={COLORS.green} /></span>}
-          {premium && <PremiumTick size={19} label="Premium company" />}
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-          {company.trusted_partner && <Chip bg="#FEF3C7" color="#92400E">★ Trusted Partner</Chip>}
-          {isOwner && !verified && <Chip bg="#FEF3C7" color="#92400E">{company.status === 'rejected' ? 'Verification rejected' : 'Verification pending'}</Chip>}
-        </div>
-
-        <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '6px', textTransform: 'capitalize' }}>
-          {[company.category, company.business_type].filter(Boolean).join(' · ')}
-        </p>
+        )}
 
         {company.description && (
-          <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.55, marginTop: '10px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p style={{ fontSize: '14px', color: COLORS.text, lineHeight: 1.55, marginTop: '10px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {company.description}
           </p>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '10px' }}>
-          {place && <InfoRow icon={<Icon name="mapPin" size={13} color={COLORS.textMuted} />}>{place}</InfoRow>}
+        <MetaRow>
+          {place && <MetaItem icon={<Icon name="mapPin" size={14} color={COLORS.textMuted} />}>{place}</MetaItem>}
           {websiteHref && (
-            <InfoRow icon={<GlobeIcon />}>
+            <MetaItem icon={<Icon name="link" size={14} color={COLORS.textMuted} />}>
               <a href={websiteHref} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.green, fontWeight: 600, textDecoration: 'none' }}>{websiteLabel}</a>
-            </InfoRow>
+            </MetaItem>
           )}
-        </div>
+          {joined && <MetaItem icon={<CalendarIcon />}>Joined {joined}</MetaItem>}
+        </MetaRow>
 
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-          <Stat label="Followers" value={compact(company.followers_count)} />
-          <Stat label="Listings" value={compact(listings.length)} />
-          <Stat label="Posts" value={compact(postsCount)} />
-        </div>
+        <CountsRow items={[
+          { value: compact(company.followers_count), label: 'Followers' },
+          { value: compact(listings.length), label: listings.length === 1 ? 'Listing' : 'Listings' },
+        ]} />
 
         {/* Owner-only cards */}
         {isOwner && (
@@ -306,198 +369,62 @@ export default function CompanyDetailsPage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: `1px solid ${COLORS.border}`, marginTop: '18px' }}>
-          {(['overview', 'posts', 'listings', 'about'] as Tab[]).map((t) => (
-            <div key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} style={{
-              flex: 1, textAlign: 'center', padding: '11px 0', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize',
-              color: tab === t ? COLORS.green : COLORS.textMuted, borderBottom: `2px solid ${tab === t ? COLORS.green : 'transparent'}`,
-            }}>
-              {t}
-            </div>
-          ))}
-        </div>
+        <ProfileTabs<Tab>
+          tabs={[{ key: 'posts', label: 'Posts' }, { key: 'listings', label: 'Listings' }, { key: 'media', label: 'Media' }, { key: 'about', label: 'About' }]}
+          active={tab}
+          onChange={setTab}
+        />
 
         <div style={{ paddingTop: '16px' }}>
-          {tab === 'overview' && (
-            <>
-              {company.description ? (
-                <Block title="Company overview"><p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.6 }}>{company.description}</p></Block>
-              ) : null}
-              {focus.length > 0 && <Block title="Business focus"><Tags items={focus} /></Block>}
-              {services.length > 0 && <Block title="Services"><Tags items={services} /></Block>}
-              {gallery.length > 0 && (
-                <Block title="Photos">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                    {gallery.map((src, i) => (
-                      <a key={`${src}-${i}`} href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', aspectRatio: '1 / 1', borderRadius: '8px', overflow: 'hidden', background: '#E5EFE5' }}>
-                        <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </a>
-                    ))}
-                  </div>
-                </Block>
-              )}
-              {!company.description && focus.length === 0 && services.length === 0 && gallery.length === 0 && (
-                <Empty text="This company has not added an overview yet." />
-              )}
-              {listings.length > 0 && (
-                <div onClick={() => setTab('listings')} style={{ background: COLORS.card, borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Company Marketplace</p>
-                    <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{listings.length} active listing{listings.length === 1 ? '' : 's'}</p>
-                  </div>
-                  <Icon name="chevronRight" size={16} color={COLORS.textMuted} />
-                </div>
-              )}
-            </>
-          )}
-
           {tab === 'posts' && (
             posts.length === 0
-              ? <Empty text="No posts from this company yet." />
+              ? <EmptyCard icon="comment" text="No posts from this company yet." />
               : posts.map((p) => (
                 <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />
               ))
           )}
 
           {tab === 'listings' && (
-            listings.length === 0 ? (
-              <Empty text="No listings from this company yet." />
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {listings.map((l) => (
-                  <div key={l.id} onClick={() => navigate(`/marketplace?listing=${l.id}`)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                    <div style={{ width: '100%', height: '90px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {l.images?.[0] ? <img src={l.images[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={22} color={COLORS.green} />}
-                    </div>
-                    <div style={{ padding: '9px' }}>
-                      <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</p>
-                      <p style={{ fontSize: '12px', fontWeight: 800, color: COLORS.green, marginTop: '3px' }}>{formatPrice(Number(l.price))}{l.unit ? `/${l.unit}` : ''}</p>
-                      {l.location && <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.location}</p>}
-                      <p style={{ fontSize: '10px', color: COLORS.textMuted, marginTop: '3px' }}>by {company.name}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
+            listings.length === 0
+              ? <EmptyCard icon="tag" text="No listings from this company yet." />
+              : <ListingGrid listings={listings} formatPrice={formatPrice} onOpen={(lid) => navigate(`/marketplace?listing=${lid}`)} by={company.name} />
           )}
 
+          {tab === 'media' && <PhotoGrid images={gallery} empty="No photos added yet." />}
+
           {tab === 'about' && (
-            <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>
-              <AboutRow label="Category" value={company.category} />
-              <AboutRow label="Business type" value={company.business_type} />
-              <AboutRow label="Location" value={place} />
-              <AboutRow label="Address" value={company.address} />
-              <AboutRow label="Website" value={websiteLabel || null} href={websiteHref || undefined} />
-              <AboutRow label="Phone" value={company.phone} href={company.phone ? `tel:${company.phone}` : undefined} />
-              <AboutRow label="WhatsApp" value={company.whatsapp} href={contactHref && company.whatsapp ? contactHref : undefined} />
-              {Object.entries((company.social_links || {}) as Record<string, string>).filter(([, v]) => typeof v === 'string' && v).map(([k, v]) => (
-                <AboutRow key={k} label={k} value={v.replace(/^https?:\/\//, '')} href={v.startsWith('http') ? v : `https://${v}`} />
-              ))}
-              <AboutRow label="Verification" value={verified ? 'Verified company' : null} />
-              <AboutRow label="Partnership" value={company.trusted_partner ? 'Farmxie Trusted Partner' : null} />
-            </div>
+            <>
+              {company.description ? (
+                <Block title="Company overview"><p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{company.description}</p></Block>
+              ) : null}
+              {focus.length > 0 && <Block title="Business focus"><Tags items={focus} /></Block>}
+              {services.length > 0 && <Block title="Services"><Tags items={services} /></Block>}
+
+              <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>
+                <AboutRow label="Category" value={company.category} />
+                <AboutRow label="Business type" value={company.business_type} />
+                <AboutRow label="Location" value={place} />
+                <AboutRow label="Address" value={company.address} />
+                <AboutRow label="Website" value={websiteLabel || null} href={websiteHref || undefined} />
+                <AboutRow label="Phone" value={company.phone} href={company.phone ? `tel:${company.phone}` : undefined} />
+                <AboutRow label="WhatsApp" value={company.whatsapp} href={contactHref && company.whatsapp ? contactHref : undefined} />
+                {Object.entries((company.social_links || {}) as Record<string, string>).filter(([, v]) => typeof v === 'string' && v).map(([k, v]) => (
+                  <AboutRow key={k} label={k} value={v.replace(/^https?:\/\//, '')} href={v.startsWith('http') ? v : `https://${v}`} />
+                ))}
+                <AboutRow label="Verification" value={verified ? 'Verified company' : null} />
+                <AboutRow label="Partnership" value={company.trusted_partner ? 'Farmxie Trusted Partner' : null} />
+                <AboutRow label="Joined Farmxie" value={joined} />
+              </div>
+            </>
           )}
         </div>
       </div>
-    </Shell>
+
+      {toast}
+    </ProfileShell>
   )
 }
 
-function Shell({ children }: { children: ReactNode }) {
-  return <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>{children}</div>
-}
-
-function Pill({ children, onClick, filled }: { children: ReactNode; onClick: () => void; filled: boolean }) {
-  return (
-    <div role="button" onClick={onClick} style={{
-      padding: '9px 18px', borderRadius: '10px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer',
-      background: filled ? COLORS.green : COLORS.card, color: filled ? 'white' : COLORS.text, border: filled ? 'none' : `1px solid ${COLORS.border}`,
-    }}>
-      {children}
-    </div>
-  )
-}
-
-function Chip({ children, bg, color }: { children: ReactNode; bg: string; color: string }) {
+function Chip({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
   return <span style={{ background: bg, color, fontSize: '10.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '999px' }}>{children}</span>
-}
-
-function InfoRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: COLORS.textMuted }}>
-      {icon}
-      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</span>
-    </div>
-  )
-}
-
-function GlobeIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" />
-    </svg>
-  )
-}
-
-function Block({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div style={{ background: COLORS.card, borderRadius: '14px', padding: '14px', marginBottom: '12px' }}>
-      <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text, marginBottom: '8px' }}>{title}</p>
-      {children}
-    </div>
-  )
-}
-
-function Tags({ items }: { items: string[] }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-      {items.map((t) => (
-        <span key={t} style={{ background: COLORS.greenSoft, color: COLORS.greenDark, fontSize: '11.5px', fontWeight: 700, padding: '5px 10px', borderRadius: '999px' }}>{t}</span>
-      ))}
-    </div>
-  )
-}
-
-function Empty({ text }: { text: string }) {
-  return <div style={{ background: COLORS.card, padding: '28px 16px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '12.5px', marginBottom: '12px' }}>{text}</div>
-}
-
-function AboutRow({ label, value, href }: { label: string; value?: string | null; href?: string }) {
-  if (!value) return null
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '12px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
-      <p style={{ fontSize: '12px', color: COLORS.textMuted, textTransform: 'capitalize', flexShrink: 0 }}>{label}</p>
-      {href
-        ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 600, color: COLORS.green, textDecoration: 'none', textAlign: 'right', wordBreak: 'break-word' }}>{value}</a>
-        : <p style={{ fontSize: '12.5px', fontWeight: 600, color: COLORS.text, textAlign: 'right', wordBreak: 'break-word' }}>{value}</p>}
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div style={{ flex: 1, background: COLORS.card, borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
-      <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text }}>{value}</p>
-      <p style={{ fontSize: '10px', color: COLORS.textMuted, marginTop: '2px' }}>{label}</p>
-    </div>
-  )
-}
-
-// 1200 -> 1.2K, 10500 -> 10.5K
-function compact(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`
-  return String(n)
-}
-
-function Header({ onBack }: { onBack: () => void }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-      <div role="button" aria-label="Back" onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-        <Icon name="arrowLeft" size={22} color={COLORS.text} />
-      </div>
-      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Company</p>
-    </div>
-  )
 }
