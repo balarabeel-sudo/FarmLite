@@ -86,6 +86,7 @@ import AdminGroupsPage from './admin/pages/GroupsPage'
 import AdminAdsPage from './admin/pages/AdsPage'
 import AdminAdPricingPage from './admin/pages/AdPricingPage'
 import AdminExchangeRatesPage from './admin/pages/ExchangeRatesPage'
+import AdminFinanceCheckPage from './admin/pages/FinanceCheckPage'
 import MaintenanceGate from './MaintenanceGate'
 import PresenceTracker from './PresenceTracker'
 
@@ -503,6 +504,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="ads.review">
                     <AdminAdsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/finance-check"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="wallet.view">
+                    <AdminFinanceCheckPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
