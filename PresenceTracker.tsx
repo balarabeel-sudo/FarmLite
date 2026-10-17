@@ -8,9 +8,10 @@ import { HEARTBEAT_MS } from './presenceShared'
 //  2. marks messages addressed to this person as delivered (even when they are not on the Messages page).
 export default function PresenceTracker() {
   const { user } = useAuth()
+  const userId = user?.id
 
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
     let stopped = false
 
     const beat = () => {
@@ -29,8 +30,8 @@ export default function PresenceTracker() {
     document.addEventListener('visibilitychange', onVisible)
 
     const channel = supabase
-      .channel(`delivery:${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, delivered)
+      .channel(`delivery:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, delivered)
       .subscribe()
 
     return () => {
@@ -39,7 +40,7 @@ export default function PresenceTracker() {
       document.removeEventListener('visibilitychange', onVisible)
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [userId])
 
   return null
 }
