@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabaseClient'
 import Icon from './Icons'
+import SponsoredCard from './SponsoredCard'
+import type { AdData } from './SponsoredCard'
 import PostCard, { POST_SELECT } from './PostCard'
 import type { PostCardData } from './PostCard'
 import GroupComposer from './GroupComposer'
@@ -12,6 +14,8 @@ import { COLORS, ErrorBanner, LoadMoreButton } from './shared'
 import type { Group, MyRole } from './groupsShared'
 
 const PAGE = 10
+// A paid ad (labelled "Sponsored") appears after every this many posts in the Discussion tab.
+const AD_EVERY = 10
 const POLL_COLS = 'id, post_id, community_id, created_by, description, multiple, closes_at, closed_at, group_poll_options(id, label, position)'
 
 type Row = PostCardData & { pinned_at: string | null; poll: PollData | null }
@@ -35,6 +39,19 @@ export default function GroupFeed({ group, myRole, userId, kind, canPost, onChan
   const [editText, setEditText] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const reqId = useRef(0)
+  const [groupAds, setGroupAds] = useState<AdData[]>([])
+
+  // Ads bought for this group; a failure here never affects the feed.
+  useEffect(() => {
+    setGroupAds([])
+    if (kind !== 'discussion') return
+    let cancelled = false
+    supabase.rpc('ads_for_group', { p_group: group.id, p_limit: 4 }).then(
+      ({ data, error: e }: { data: any; error: any }) => { if (!cancelled && !e) setGroupAds((data || []) as AdData[]) },
+      () => {},
+    )
+    return () => { cancelled = true }
+  }, [group.id, kind])
 
   const select = `${POST_SELECT}, pinned_at, group_polls${kind === 'polls' ? '!inner' : ''}(${POLL_COLS})`
 
@@ -183,7 +200,16 @@ export default function GroupFeed({ group, myRole, userId, kind, canPost, onChan
       ) : (
         <>
           {pinned.map(card)}
-          {rows.map(card)}
+          {rows.map((r, i) => {
+            const adIndex = (i + 1) / AD_EVERY - 1
+            const ad = kind === 'discussion' && (i + 1) % AD_EVERY === 0 && groupAds.length > 0 ? groupAds[adIndex % groupAds.length] : null
+            return (
+              <Fragment key={r.id}>
+                {card(r)}
+                {ad && <SponsoredCard ad={ad} layout="wide" placement="groups" />}
+              </Fragment>
+            )
+          })}
         </>
       )}
 
