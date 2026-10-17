@@ -53,9 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (userId) syncPushSubscription()
   }, [userId])
 
+  // Logging out must always work: waiting for the notification clean-up is capped at 1.5 seconds,
+  // a failed network call never blocks it, and the app's own state is cleared no matter what.
   const signOut = async () => {
-    await detachPushFromAccount()
-    await supabase.auth.signOut()
+    await Promise.race([detachPushFromAccount(), new Promise<void>((resolve) => window.setTimeout(resolve, 1500))])
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) await supabase.auth.signOut({ scope: 'local' })
+    } catch {
+      try { await supabase.auth.signOut({ scope: 'local' }) } catch { /* ignore */ }
+    }
+    setUser(null)
+    setSession(null)
   }
 
   const value = useMemo(() => ({ session, user, loading, signOut }), [session, user, loading])
