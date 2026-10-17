@@ -248,10 +248,13 @@ export default function MarketplacePage() {
   // Paid ads (always labelled "Sponsored") sit inside the grid after the 3rd and 9th listing.
   const withAds = (items: Listing[]) => {
     const out: any[] = []
+    // Normally after the 3rd and 9th listing; with a short list the ad still shows (after the last listing).
+    const first = Math.min(2, items.length - 1)
+    const second = items.length > 8 ? 8 : items.length - 1
     items.forEach((l, i) => {
       out.push(card(l))
-      if (i === 2 && ads[0]) out.push(<SponsoredCard key={`ad-${ads[0].id}`} ad={ads[0]} layout="grid" placement="marketplace" />)
-      if (i === 8 && ads[1]) out.push(<SponsoredCard key={`ad-${ads[1].id}`} ad={ads[1]} layout="grid" placement="marketplace" />)
+      if (i === first && ads[0]) out.push(<SponsoredCard key={`ad-${ads[0].id}`} ad={ads[0]} layout="grid" placement="marketplace" />)
+      if (i === second && second !== first && ads[1]) out.push(<SponsoredCard key={`ad-${ads[1].id}`} ad={ads[1]} layout="grid" placement="marketplace" />)
     })
     return out
   }
