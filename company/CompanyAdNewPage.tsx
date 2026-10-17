@@ -23,7 +23,10 @@ const COLORS = {
 }
 
 type Listing = { id: string; title: string; category: string | null; status: string; price: number; currency: string; unit: string | null; images: string[] | null; location: string | null; contact_for_price: boolean }
-type Pkg = { days: number; amount: number; base: number; currency: string; discount_percent: number }
+type Pkg = { days: number; amount: number; base: number; currency: string; discount_percent: number; groups_amount: number | null; groups_base: number | null }
+type GroupPick = { id: string; name: string; icon_url: string | null; members_count: number }
+
+const MAX_AD_GROUPS = 10
 
 // Only audience groups that the profile data can really match are selectable.
 const AUDIENCES: { key: string; label: string; available: boolean; note?: string }[] = [
@@ -59,6 +62,10 @@ export default function CompanyAdNewPage() {
   const [locDraft, setLocDraft] = useState('')
   const [placements, setPlacements] = useState<Placement[]>(['home', 'marketplace'])
   const [days, setDays] = useState<number>(7)
+  const [pickedGroups, setPickedGroups] = useState<GroupPick[]>([])
+  const [groupQuery, setGroupQuery] = useState('')
+  const [groupResults, setGroupResults] = useState<GroupPick[]>([])
+  const [groupsLoading, setGroupsLoading] = useState(false)
   const [packages, setPackages] = useState<Pkg[]>([])
   const [pricesLoaded, setPricesLoaded] = useState(false)
   const [branding, setBranding] = useState<{ cover_url: string | null; logo_url: string | null }>({ cover_url: null, logo_url: company.logo_url })
@@ -105,6 +112,35 @@ export default function CompanyAdNewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company.id])
 
+  const groupsOn = placements.includes('groups')
+
+  // Search public groups while the Groups placement is on and the person is choosing them (step 5).
+  useEffect(() => {
+    if (!groupsOn || step !== 5) return
+    let cancelled = false
+    setGroupsLoading(true)
+    const timer = setTimeout(() => {
+      const term = groupQuery.trim().replace(/[%_,()]/g, ' ')
+      let q = supabase.from('communities').select('id, name, icon_url, members_count')
+        .eq('status', 'active').eq('privacy', 'public')
+        .order('members_count', { ascending: false }).limit(20)
+      if (term) q = q.ilike('name', `%${term}%`)
+      q.then(({ data }: { data: any }) => {
+        if (cancelled) return
+        setGroupResults((data || []) as GroupPick[])
+        setGroupsLoading(false)
+      })
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [groupsOn, step, groupQuery])
+
+  const togglePickedGroup = (g: GroupPick) => {
+    setPickedGroups((prev) => {
+      if (prev.some((x) => x.id === g.id)) return prev.filter((x) => x.id !== g.id)
+      return prev.length >= MAX_AD_GROUPS ? prev : [...prev, g]
+    })
+  }
+
   const listing = listings.find((l) => l.id === listingId) || null
 
   const pickListing = (id: string) => {
@@ -143,7 +179,11 @@ export default function CompanyAdNewPage() {
   }
 
   const chosenImage = customImage[0] || image
-  const selectedPkg = packages.find((p) => p.days === days) || null
+  // With the Groups placement the add-on price applies; a package without a group price is not offered.
+  const visiblePkgs = packages.filter((p) => !groupsOn || p.groups_amount != null)
+  const selectedPkg = visiblePkgs.find((p) => p.days === days) || null
+  const pkgAmount = (p: Pkg) => (groupsOn && p.groups_amount != null ? p.groups_amount : p.amount)
+  const pkgBase = (p: Pkg) => (groupsOn && p.groups_base != null ? p.groups_base : p.base)
   const adHeadline = headline.trim() || (targetType === 'listing' ? listing?.title || 'Your headline' : company.name)
 
   const preview: AdData = {
@@ -164,6 +204,7 @@ export default function CompanyAdNewPage() {
       if (uploading) return 'Please wait for the image upload to finish.'
     }
     if (s === 5 && placements.length === 0) return 'Choose at least one placement.'
+    if (s === 5 && groupsOn && pickedGroups.length === 0) return 'Choose at least one group, or turn off the Groups placement.'
     if (s === 6 && !selectedPkg) return 'Choose how long the ad should run.'
     return ''
   }
@@ -186,11 +227,12 @@ export default function CompanyAdNewPage() {
     setError('')
     submitting.current = true
     setSaving(true)
-    const { data, error: e } = await supabase.rpc('ad_create', {
+    const { data, error: e } = await supabase.rpc('ad_create_v2', {
       p_company: company.id, p_target_type: targetType, p_listing: targetType === 'listing' ? listingId : null,
       p_headline: headline.trim(), p_body: body.trim() || null, p_image: chosenImage,
       p_roles: roles, p_locations: locations, p_days: days, p_placements: placements,
       p_request_key: requestKey.current || null,
+      p_groups: groupsOn ? pickedGroups.map((g) => g.id) : [],
     })
     setSaving(false)
     if (e) {
@@ -350,7 +392,45 @@ export default function CompanyAdNewPage() {
               )
             })}
           </div>
-          <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: 12, lineHeight: 1.5 }}>The price is the same for one placement or all of them. Paid placements are separate from the free Featured Visibility that comes with Premium.</p>
+          {groupsOn && (
+            <div style={{ marginTop: 16, padding: 14, borderRadius: 12, border: `1px solid ${COLORS.border}`, background: COLORS.bg }}>
+              <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>Choose your groups <Muted>({pickedGroups.length}/{MAX_AD_GROUPS})</Muted></p>
+              <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: 3, lineHeight: 1.5 }}>Your ad appears inside the Discussion tab of each group you pick, after every 10 posts. Only public groups can be chosen.</p>
+              {pickedGroups.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                  {pickedGroups.map((g) => (
+                    <span key={g.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: COLORS.greenSoft, color: COLORS.greenDark, fontSize: '12px', fontWeight: 700, padding: '5px 6px 5px 11px', borderRadius: 999 }}>
+                      {g.name}<span onClick={() => togglePickedGroup(g)} style={{ cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '0 5px' }}>×</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input value={groupQuery} maxLength={60} onChange={(e) => setGroupQuery(e.target.value)} placeholder="Search groups by name" style={{ ...input, marginTop: 10 }} />
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+                {groupsLoading && groupResults.length === 0 ? (
+                  <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>Loading groups…</p>
+                ) : groupResults.length === 0 ? (
+                  <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>No public groups found.</p>
+                ) : groupResults.map((g) => {
+                  const on = pickedGroups.some((x) => x.id === g.id)
+                  const full = !on && pickedGroups.length >= MAX_AD_GROUPS
+                  return (
+                    <div key={g.id} onClick={full ? undefined : () => togglePickedGroup(g)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, cursor: full ? 'not-allowed' : 'pointer', opacity: full ? 0.5 : 1, background: on ? COLORS.greenSoft : COLORS.card, border: `2px solid ${on ? COLORS.green : COLORS.border}` }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: COLORS.greenSoft, overflow: 'hidden', flexShrink: 0 }}>
+                        {g.icon_url && <img src={g.icon_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</p>
+                        <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: 1 }}>{g.members_count} {g.members_count === 1 ? 'member' : 'members'}</p>
+                      </div>
+                      <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${on ? COLORS.green : '#B7C7B7'}`, background: on ? COLORS.green : 'transparent', color: 'white', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on ? '✓' : ''}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: 12, lineHeight: 1.5 }}>The price is the same for Home, Marketplace, Companies and Search. The Groups placement adds a fixed extra amount to the package. Paid placements are separate from the free Featured Visibility that comes with Premium.</p>
         </Section>
       )}
 
@@ -360,14 +440,16 @@ export default function CompanyAdNewPage() {
             <p style={{ fontSize: '13px', color: COLORS.textMuted }}>Loading prices…</p>
           ) : packages.length === 0 ? (
             <p style={{ fontSize: '13px', color: COLORS.textMuted, lineHeight: 1.5 }}>Ads are not available for your country yet. Please check again soon.</p>
+          ) : visiblePkgs.length === 0 ? (
+            <p style={{ fontSize: '13px', color: COLORS.textMuted, lineHeight: 1.5 }}>Group ads are not available for your country yet. Go back and turn off the Groups placement, or check again soon.</p>
           ) : (
             <>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {packages.map((p) => (
+                {visiblePkgs.map((p) => (
                   <div key={p.days} onClick={() => setDays(p.days)} style={{ flex: '1 1 150px', padding: 16, borderRadius: 14, cursor: 'pointer', textAlign: 'center', background: days === p.days ? COLORS.greenSoft : COLORS.card, border: `2px solid ${days === p.days ? COLORS.green : COLORS.border}` }}>
                     <p style={{ fontSize: '20px', fontWeight: 800, color: COLORS.text }}>{p.days} days</p>
-                    <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.greenDark, marginTop: 6 }}>{money(p.amount, p.currency)}</p>
-                    {p.discount_percent > 0 && <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: 4 }}><s>{money(p.base, p.currency)}</s> · {p.discount_percent}% Premium discount</p>}
+                    <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.greenDark, marginTop: 6 }}>{money(pkgAmount(p), p.currency)}</p>
+                    {p.discount_percent > 0 && <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: 4 }}><s>{money(pkgBase(p), p.currency)}</s> · {p.discount_percent}% Premium discount</p>}
                   </div>
                 ))}
               </div>
@@ -375,8 +457,9 @@ export default function CompanyAdNewPage() {
                 <div style={{ marginTop: 16, background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '12px 14px' }}>
                   <Line label="Campaign" value={`${selectedPkg.days} days`} />
                   <Line label="Placements" value={placements.length ? placements.map((k) => PLACEMENTS.find((p) => p.key === k)?.label).join(', ') : 'None'} />
+                  {groupsOn && <Line label="Groups" value={`${pickedGroups.length} chosen (add-on included)`} />}
                   <Line label="Fees" value="None" />
-                  <Line label="Total payable" value={money(selectedPkg.amount, selectedPkg.currency)} strong />
+                  <Line label="Total payable" value={money(pkgAmount(selectedPkg), selectedPkg.currency)} strong />
                 </div>
               )}
               <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: 12, lineHeight: 1.6 }}>
@@ -393,7 +476,7 @@ export default function CompanyAdNewPage() {
           {placements.map((k) => (
             <div key={k} style={{ marginBottom: 18 }}>
               <p style={{ fontSize: '12px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>{PLACEMENTS.find((p) => p.key === k)?.label}</p>
-              {k === 'home' || k === 'search'
+              {k === 'home' || k === 'search' || k === 'groups'
                 ? <div style={{ maxWidth: 360 }}><SponsoredCard ad={preview} layout="wide" preview /></div>
                 : <div style={{ width: 190 }}><SponsoredCard ad={preview} layout="grid" preview /></div>}
             </div>
@@ -408,8 +491,9 @@ export default function CompanyAdNewPage() {
           <Line label="Audience" value={roles.length ? roles.map((r) => AUDIENCES.find((a) => a.key === r)?.label).join(', ') : 'Everyone'} />
           <Line label="Location" value={locations.length ? locations.join(', ') : 'Everywhere'} />
           <Line label="Placements" value={placements.map((k) => PLACEMENTS.find((p) => p.key === k)?.label).join(', ')} />
+          {groupsOn && <Line label="Groups" value={pickedGroups.map((g) => g.name).join(', ')} />}
           <Line label="Duration" value={`${days} days`} />
-          <Line label="Total payable after approval" value={selectedPkg ? money(selectedPkg.amount, selectedPkg.currency) : ''} strong />
+          <Line label="Total payable after approval" value={selectedPkg ? money(pkgAmount(selectedPkg), selectedPkg.currency) : ''} strong />
           <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: 14, lineHeight: 1.6 }}>
             Your ad is not shown until Farmxie approves it and you pay. You will be notified as soon as the review is complete.
           </p>
