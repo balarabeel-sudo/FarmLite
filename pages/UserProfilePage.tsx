@@ -10,6 +10,8 @@ import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
 import { isPremiumActive } from '../premiumShared'
 import { cleanPhone, whatsappLink } from '../phoneUtils'
+import { setFollowCache } from '../followShared'
+import FollowNotifySheet from '../FollowNotifySheet'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
   BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
@@ -68,6 +70,8 @@ export default function UserProfilePage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [isFollowing, setIsFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [followsMe, setFollowsMe] = useState(false)
+  const [notifyOpen, setNotifyOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
 
   // Search inside this profile (posts + listings)
@@ -102,7 +106,7 @@ export default function UserProfilePage() {
       return
     }
 
-    const [postsRes, mediaRes, listingsRes, followRes, likesRes, likedRes, savedRes] = await Promise.all([
+    const [postsRes, mediaRes, listingsRes, followRes, likesRes, likedRes, savedRes, followsMeRes] = await Promise.all([
       supabase.from('posts').select(POST_SELECT).eq('user_id', p.user_id).is('company_id', null).eq('visibility', 'public').order('created_at', { ascending: false }).limit(30),
       supabase.from('posts').select('id, images').eq('user_id', p.user_id).is('company_id', null).eq('visibility', 'public').not('images', 'is', null).order('created_at', { ascending: false }).limit(60),
       supabase.from('marketplace_listings').select('id, title, price, unit, images', { count: 'exact' }).eq('seller_id', p.user_id).eq('status', 'available').order('created_at', { ascending: false }).limit(6),
@@ -110,6 +114,7 @@ export default function UserProfilePage() {
       supabase.rpc('profile_likes_received', { p_user: p.user_id }),
       supabase.from('post_likes').select('post_id').eq('user_id', user.id),
       supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
+      supabase.from('follows').select('follower_id').eq('follower_id', p.user_id).eq('following_id', user.id).maybeSingle(),
     ])
 
     if (postsRes.error || listingsRes.error || followRes.error) {
@@ -124,6 +129,7 @@ export default function UserProfilePage() {
     setListings((listingsRes.data || []) as any)
     setListingsCount(listingsRes.count || 0)
     setIsFollowing(!!followRes.data)
+    setFollowsMe(!!followsMeRes.data)
     setLikesReceived(Number(likesRes.data) || 0)
     setLikedIds(new Set((likedRes.data || []).map((r: any) => r.post_id)))
     setSavedIds(new Set((savedRes.data || []).map((r: any) => r.post_id)))
@@ -180,6 +186,9 @@ export default function UserProfilePage() {
     if (error) {
       setIsFollowing(!next)
       setProfile((prev) => (prev ? { ...prev, followers_count: Math.max(0, prev.followers_count + (next ? -1 : 1)) } : prev))
+    } else {
+      // Keep the Follow buttons in feed post headers in step with this page.
+      setFollowCache(user.id, 'user', profile.user_id, next)
     }
     setFollowBusy(false)
   }
@@ -229,7 +238,10 @@ export default function UserProfilePage() {
   const joined = new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const mediaImages = mediaPosts.flatMap((m) => m.images)
   const postsLabel = `${compact(profile.posts_count || 0)} ${profile.posts_count === 1 ? 'post' : 'posts'}`
-  const menuItems = [{ label: 'Copy profile link', onClick: () => copy(`${window.location.origin}/u/${username}`) }]
+  const menuItems = [
+    ...(!isSelf && isFollowing ? [{ label: 'Notifications', onClick: () => setNotifyOpen(true) }] : []),
+    { label: 'Copy profile link', onClick: () => copy(`${window.location.origin}/u/${username}`) },
+  ]
 
   // Search view: sits under the header, results are this user's posts and listings.
   if (searching) {
@@ -245,7 +257,7 @@ export default function UserProfilePage() {
           {!sBusy && sPosts.length > 0 && (
             <>
               <SectionLabel>Posts</SectionLabel>
-              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)}
+              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} hideFollow />)}
             </>
           )}
           {!sBusy && sListings.length > 0 && (
@@ -311,7 +323,12 @@ export default function UserProfilePage() {
           premiumLabel="Premium member"
           onUpgrade={isSelf ? () => navigate('/premium') : undefined}
         />
-        <p style={{ fontSize: '13px', color: COLORS.textMuted, marginTop: '1px' }}>@{profile.username}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px', flexWrap: 'wrap' }}>
+          <p style={{ fontSize: '13px', color: COLORS.textMuted }}>@{profile.username}</p>
+          {!isSelf && followsMe && (
+            <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, background: '#EEF2EE', borderRadius: '6px', padding: '2px 7px' }}>{isFollowing ? 'Mutual' : 'Follows you'}</span>
+          )}
+        </div>
 
         {profile.bio ? (
           <BioText text={profile.bio} />
@@ -374,7 +391,7 @@ export default function UserProfilePage() {
           {tab === 'posts' && (
             posts.length === 0
               ? <EmptyCard icon="comment" text="No posts yet." />
-              : posts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)
+              : posts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} hideFollow />)
           )}
 
           {tab === 'media' && <PhotoGrid images={mediaImages} empty="No photos shared yet." />}
@@ -414,6 +431,9 @@ export default function UserProfilePage() {
         </div>
       </div>
 
+      {!isSelf && (
+        <FollowNotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} kind="user" targetId={profile.user_id} name={profile.full_name?.split(' ')[0] || 'this user'} />
+      )}
       {toast}
     </ProfileShell>
   )
