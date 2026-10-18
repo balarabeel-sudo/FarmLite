@@ -165,7 +165,7 @@ export default function GroupFeed({ group, myRole, userId, kind, canPost, onChan
     if (own || isMod) actions.push({ label: own ? 'Delete post' : 'Remove post', danger: true, onClick: () => remove(r) })
     return (
       <PostCard key={r.id + (r.content.length)} post={r} initialLiked={liked.has(r.id)} initialSaved={saved.has(r.id)}
-        pinned={!!r.pinned_at} menuActions={actions} emphasize={!!r.poll}>
+        pinned={!!r.pinned_at} menuActions={actions} emphasize={!!r.poll} inGroup>
         {r.poll && (
           <GroupPoll poll={r.poll} state={pollStates[r.poll.id]} canVote={canPost}
             canManage={r.poll.created_by === userId || isMod} onChanged={refreshPoll} />
