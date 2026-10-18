@@ -134,7 +134,7 @@ const ARTICLES: Article[] = [
   // ---- Premium
   { id: 'p1', cat: 'premium', title: 'Understanding Premium benefits', keywords: 'premium benefits features badge limits videos',
     body: [
-      'Farmxie Premium for users includes higher limits (10 active listings instead of 3, 10 photos per listing instead of 5, more FarmBot messages per day), a Premium badge and short videos of up to 20 seconds.',
+      'Farmxie Premium for users includes higher limits (10 active listings instead of 3, 10 photos per listing instead of 5, more FarmBot messages per day), a Premium badge and longer short videos (up to 60 seconds).',
       'The Premium page shows what is available now and marks anything that is "Coming soon". Premium does not guarantee sales, views or rankings.',
     ] },
   { id: 'p2', cat: 'premium', title: 'Upgrading a membership', keywords: 'upgrade buy subscribe premium pay',
@@ -204,7 +204,7 @@ const ARTICLES: Article[] = [
   // ---- Community & Groups
   { id: 'g1', cat: 'community', title: 'Creating posts', keywords: 'post share photo video update create',
     body: [
-      'Use the + button in the bottom bar to write a post and add photos. Premium members can also add short videos of up to 20 seconds.',
+      'Use the + button in the bottom bar to write a post and add photos. You can also add a short video (Premium members can post longer ones).',
     ] },
   { id: 'g2', cat: 'community', title: 'Commenting and interacting', keywords: 'comment like reply follow save share',
     body: [
