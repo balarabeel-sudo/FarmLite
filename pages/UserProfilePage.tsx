@@ -12,6 +12,7 @@ import { isPremiumActive } from '../premiumShared'
 import { cleanPhone, whatsappLink } from '../phoneUtils'
 import { setFollowCache } from '../followShared'
 import FollowNotifySheet from '../FollowNotifySheet'
+import ReportSheet from '../ReportSheet'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
   BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
@@ -72,6 +73,7 @@ export default function UserProfilePage() {
   const [followBusy, setFollowBusy] = useState(false)
   const [followsMe, setFollowsMe] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
 
   // Search inside this profile (posts + listings)
@@ -241,6 +243,7 @@ export default function UserProfilePage() {
   const menuItems = [
     ...(!isSelf && isFollowing ? [{ label: 'Notifications', onClick: () => setNotifyOpen(true) }] : []),
     { label: 'Copy profile link', onClick: () => copy(`${window.location.origin}/u/${username}`) },
+    ...(!isSelf ? [{ label: 'Report user', onClick: () => setReportOpen(true) }] : []),
   ]
 
   // Search view: sits under the header, results are this user's posts and listings.
@@ -431,6 +434,9 @@ export default function UserProfilePage() {
         </div>
       </div>
 
+      {!isSelf && (
+        <ReportSheet open={reportOpen} onClose={() => setReportOpen(false)} type="user" userId={profile.user_id} targetLabel={profile.full_name || profile.username || ''} />
+      )}
       {!isSelf && (
         <FollowNotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} kind="user" targetId={profile.user_id} name={profile.full_name?.split(' ')[0] || 'this user'} />
       )}
