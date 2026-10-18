@@ -29,6 +29,8 @@ import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
 import PostPage from './pages/PostPage'
 import VideoUploadPage from './pages/VideoUploadPage'
+import VideosPage from './pages/VideosPage'
+import AdminVideosPage from './admin/pages/VideosPage'
 import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
 import CompanyRegisterPage from './pages/CompanyRegisterPage'
@@ -248,6 +250,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VideoUploadPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/videos"
+              element={
+                <ProtectedRoute>
+                  <VideosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/videos/:id"
+              element={
+                <ProtectedRoute>
+                  <VideosPage />
                 </ProtectedRoute>
               }
             />
@@ -657,6 +675,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="settings.view">
                     <AdminSettingsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/videos"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="videos.view">
+                    <AdminVideosPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
