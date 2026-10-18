@@ -7,7 +7,7 @@ import ReportSheet from './ReportSheet'
 import PremiumTick from './PremiumTick'
 import { isPremiumActive } from './premiumShared'
 import { timeAgo } from './PostCard'
-import { deleteShortVideo, formatDuration } from './videoShared'
+import { deleteShortVideo, formatDuration, videoLink } from './videoShared'
 import type { VideoRow } from './videoShared'
 
 const COLORS = {
@@ -76,12 +76,12 @@ export default function VideoCard({
   }
 
   const share = async () => {
-    const shareData = { title: 'Farmxie', text: video.caption || 'Watch this video on Farmxie', url: video.video_url }
+    const shareData = { title: 'Farmxie', text: video.caption || 'Watch this video on Farmxie', url: videoLink(video.id) }
     if ((navigator as any).share) {
       try { await (navigator as any).share(shareData) } catch { /* user cancelled */ }
     } else {
       try {
-        await navigator.clipboard.writeText(video.video_url)
+        await navigator.clipboard.writeText(videoLink(video.id))
         setCopied(true)
         setTimeout(() => setCopied(false), 1500)
       } catch { /* clipboard not available */ }
@@ -173,11 +173,17 @@ export default function VideoCard({
         <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10.5px', fontWeight: 700, borderRadius: '6px', padding: '2px 7px', pointerEvents: 'none' }}>
           {formatDuration(video.duration_seconds)}
         </div>
+        <div role="button" aria-label="Open full screen" onClick={() => navigate(`/videos/${video.id}`)} style={{ position: 'absolute', top: '8px', left: '8px', width: '28px', height: '28px', borderRadius: '14px', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '18px', paddingTop: '8px', borderTop: `1px solid ${COLORS.border}` }}>
         <span onClick={toggleLike} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: liked ? COLORS.red : COLORS.textMuted, cursor: 'pointer' }}>
           <Icon name="heart" size={15} color={liked ? COLORS.red : COLORS.textMuted} /> {likes}
+        </span>
+        <span onClick={() => navigate(`/videos/${video.id}`)} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>
+          <Icon name="comment" size={15} color={COLORS.textMuted} /> {video.comments_count || 0}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: COLORS.textMuted }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" /><circle cx="12" cy="12" r="3" /></svg>
