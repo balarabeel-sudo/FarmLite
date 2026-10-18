@@ -11,6 +11,8 @@ import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
 import { isPremiumActive } from '../premiumShared'
 import { trackView } from '../analyticsShared'
+import { setFollowCache } from '../followShared'
+import FollowNotifySheet from '../FollowNotifySheet'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
   BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, Block, Tags, PhotoGrid, ListingGrid,
@@ -73,6 +75,7 @@ export default function CompanyDetailsPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [notifyOpen, setNotifyOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
 
   // Search inside this company (posts + listings)
@@ -154,13 +157,19 @@ export default function CompanyDetailsPage() {
     if (!user || !company || followBusy) return
     setFollowBusy(true)
     if (following) {
-      await supabase.from('company_followers').delete().eq('user_id', user.id).eq('company_id', company.id)
-      setFollowing(false)
-      setCompany((prev) => prev ? { ...prev, followers_count: Math.max(prev.followers_count - 1, 0) } : prev)
+      const { error } = await supabase.from('company_followers').delete().eq('user_id', user.id).eq('company_id', company.id)
+      if (!error) {
+        setFollowing(false)
+        setFollowCache(user.id, 'company', company.id, false)
+        setCompany((prev) => prev ? { ...prev, followers_count: Math.max(prev.followers_count - 1, 0) } : prev)
+      }
     } else {
-      await supabase.from('company_followers').insert({ user_id: user.id, company_id: company.id })
-      setFollowing(true)
-      setCompany((prev) => prev ? { ...prev, followers_count: prev.followers_count + 1 } : prev)
+      const { error } = await supabase.from('company_followers').insert({ user_id: user.id, company_id: company.id })
+      if (!error) {
+        setFollowing(true)
+        setFollowCache(user.id, 'company', company.id, true)
+        setCompany((prev) => prev ? { ...prev, followers_count: prev.followers_count + 1 } : prev)
+      }
     }
     setFollowBusy(false)
   }
@@ -207,7 +216,10 @@ export default function CompanyDetailsPage() {
   const joined = company.created_at ? new Date(company.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : null
   const postsLabel = `${compact(postsCount)} ${postsCount === 1 ? 'post' : 'posts'}`
   const typeLine = [company.category, company.business_type].filter(Boolean).join(' · ')
-  const menuItems = [{ label: 'Copy company link', onClick: () => copy(`${window.location.origin}/companies/${company.id}`) }]
+  const menuItems = [
+    ...(!isOwner && following ? [{ label: 'Notifications', onClick: () => setNotifyOpen(true) }] : []),
+    { label: 'Copy company link', onClick: () => copy(`${window.location.origin}/companies/${company.id}`) },
+  ]
 
   // Search view: sits under the header, results are this company's posts and listings.
   if (searching) {
@@ -223,7 +235,7 @@ export default function CompanyDetailsPage() {
           {!sBusy && sPosts.length > 0 && (
             <>
               <SectionLabel>Posts</SectionLabel>
-              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />)}
+              {sPosts.map((p) => <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} hideFollow />)}
             </>
           )}
           {!sBusy && sListings.length > 0 && (
@@ -376,7 +388,7 @@ export default function CompanyDetailsPage() {
             posts.length === 0
               ? <EmptyCard icon="comment" text="No posts from this company yet." />
               : posts.map((p) => (
-                <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} />
+                <PostCard key={p.id} post={p} initialLiked={likedIds.has(p.id)} initialSaved={savedIds.has(p.id)} hideFollow />
               ))
           )}
 
@@ -416,6 +428,9 @@ export default function CompanyDetailsPage() {
         </div>
       </div>
 
+      {!isOwner && (
+        <FollowNotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} kind="company" targetId={company.id} name={company.name} />
+      )}
       {toast}
     </ProfileShell>
   )
