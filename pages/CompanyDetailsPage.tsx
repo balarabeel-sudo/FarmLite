@@ -13,6 +13,7 @@ import { isPremiumActive } from '../premiumShared'
 import { trackView } from '../analyticsShared'
 import { setFollowCache } from '../followShared'
 import FollowNotifySheet from '../FollowNotifySheet'
+import ReportSheet from '../ReportSheet'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
   BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, Block, Tags, PhotoGrid, ListingGrid,
@@ -76,6 +77,7 @@ export default function CompanyDetailsPage() {
   const [following, setFollowing] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
 
   // Search inside this company (posts + listings)
@@ -219,6 +221,7 @@ export default function CompanyDetailsPage() {
   const menuItems = [
     ...(!isOwner && following ? [{ label: 'Notifications', onClick: () => setNotifyOpen(true) }] : []),
     { label: 'Copy company link', onClick: () => copy(`${window.location.origin}/companies/${company.id}`) },
+    ...(!isOwner ? [{ label: 'Report company', onClick: () => setReportOpen(true) }] : []),
   ]
 
   // Search view: sits under the header, results are this company's posts and listings.
@@ -428,6 +431,9 @@ export default function CompanyDetailsPage() {
         </div>
       </div>
 
+      {!isOwner && (
+        <ReportSheet open={reportOpen} onClose={() => setReportOpen(false)} type="company" contentId={company.id} targetLabel={company.name} />
+      )}
       {!isOwner && (
         <FollowNotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} kind="company" targetId={company.id} name={company.name} />
       )}
