@@ -29,9 +29,7 @@ export const POST_SELECT =
   'profiles!posts_user_id_fkey(full_name, username, profile_image, is_premium, premium_until), ' +
   'companies!posts_company_id_fkey(id, name, logo_url, is_premium, premium_until), ' +
   'communities!posts_community_id_fkey(id, name, cover_url), ' +
-  'shared:posts!posts_shared_post_id_fkey(id, user_id, company_id, content, images, created_at, ' +
-  'profiles!posts_user_id_fkey(full_name, username, profile_image, is_premium, premium_until), ' +
-  'companies!posts_company_id_fkey(id, name, logo_url, is_premium, premium_until))'
+  'shared:shared_post'
 
 // The original post inside a share.
 export type SharedPostData = {
