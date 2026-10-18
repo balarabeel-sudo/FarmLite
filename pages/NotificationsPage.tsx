@@ -20,7 +20,7 @@ const COLORS = {
 
 type Notification = {
   id: string
-  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general' | 'farm_desk'
+  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general' | 'farm_desk' | 'activity'
   title: string
   body: string | null
   link: string | null
@@ -33,6 +33,7 @@ const CATEGORY_ICON: Record<string, string> = {
   like: 'heart',
   comment: 'comment',
   follow: 'users',
+  activity: 'share',
   marketplace: 'cart',
   general: 'bell',
   farm_desk: 'leaf',
