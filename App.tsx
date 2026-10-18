@@ -27,6 +27,7 @@ import NotificationsPage from './pages/NotificationsPage'
 import NotificationSettingsPage from './pages/NotificationSettingsPage'
 import FarmBotPage from './pages/FarmBotPage'
 import CreatePostPage from './pages/CreatePostPage'
+import PostPage from './pages/PostPage'
 import VideoUploadPage from './pages/VideoUploadPage'
 import SearchPage from './pages/SearchPage'
 import CompanyDetailsPage from './pages/CompanyDetailsPage'
@@ -279,6 +280,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CommunityDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/post/:id"
+              element={
+                <ProtectedRoute>
+                  <PostPage />
                 </ProtectedRoute>
               }
             />
