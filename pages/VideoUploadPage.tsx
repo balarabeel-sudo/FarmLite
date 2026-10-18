@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { COLORS, inputStyle, labelStyle, ErrorBanner } from '../shared'
-import { isPremiumActive } from '../premiumShared'
-import { MAX_VIDEO_BYTES, captureThumbnail, fetchMaxVideoSeconds, formatDuration, postShortVideo, readVideoMeta } from '../videoShared'
+import { MAX_VIDEO_BYTES, captureThumbnail, fetchVideoPermission, formatDuration, postShortVideo, readVideoMeta, trimVideo } from '../videoShared'
 
-// Route: /videos/new - post a short video (Premium members only; the database enforces it too).
+// Route: /videos/new - post a short video. Who may post and how long it can be is decided by the admin settings
+// (Premium: longer limit; free members only when the admin allows it). The database enforces it too.
 export default function VideoUploadPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
-  const [premium, setPremium] = useState(false)
+  const [allowed, setAllowed] = useState(false)
   const [maxSeconds, setMaxSeconds] = useState(20)
+  const [postingStage, setPostingStage] = useState('')
 
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -30,13 +30,10 @@ export default function VideoUploadPage() {
     if (!user) return
     let alive = true
     ;(async () => {
-      const [{ data: p }, max] = await Promise.all([
-        supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle(),
-        fetchMaxVideoSeconds(),
-      ])
+      const perm = await fetchVideoPermission()
       if (!alive) return
-      setPremium(!!p && isPremiumActive((p as any).is_premium, (p as any).premium_until))
-      setMaxSeconds(max)
+      setAllowed(perm.allowed)
+      if (perm.max_seconds > 0) setMaxSeconds(perm.max_seconds)
       setLoading(false)
     })()
     return () => { alive = false }
@@ -65,11 +62,7 @@ export default function VideoUploadPage() {
     setChecking(true)
     try {
       const meta = await readVideoMeta(f)
-      if (meta.duration > maxSeconds + 0.3) {
-        setError(`This video is ${Math.round(meta.duration)} seconds long. Short videos can be up to ${maxSeconds} seconds.`)
-        setChecking(false)
-        return
-      }
+      // A longer video is accepted: only the first part (up to the limit) is kept when posting.
       const t = await captureThumbnail(f)
       setFile(f)
       setDuration(meta.duration)
@@ -88,11 +81,22 @@ export default function VideoUploadPage() {
     setError('')
     setPosting(true)
     try {
-      await postShortVideo({ file, caption, duration, thumbnail: thumb })
+      let upload: Blob & { name?: string } = file
+      let length = duration
+      // Longer than the limit: quietly keep only the first part, like a WhatsApp status
+      if (duration > maxSeconds + 0.3) {
+        setPostingStage('Preparing your video...')
+        const trimmed = await trimVideo(file, maxSeconds)
+        if (trimmed) { upload = trimmed.blob; length = trimmed.duration }
+        else length = maxSeconds // the player stops at this length
+      }
+      setPostingStage('Uploading your video...')
+      await postShortVideo({ file: upload, caption, duration: Math.min(length, maxSeconds), thumbnail: thumb })
       navigate('/?tab=update', { replace: true })
     } catch (e) {
       setError((e as Error).message)
       setPosting(false)
+      setPostingStage('')
     }
   }
 
@@ -105,7 +109,7 @@ export default function VideoUploadPage() {
           </div>
           <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>New Video</p>
         </div>
-        {premium && (
+        {allowed && (
           <div
             onClick={canPost ? handlePost : undefined}
             style={{ padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: COLORS.green, cursor: canPost ? 'pointer' : 'default', opacity: canPost ? 1 : 0.5 }}>
@@ -117,7 +121,7 @@ export default function VideoUploadPage() {
       <div style={{ padding: '16px' }}>
         {loading ? (
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', padding: '40px 0' }}>Loading...</p>
-        ) : !premium ? (
+        ) : !allowed ? (
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '28px 18px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '28px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -126,7 +130,7 @@ export default function VideoUploadPage() {
             </div>
             <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text, marginTop: '14px' }}>Short videos are a Premium feature</p>
             <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.5 }}>
-              Upgrade to Premium to post videos of up to {maxSeconds} seconds. Everyone can watch them.
+              Upgrade to Premium to post longer videos. Everyone can watch them.
             </p>
             <div onClick={() => navigate('/premium')} style={{ display: 'inline-block', marginTop: '16px', background: COLORS.green, color: 'white', borderRadius: '12px', padding: '11px 22px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}>
               Upgrade to Premium
@@ -153,7 +157,7 @@ export default function VideoUploadPage() {
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginTop: '12px' }}>{checking ? 'Checking video...' : 'Choose or record a video'}</p>
                 <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.5 }}>
-                  Up to {maxSeconds} seconds and 50 MB. MP4 works best.
+                  Up to {maxSeconds} seconds and 50 MB. MP4 works best. Longer videos are cut to {maxSeconds} seconds.
                 </p>
               </div>
             ) : (
@@ -161,7 +165,7 @@ export default function VideoUploadPage() {
                 <div style={{ position: 'relative', background: '#000', borderRadius: '14px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
                   <video src={previewUrl || undefined} controls playsInline preload="metadata" style={{ width: '100%', maxHeight: '60vh', display: 'block', objectFit: 'contain', background: '#000' }} />
                   <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10.5px', fontWeight: 700, borderRadius: '6px', padding: '2px 7px', pointerEvents: 'none' }}>
-                    {formatDuration(duration)}
+                    {formatDuration(Math.min(duration, maxSeconds))}
                   </div>
                 </div>
                 {!posting && (
@@ -185,7 +189,7 @@ export default function VideoUploadPage() {
 
                 {posting && (
                   <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
-                    Uploading your video. Please keep this page open...
+                    {postingStage || 'Uploading your video...'} Please keep this page open...
                   </p>
                 )}
               </>
