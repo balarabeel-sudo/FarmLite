@@ -320,7 +320,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Post a short video</p>
-                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{isPremium ? 'Share a video of up to 20 seconds.' : 'Premium members can post videos of up to 20 seconds.'}</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Share a short video with the Farmxie community.</p>
                 </div>
                 <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
               </div>
