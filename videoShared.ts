@@ -1,11 +1,12 @@
 import { supabase } from './supabaseClient'
-import { fetchLimits } from './premiumShared'
 
 // Short videos live in their own public "videos" bucket (50 MB per file).
-// Only Premium members can upload; the database enforces that, the length limit and the daily cap.
+// Who may post, how long a video can be and the daily cap come from the database (set by the admin);
+// Premium members get the longer limit. The database enforces all of it.
 export const VIDEO_BUCKET = 'videos'
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 export const DEFAULT_MAX_SECONDS = 20
+export const PREMIUM_DEFAULT_SECONDS = 60
 
 export type VideoRow = {
   id: string
@@ -18,25 +19,50 @@ export type VideoRow = {
   duration_seconds: number
   likes_count: number
   views_count: number
+  comments_count: number
   created_at: string
   profiles: { full_name: string | null; username: string | null; profile_image: string | null; is_premium: boolean; premium_until: string | null } | null
 }
 
 // Select string every page should use so VideoCard gets everything it needs.
 export const VIDEO_SELECT =
-  'id, user_id, video_url, video_path, thumbnail_url, thumbnail_path, caption, duration_seconds, likes_count, views_count, created_at, ' +
+  'id, user_id, video_url, video_path, thumbnail_url, thumbnail_path, caption, duration_seconds, likes_count, views_count, comments_count, created_at, ' +
   'profiles!short_videos_user_id_fkey(full_name, username, profile_image, is_premium, premium_until)'
 
-// Longest video a Premium member may post (admin-editable in app_limits).
-export async function fetchMaxVideoSeconds(): Promise<number> {
+export type VideoPermission = {
+  allowed: boolean // may this person post videos right now
+  premium: boolean
+  max_seconds: number // longest video this person may post
+  per_day: number
+  used_today: number
+}
+
+// What the signed-in person may do: asked from the database so the numbers are never stale.
+export async function fetchVideoPermission(): Promise<VideoPermission> {
   try {
-    const limits = await fetchLimits()
-    const v = limits['video_max_seconds']?.premium
-    return v && v > 0 ? v : DEFAULT_MAX_SECONDS
+    const { data, error } = await supabase.rpc('my_video_permission')
+    if (error || !data) throw error || new Error('no data')
+    const d = data as any
+    return {
+      allowed: !!d.allowed,
+      premium: !!d.premium,
+      max_seconds: Number(d.max_seconds) || 0,
+      per_day: Number(d.per_day) || 0,
+      used_today: Number(d.used_today) || 0,
+    }
   } catch {
-    return DEFAULT_MAX_SECONDS
+    return { allowed: false, premium: false, max_seconds: 0, per_day: 0, used_today: 0 }
   }
 }
+
+// Longest video this person may post (kept for the pages that only need the number).
+export async function fetchMaxVideoSeconds(): Promise<number> {
+  const p = await fetchVideoPermission()
+  return p.max_seconds > 0 ? p.max_seconds : DEFAULT_MAX_SECONDS
+}
+
+// Link to one video inside Farmxie.
+export const videoLink = (id: string) => `${window.location.origin}/videos/${id}`
 
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.round(seconds))
@@ -118,7 +144,7 @@ export function captureThumbnail(file: File, atSeconds = 0.5): Promise<Blob | nu
 
 function friendlyUploadError(message: string): string {
   const m = message.toLowerCase()
-  if (m.includes('row-level security') || m.includes('policy')) return 'Only Premium members can post videos. Your Premium may have ended.'
+  if (m.includes('row-level security') || m.includes('policy')) return 'You cannot post videos right now. Please try again later.'
   if (m.includes('exceeded') || m.includes('too large') || m.includes('maximum allowed size')) return 'This video is too large (max 50 MB). Record at a lower quality such as 720p and try again.'
   if (m.includes('mime') || m.includes('not supported')) return 'This video type is not supported. Please choose an MP4 video.'
   return 'Video upload failed. Check your connection and try again.'
