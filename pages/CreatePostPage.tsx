@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import ImageUploader from '../ImageUploader'
 import { isPremiumActive } from '../premiumShared'
-import { captureThumbnail, fetchMaxVideoSeconds, formatDuration, postShortVideo, readVideoMeta, trimVideo } from '../videoShared'
+import { captureThumbnail, fetchVideoPermission, formatDuration, postShortVideo, readVideoMeta, trimVideo } from '../videoShared'
 
 const MAX_PICK_BYTES = 200 * 1024 * 1024
 
@@ -47,11 +47,13 @@ export default function CreatePostPage() {
   const [companies, setCompanies] = useState<OwnedCompany[]>([])
   const [postAs, setPostAs] = useState<string>('me') // 'me' or a company id
 
-  // Short video (Premium members only)
+  // Short video (Premium members, and free members when the admin allows it)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const [premium, setPremium] = useState(false)
   const [premiumChecked, setPremiumChecked] = useState(false)
   const [maxSeconds, setMaxSeconds] = useState(20)
+  const [canVideo, setCanVideo] = useState(false)
+  const [permChecked, setPermChecked] = useState(false)
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
   const [videoLength, setVideoLength] = useState(0)
@@ -65,7 +67,12 @@ export default function CreatePostPage() {
       setPremium(!!data && isPremiumActive((data as any).is_premium, (data as any).premium_until))
       setPremiumChecked(true)
     })
-    fetchMaxVideoSeconds().then(setMaxSeconds)
+    // What this person may post (who, how long) comes from the database, so admin changes apply at once
+    fetchVideoPermission().then((p) => {
+      setCanVideo(p.allowed)
+      if (p.max_seconds > 0) setMaxSeconds(p.max_seconds)
+      setPermChecked(true)
+    })
   }, [user])
 
   useEffect(() => () => { if (videoPreview) URL.revokeObjectURL(videoPreview) }, [videoPreview])
@@ -95,9 +102,9 @@ export default function CreatePostPage() {
   const activeCompany = companies.find((c) => c.id === postAs) || null
 
   // Videos are personal posts only (not inside a group or as a company)
-  const canAddVideo = premium && !communityId && !activeCompany && images.length === 0
+  const canAddVideo = canVideo && !communityId && !activeCompany && images.length === 0
   // Everyone else who could post a personal video is offered the upgrade instead
-  const showUpgradeForVideo = premiumChecked && !premium && !communityId && !activeCompany
+  const showUpgradeForVideo = premiumChecked && permChecked && !canVideo && !communityId && !activeCompany
 
   const clearVideo = () => {
     setVideoFile(null)
