@@ -172,7 +172,7 @@ const SECTIONS: Section[] = [
         'Because Premium is prepaid and does not renew by itself, there is nothing to cancel. You simply choose not to buy again.',
       ] },
       { sub: 'Benefits', list: [
-        'Benefits are listed on the Premium page. Examples include a higher number of active listings, more FarmBot messages per day, more listing photos, a Premium badge and, for users, short videos up to 20 seconds.',
+        'Benefits are listed on the Premium page. Examples include a higher number of active listings, more FarmBot messages per day, more listing photos, a Premium badge and, for users, longer short videos (up to 60 seconds).',
         'Some benefits on the Premium page are marked “Coming soon”. Those are not available yet and are not promised for any date.',
         'Premium does not guarantee sales, views, rankings or results.',
       ] },
