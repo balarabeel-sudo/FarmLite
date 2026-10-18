@@ -8,6 +8,7 @@ export const NOTIFICATION_CATEGORIES: { key: string; label: string; hint: string
   { key: 'comment', label: 'Comments and replies', hint: 'Someone comments on your post or replies to you' },
   { key: 'like', label: 'Likes', hint: 'Someone likes your post' },
   { key: 'follow', label: 'New followers', hint: 'Someone starts following you' },
+  { key: 'activity', label: 'Shares and followed accounts', hint: 'Someone shares your post, or someone you follow posts or lists something' },
   { key: 'marketplace', label: 'Marketplace and orders', hint: 'Questions about your listings, orders, payments' },
   { key: 'farm_desk', label: 'Farm Desk', hint: 'Updates on your Farm Desk requests' },
   { key: 'general', label: 'Announcements', hint: 'Updates and announcements from Farmxie' },
