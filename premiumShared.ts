@@ -37,7 +37,7 @@ export type Feature = {
 export const USER_FEATURES: Feature[] = [
   { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'farmbot_daily_messages', unit: '/day' },
   { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: true, limitKey: 'active_listings' },
-  { icon: 'play', title: 'Short Video Posting', sub: 'Post short videos (up to 20 seconds)', free: 'No', premium: 'Yes (20s)', live: true },
+  { icon: 'play', title: 'Short Video Posting', sub: 'Post longer short videos (up to 60 seconds)', free: 'Limited', premium: 'Yes (60s)', live: true },
   { icon: 'bars', title: 'Advanced Analytics', sub: 'Track your growth and performance', free: 'No', premium: 'Yes', live: true },
   { icon: 'user', title: 'Premium Profile', sub: 'A richer profile that stands out', free: 'No', premium: 'Yes', live: false },
   { icon: 'eye', title: 'Priority Visibility', sub: 'Additional visibility opportunities', free: 'No', premium: 'Yes', live: false },
@@ -66,7 +66,7 @@ export type Included = { title: string; live: boolean }
 export const USER_INCLUDED: Included[] = [
   { title: 'Advanced FarmBot', live: true },
   { title: '10 Marketplace Listings', live: true },
-  { title: '20-Second Short Videos', live: true },
+  { title: '60-Second Short Videos', live: true },
   { title: 'Personal Analytics', live: true },
   { title: 'Premium Profile', live: false },
   { title: 'Premium Badge', live: true },
