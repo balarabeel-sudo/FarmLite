@@ -32,10 +32,13 @@ export type Feature = {
   // when set, the Free/Premium values are read from app_limits so the page never shows stale numbers
   limitKey?: string
   unit?: string
+  // true = the numbers behind a limit are never shown to people (for example FarmBot messages per day)
+  hideNumbers?: boolean
 }
 
 export const USER_FEATURES: Feature[] = [
-  { icon: 'bot', title: 'FarmBot Limit', sub: 'Daily questions & AI assistance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'farmbot_daily_messages', unit: '/day' },
+  { icon: 'bot', title: 'More FarmBot Questions', sub: 'More daily questions and AI assistance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'farmbot_daily_messages', unit: '/day', hideNumbers: true },
+  { icon: 'camera', title: 'FarmBot Photo Questions', sub: 'Send photos of crops, animals and equipment', free: 'No', premium: 'Yes', live: true, limitKey: 'farmbot_photos_per_message', hideNumbers: true },
   { icon: 'box', title: 'Listing Capacity', sub: 'Active marketplace listings', free: '3', premium: '10', live: true, limitKey: 'active_listings' },
   { icon: 'play', title: 'Short Video Posting', sub: 'Post longer short videos (up to 60 seconds)', free: 'Limited', premium: 'Yes (60s)', live: true },
   { icon: 'bars', title: 'Advanced Analytics', sub: 'Track your growth and performance', free: 'No', premium: 'Yes', live: true },
@@ -56,39 +59,9 @@ export const COMPANY_FEATURES: Feature[] = [
   { icon: 'users', title: 'Customer Insights', sub: 'Visitors, interest and engagement', free: 'Basic', premium: 'Yes', live: false },
   { icon: 'megaphone', title: 'Advertising Tools', sub: 'Promote your company and listings', free: 'Standard', premium: 'Advanced', live: false, soonLabel: 'Coming soon' },
   { icon: 'file', title: 'Performance Reports', sub: 'Weekly and monthly summaries', free: 'No', premium: 'Yes', live: false },
-  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'Agriculture and business guidance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'company_farmbot_daily_messages', unit: '/day' },
+  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'More daily questions and business guidance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'company_farmbot_daily_messages', unit: '/day', hideNumbers: true },
+  { icon: 'camera', title: 'FarmBot Photo Questions', sub: 'Send photos of products, crops and equipment', free: 'No', premium: 'Yes', live: true, limitKey: 'company_farmbot_photos_per_message', hideNumbers: true },
   { icon: 'headset', title: 'Priority Support', sub: 'Faster help from the team', free: 'Standard', premium: 'Priority', live: false },
-]
-
-// "Everything included" grid
-export type Included = { title: string; live: boolean }
-
-export const USER_INCLUDED: Included[] = [
-  { title: 'Advanced FarmBot', live: true },
-  { title: '10 Marketplace Listings', live: true },
-  { title: '60-Second Short Videos', live: true },
-  { title: 'Personal Analytics', live: true },
-  { title: 'Premium Profile', live: false },
-  { title: 'Premium Badge', live: true },
-  { title: 'Priority Visibility', live: false },
-  { title: 'Advanced Marketplace Tools', live: false },
-  { title: 'Advanced Notifications', live: false },
-  { title: 'Extended Upload Capacity', live: true },
-]
-
-export const COMPANY_INCLUDED: Included[] = [
-  { title: 'Premium Company Page', live: false },
-  { title: 'Premium Badge', live: true },
-  { title: 'Advanced Company Analytics', live: true },
-  { title: 'Advanced Marketplace Tools', live: false },
-  { title: 'Higher Listing Capacity', live: false },
-  { title: 'Featured Visibility', live: false },
-  { title: 'Customer Insights', live: false },
-  { title: 'Advanced Advertising Tools', live: false },
-  { title: 'Company Performance Reports', live: false },
-  { title: 'FarmBot Business Assistance', live: true },
-  { title: 'Priority Visibility', live: false },
-  { title: 'Priority Support', live: false },
 ]
 
 // Premium counts as active only while the real expiry date is in the future.
@@ -118,6 +91,15 @@ export function formatDate(iso?: string | null): string {
 
 export function planLabel(months: number): string {
   return months === 1 ? '1 Month' : `${months} Months`
+}
+
+// How much cheaper (in %) a longer plan is than paying month by month. 0 when there is no saving.
+export function savingPercent(prices: PriceRow[], months: number): number {
+  const one = prices.find((p) => p.months === 1)
+  const cur = prices.find((p) => p.months === months)
+  if (!one || !cur || months <= 1 || one.amount <= 0) return 0
+  const pct = Math.round((1 - cur.amount / (one.amount * months)) * 100)
+  return pct > 0 ? pct : 0
 }
 
 async function fnError(error: any): Promise<string> {
