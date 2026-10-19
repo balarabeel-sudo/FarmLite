@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Icon from './Icons'
-import { VersusBanner, ComparisonTable, IncludedGrid, PremiumPill } from './PremiumComparison'
+import { PlanTable, DurationSlider } from './PremiumComparison'
 import {
   USER_FEATURES,
   COMPANY_FEATURES,
-  USER_INCLUDED,
-  COMPANY_INCLUDED,
   fetchPrices,
   fetchLimits,
   startCheckout,
@@ -30,9 +28,10 @@ const COLORS = {
   text: '#1A2E1A',
   textMuted: '#5B6B5B',
   red: '#DC2626',
+  dark: '#0E2A16',
 }
 
-type Step = 'loading' | 'active' | 'review' | 'plan' | 'order' | 'pay' | 'verifying' | 'success' | 'failed'
+type Step = 'loading' | 'review' | 'order' | 'pay' | 'verifying' | 'success' | 'failed'
 
 type Props = {
   audience: Audience
@@ -54,15 +53,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export default function PremiumFlow({ audience, companyId, companyName, initialReference, wide, showBenefits, onExit, onDone, onChanged }: Props) {
   const isCompany = audience === 'company'
   const productName = isCompany ? 'Farmxie Company Premium' : 'Farmxie Premium'
-  const baseFeatures = isCompany ? COMPANY_FEATURES : USER_FEATURES
-  // Real numbers from the database replace the placeholder text
-  const features = baseFeatures.map((f) =>
-    f.limitKey && limits[f.limitKey]
-      ? { ...f, free: `${limits[f.limitKey].free}${f.unit || ''}`, premium: `${limits[f.limitKey].premium}${f.unit || ''}` }
-      : f,
-  )
-  const included = isCompany ? COMPANY_INCLUDED : USER_INCLUDED
-
   const [step, setStep] = useState<Step>('loading')
   const [info, setInfo] = useState<PriceInfo | null>(null)
   const [months, setMonths] = useState(6)
@@ -73,14 +63,20 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const [stuck, setStuck] = useState(false)
   const [limits, setLimits] = useState<Limits>({})
   const [failMsg, setFailMsg] = useState<string | null>(null)
+  // Real numbers from the database replace the placeholder text (declared after `limits` on purpose)
+  const baseFeatures = isCompany ? COMPANY_FEATURES : USER_FEATURES
+  const features = baseFeatures.map((f) => {
+    const l = f.limitKey ? limits[f.limitKey] : undefined
+    return l ? { ...f, free: String(l.free), premium: String(l.premium) } : f
+  })
   const started = useRef(false)
-  const includedRef = useRef<HTMLDivElement>(null)
 
   const price = info?.prices.find((p) => p.months === months) || null
   const isActive = !!info?.status?.is_premium
   // Premium that ran out: it has an expiry date in the past and is no longer active
   const expired = !!info && !isActive && !!info.status?.premium_until
-  const ctaLabel = isActive ? 'Extend Premium' : expired ? 'Renew Premium' : isCompany ? 'Upgrade to Company Premium' : 'Upgrade to Premium'
+  const ctaVerb = isActive ? 'Extend' : expired ? 'Renew' : 'Upgrade'
+  const ctaLabel = price && info ? `${ctaVerb} for ${formatMoney(price.amount, info.currency)}` : `${ctaVerb} Premium`
 
   const runVerify = async (reference: string) => {
     setStep('verifying')
@@ -129,6 +125,8 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
         return
       }
       setInfo(loaded)
+      // Start on a plan length that really exists for this country
+      setMonths((m) => (loaded.prices.some((x) => x.months === m) ? m : loaded.prices.length ? loaded.prices[loaded.prices.length - 1].months : m))
 
       if (initialReference) {
         runVerify(initialReference)
@@ -147,7 +145,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
         }
       }
 
-      setStep(loaded.status?.is_premium && !showBenefits ? 'active' : 'review')
+      setStep('review')
     })()
   }, [])
 
@@ -167,14 +165,13 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const back = () => {
     setError(null)
     setNotice(null)
-    if (step === 'plan') setStep('review')
-    else if (step === 'order') setStep('plan')
+    if (step === 'order') setStep('review')
     else if (step === 'pay') setStep('order')
     else onExit()
   }
 
   const container: CSSProperties = { maxWidth: wide ? 760 : undefined, margin: '0 auto' }
-  const showBack = step === 'plan' || step === 'order' || step === 'pay'
+  const showBack = step === 'order' || step === 'pay'
 
   if (step === 'loading') {
     return <p style={{ textAlign: 'center', padding: '40px 0', fontSize: '13px', color: COLORS.textMuted }}>Loading…</p>
@@ -196,109 +193,54 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
         <div style={{ background: COLORS.greenSoft, color: COLORS.greenDark, borderRadius: '12px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px' }}>{notice}</div>
       )}
 
-      {/* Already Premium */}
-      {step === 'active' && (
-        <>
-          <div style={{ background: COLORS.greenDark, border: `1px solid #B8860B`, borderRadius: '16px', padding: '20px 18px', color: 'white', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '22px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="crown" size={22} color="#F5D060" />
-              </div>
-              <div>
-                <p style={{ fontSize: '17px', fontWeight: 800 }}>Premium Active ✓</p>
-                <p style={{ fontSize: '12px', color: '#D1FAE5', marginTop: '3px' }}>{productName}</p>
-              </div>
-            </div>
-            {info?.status?.premium_until && (
-              <p style={{ fontSize: '12.5px', color: '#D1FAE5', marginTop: '14px' }}>Active until: <b style={{ color: 'white' }}>{formatDate(info.status.premium_until)}</b></p>
-            )}
-          </div>
-          <PrimaryButton label="Extend Premium" onClick={() => setStep('plan')} />
-          <GhostButton label="View Benefits" onClick={() => setStep('review')} />
-        </>
-      )}
-
-      {/* 1. Review: Free vs Premium (no prices yet) */}
+      {/* 1. Free vs Premium and plan length */}
       {step === 'review' && (
         <>
-          <div style={{ marginBottom: '16px' }}>
-            <PremiumPill label={isCompany ? 'FARMXIE PREMIUM' : 'FARMXIE PREMIUM'} />
-            <h2 style={{ fontSize: '21px', fontWeight: 800, color: COLORS.text, lineHeight: 1.25, margin: '10px 0 6px' }}>
-              {isCompany ? 'Grow Your Company with Farmxie Premium' : 'Grow More With Farmxie Premium'}
-            </h2>
-            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.5 }}>
-              {isCompany
-                ? 'Unlock advanced business tools, analytics, visibility and marketplace capabilities.'
-                : 'Unlock more tools, insights and opportunities for your farm, marketplace and community.'}
-            </p>
-            {isCompany && companyName && <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '6px' }}>For: <b>{companyName}</b></p>}
-          </div>
+          <h2 style={{ fontSize: wide ? '24px' : '22px', fontWeight: 500, color: COLORS.text, lineHeight: 1.3, margin: '2px 0 18px' }}>
+            {isCompany ? 'Grow your company with advanced tools, analytics and visibility' : 'Get more access with advanced tools and insights for your farm'}
+          </h2>
+          {isCompany && companyName && <p style={{ fontSize: '12.5px', color: COLORS.textMuted, margin: '-10px 0 16px' }}>For: <b>{companyName}</b></p>}
+
+          {isActive && (
+            <div style={{ background: COLORS.greenDark, border: `1px solid #B8860B`, borderRadius: '20px', padding: '16px 18px', color: 'white', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="crown" size={20} color="#F5D060" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: '15.5px', fontWeight: 800 }}>Premium Active ✓</p>
+                {info?.status?.premium_until && (
+                  <p style={{ fontSize: '12px', color: '#D1FAE5', marginTop: '2px' }}>Active until <b style={{ color: 'white' }}>{formatDate(info.status.premium_until)}</b></p>
+                )}
+              </div>
+            </div>
+          )}
 
           {expired && (
-            <div style={{ background: '#FEF3C7', color: '#92400E', borderRadius: '12px', padding: '11px 13px', fontSize: '12.5px', marginBottom: '14px', lineHeight: 1.5 }}>
+            <div style={{ background: '#FEF3C7', color: '#92400E', borderRadius: '16px', padding: '11px 13px', fontSize: '12.5px', marginBottom: '14px', lineHeight: 1.5 }}>
               <b>Premium Expired</b> on {formatDate(info?.status?.premium_until)}. Your data is safe. Renew to get Premium tools back.
             </div>
           )}
 
-          <VersusBanner company={isCompany} />
+          {info && info.prices.length > 0 && (
+            <DurationSlider prices={info.prices} currency={info.currency} months={months} onChange={setMonths} />
+          )}
+          {info && info.prices.length === 0 && (
+            <p style={{ fontSize: '12.5px', color: COLORS.red, margin: '0 2px 12px' }}>No Premium price is configured for your country yet.</p>
+          )}
 
-          <div style={{ marginBottom: '22px' }}>
-            <PrimaryButton label={ctaLabel} onClick={() => setStep('plan')} disabled={!info} />
-            <GhostButton label="View All Benefits" onClick={() => includedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
-          </div>
+          <PlanTable features={features} proLabel="Pro" />
 
-          <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>Free vs Premium</p>
-          <ComparisonTable features={features} company={isCompany} />
-          <p style={{ fontSize: '10.5px', color: COLORS.textMuted, margin: '8px 2px 22px', lineHeight: 1.5 }}>
-            Features marked <b>Soon</b> are being rolled out and unlock automatically for Premium members as they go live.
-          </p>
 
-          <div ref={includedRef} style={{ scrollMarginTop: '70px' }}>
-            <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
-              {isCompany ? 'Everything in Company Premium' : 'Everything included with Premium'}
+          <div style={{
+            position: wide ? 'static' : 'sticky', bottom: 0, zIndex: 5, marginTop: '10px',
+            background: wide ? 'transparent' : 'linear-gradient(to top, #FFFFFF 78%, rgba(255,255,255,0))',
+            padding: '18px 0 calc(12px + env(safe-area-inset-bottom, 0px))',
+          }}>
+            <PrimaryButton label={ctaLabel} onClick={() => setStep('order')} disabled={!price} />
+            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', margin: '10px 0 0', lineHeight: 1.4 }}>
+              {price ? `One-time payment for ${planLabel(price.months).toLowerCase()}. Does not renew automatically.` : 'Choose a plan length to continue.'}
             </p>
-            <IncludedGrid items={included} />
           </div>
-
-          <div style={{ marginTop: '22px' }}>
-            <PrimaryButton label={ctaLabel} onClick={() => setStep('plan')} disabled={!info} />
-          </div>
-        </>
-      )}
-
-      {/* 2. Choose duration */}
-      {step === 'plan' && info && (
-        <>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginBottom: '4px' }}>Choose your plan</h2>
-          <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginBottom: '14px' }}>{productName} · prices in {info.currency}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-            {info.prices.map((p) => {
-              const selected = p.months === months
-              return (
-                <div
-                  key={p.months}
-                  onClick={() => setMonths(p.months)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '14px', cursor: 'pointer',
-                    background: selected ? COLORS.greenSoft : COLORS.card,
-                    border: `2px solid ${selected ? COLORS.green : COLORS.border}`,
-                  }}>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '10px', border: `2px solid ${selected ? COLORS.green : COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {selected && <div style={{ width: '10px', height: '10px', borderRadius: '5px', background: COLORS.green }} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text }}>
-                      {planLabel(p.months)}
-                      {p.months === 6 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 800, color: 'white', background: COLORS.green, borderRadius: '8px', padding: '2px 7px' }}>Best Value</span>}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.greenDark }}>{formatMoney(p.amount, info.currency)}</p>
-                </div>
-              )
-            })}
-          </div>
-          {info.prices.length === 0 && <p style={{ fontSize: '12.5px', color: COLORS.red, marginBottom: '12px' }}>No Premium price is configured for your country yet.</p>}
-          <PrimaryButton label="Continue" onClick={() => setStep('order')} disabled={!price} />
         </>
       )}
 
@@ -433,8 +375,8 @@ function PrimaryButton({ label, onClick, disabled }: { label: string; onClick: (
     <div
       onClick={disabled ? undefined : onClick}
       style={{
-        textAlign: 'center', padding: '13px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
-        background: disabled ? '#A7D7B4' : COLORS.green, color: 'white', cursor: disabled ? 'default' : 'pointer',
+        textAlign: 'center', padding: '16px', borderRadius: '999px', fontWeight: 700, fontSize: '17px',
+        background: disabled ? '#9AA89E' : COLORS.dark, color: 'white', cursor: disabled ? 'default' : 'pointer',
       }}>
       {label}
     </div>
@@ -445,7 +387,7 @@ function GhostButton({ label, onClick }: { label: string; onClick: () => void })
   return (
     <div
       onClick={onClick}
-      style={{ textAlign: 'center', padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '13.5px', color: COLORS.textMuted, cursor: 'pointer', marginTop: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card }}>
+      style={{ textAlign: 'center', padding: '14px', borderRadius: '999px', fontWeight: 700, fontSize: '15px', color: COLORS.textMuted, cursor: 'pointer', marginTop: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card }}>
       {label}
     </div>
   )
