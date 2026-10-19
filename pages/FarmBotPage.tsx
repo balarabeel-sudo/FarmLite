@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
+import FarmProfileSheet from '../FarmProfileSheet'
 import {
   DEFAULT_MAX_FARMBOT_PHOTOS, FARMBOT_BUSY_TEXT, FARMBOT_FREE_LIMIT_TEXT, FARMBOT_PHOTO_PREMIUM_TEXT,
   isPermissionError, removeFarmbotPhotos, signFarmbotPhotos, uploadFarmbotPhotos,
@@ -21,12 +22,17 @@ const COLORS = {
   red: '#B91C1C',
 }
 
+// Search results FarmBot found in Farmxie, and the Farm Desk button, shown under an answer
+type ResultCard = { type: 'marketplace' | 'equipment' | 'company'; id: string; title: string; subtitle: string; image: string | null; path: string }
+type Extras = { items: ResultCard[]; farm_desk: boolean; farm_desk_request?: string | null }
+
 type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   message: string
   images?: string[]
   uploading?: boolean
+  extras?: Extras | null
 }
 
 type Chat = {
@@ -95,6 +101,7 @@ export default function FarmBotPage() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [farmSheetOpen, setFarmSheetOpen] = useState(false)
 
   const [chatId, setChatId] = useState<string | null>(warmStart ? memory.chatId : null)
   const [chats, setChats] = useState<Chat[]>(warmStart ? memory.chats || [] : [])
@@ -145,7 +152,7 @@ export default function FarmBotPage() {
     if (!silent) setLoading(true)
     const { data, error: fetchError } = await supabase
       .from('ai_conversations')
-      .select('id, role, message, image_paths')
+      .select('id, role, message, image_paths, cards')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true })
 
@@ -155,7 +162,7 @@ export default function FarmBotPage() {
       setLoading(false)
       return
     }
-    const rows = (data || []) as { id: string; role: 'user' | 'assistant'; message: string; image_paths: string[] | null }[]
+    const rows = (data || []) as { id: string; role: 'user' | 'assistant'; message: string; image_paths: string[] | null; cards: Extras | null }[]
     const signed = await signFarmbotPhotos(rows.flatMap((r) => r.image_paths || []))
     if (seq !== loadSeq.current) return
     // A message that is being sent right now must not be wiped by a background refresh
@@ -166,6 +173,7 @@ export default function FarmBotPage() {
       role: r.role,
       message: r.message,
       images: (r.image_paths || []).map((p) => signed[p]).filter(Boolean),
+      extras: r.role === 'assistant' ? r.cards : null,
     })))
     setLoading(false)
   }
@@ -440,7 +448,7 @@ export default function FarmBotPage() {
 
     if (data.usage) setUsage(data.usage)
     if (data.conversation_id && data.conversation_id !== chatId) setChatId(data.conversation_id)
-    setMessages((prev) => [...prev, { id: `local-${Date.now()}-r`, role: 'assistant', message: data.reply }])
+    setMessages((prev) => [...prev, { id: `local-${Date.now()}-r`, role: 'assistant', message: data.reply, extras: data.extras || null }])
     loadChats()
   }
 
@@ -452,7 +460,7 @@ export default function FarmBotPage() {
   if (netError) {
     return (
       <div style={shell}>
-        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
+        <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} onFarm={() => setFarmSheetOpen(true)} />
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <NetworkError onRetry={() => (chatId ? loadMessages(chatId) : init())} />
         </div>
@@ -471,7 +479,7 @@ export default function FarmBotPage() {
         @keyframes fbRise { from { transform: translateY(100%) } to { transform: translateY(0) } }
       `}</style>
 
-      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} />
+      <Header onMenu={() => setDrawerOpen(true)} onNew={newChat} onFarm={() => setFarmSheetOpen(true)} />
 
       {/* Messages (the only scrolling area) */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -482,7 +490,7 @@ export default function FarmBotPage() {
             <div style={{ width: '60px', height: '60px', borderRadius: '30px', background: `linear-gradient(135deg, ${COLORS.green}, ${COLORS.greenDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(22,163,74,0.3)' }}>
               <Icon name="robot" size={30} color="white" />
             </div>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '14px' }}>Sannu! I'm FarmBot</p>
+            <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '14px' }}>Hi! I'm FarmBot</p>
             <p style={{ fontSize: '12.5px', color: COLORS.textMuted, marginTop: '5px', lineHeight: 1.5, maxWidth: '300px' }}>
               Your AI farming assistant. Ask me about crops, seeds, livestock, equipment, soil, pests, weather or market prices. Premium members can also send photos of crops, animals, seeds or equipment.
             </p>
@@ -498,7 +506,14 @@ export default function FarmBotPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => <Bubble key={m.id} role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox} />)
+          messages.map((m) => (
+            <Fragment key={m.id}>
+              <Bubble role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox} />
+              {m.role === 'assistant' && m.extras && (m.extras.items?.length > 0 || m.extras.farm_desk) && (
+                <ExtrasBlock extras={m.extras} onOpen={(path) => navigate(path)} />
+              )}
+            </Fragment>
+          ))
         )}
 
         {sending && <TypingBubble />}
@@ -684,6 +699,9 @@ export default function FarmBotPage() {
         </div>
       )}
 
+      {/* My farm details */}
+      {farmSheetOpen && <FarmProfileSheet onClose={() => setFarmSheetOpen(false)} />}
+
       {/* Full-screen photo */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
@@ -794,6 +812,55 @@ function Bubble({ role, text, images, uploading, onOpenImage }: { role: 'user' |
   )
 }
 
+const CARD_LABEL: Record<ResultCard['type'], string> = { marketplace: 'Listing', equipment: 'Equipment', company: 'Company' }
+
+// Listings, equipment or companies FarmBot found on Farmxie, plus the Farm Desk button when FarmBot offered it
+function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string) => void }) {
+  const items = extras.items || []
+  const request = (extras.farm_desk_request || '').trim()
+  const deskPath = request ? `/farm-desk/new?q=${encodeURIComponent(request)}` : '/farm-desk/new'
+  return (
+    <div style={{ alignSelf: 'stretch', minWidth: 0, marginTop: '-6px' }}>
+      {items.length > 0 && (
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
+          {items.map((c) => (
+            <div
+              key={`${c.type}-${c.id}`}
+              role="button"
+              onClick={() => onOpen(c.path)}
+              style={{ width: '150px', flexShrink: 0, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <div style={{ height: '92px', background: COLORS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {c.image
+                  ? <img src={c.image} alt={c.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <Icon name="leaf" size={26} color={COLORS.green} />}
+              </div>
+              <div style={{ padding: '8px 10px 10px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: COLORS.green, letterSpacing: '0.3px' }}>{CARD_LABEL[c.type]}</p>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginTop: '2px', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.title}</p>
+                {c.subtitle && (
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '3px', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.subtitle}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {extras.farm_desk && (
+        <div
+          role="button"
+          onClick={() => onOpen(deskPath)}
+          style={{ marginTop: items.length > 0 ? '8px' : 0, display: 'flex', alignItems: 'center', gap: '10px', background: COLORS.greenDark, color: 'white', borderRadius: '14px', padding: '12px 14px', cursor: 'pointer' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '13px', fontWeight: 800 }}>Send a Farm Desk request</p>
+            <p style={{ fontSize: '11.5px', opacity: 0.85, marginTop: '2px', lineHeight: 1.35 }}>Our team helps find suppliers and sends you options.</p>
+          </div>
+          <Icon name="chevronRight" size={18} color="white" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TypingBubble() {
   return (
     <div style={{ alignSelf: 'flex-start' }}>
@@ -806,7 +873,7 @@ function TypingBubble() {
   )
 }
 
-function Header({ onMenu, onNew }: { onMenu: () => void; onNew: () => void }) {
+function Header({ onMenu, onNew, onFarm }: { onMenu: () => void; onNew: () => void; onFarm: () => void }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '12px', padding: 'calc(12px + env(safe-area-inset-top, 0px)) 14px 12px',
@@ -818,6 +885,9 @@ function Header({ onMenu, onNew }: { onMenu: () => void; onNew: () => void }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
         <Icon name="robot" size={20} color={COLORS.green} />
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>FarmBot</p>
+      </div>
+      <div onClick={onFarm} role="button" aria-label="My farm details" style={{ cursor: 'pointer', display: 'flex', padding: '4px' }}>
+        <Icon name="leaf" size={21} color={COLORS.green} />
       </div>
       <div onClick={onNew} style={{ cursor: 'pointer', display: 'flex', padding: '4px' }}>
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
