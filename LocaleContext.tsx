@@ -76,7 +76,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     try {
       const savedLang = localStorage.getItem(LANG_KEY) as Language | null
       const savedCurrency = localStorage.getItem(CURRENCY_KEY) as Currency | null
-      if (savedLang) setLanguageState(savedLang)
+      // The app is English only for now; a previously saved Hausa choice is ignored
+      if (savedLang === 'en') setLanguageState('en')
       if (savedCurrency) setCurrencyState(savedCurrency)
     } catch {
       // localStorage unavailable (e.g. private browsing) - defaults stand
