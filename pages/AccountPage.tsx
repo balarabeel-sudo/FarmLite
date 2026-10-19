@@ -8,7 +8,7 @@ import { ProfileHeaderSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import { COLORS } from '../shared'
 import { useLocale } from '../LocaleContext'
-import type { Language, Currency } from '../LocaleContext'
+import type { Currency } from '../LocaleContext'
 import { isPremiumActive, formatDate } from '../premiumShared'
 import PremiumTick from '../PremiumTick'
 import { AnalyticsIcon } from '../AnalyticsCharts'
@@ -31,7 +31,7 @@ type Profile = {
 export default function AccountPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const { language, currency, currencies, setLanguage, setCurrency } = useLocale()
+  const { currency, currencies, setCurrency } = useLocale()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -135,10 +135,6 @@ export default function AccountPage() {
             <Section title="Settings">
               <Row icon="bell" label="Notifications" onClick={() => navigate('/notifications')} />
               <Row icon="shield" label="Privacy & Security" comingSoon />
-              <SelectRow icon="globe" label="Language" value={language} onChange={(v) => setLanguage(v as Language)}>
-                <option value="ha">Hausa</option>
-                <option value="en">English</option>
-              </SelectRow>
               <SelectRow icon="currency" label="Currency" value={currency} onChange={(v) => setCurrency(v as Currency)}>
                 {currencies.map((c: { code: string; flag?: string }) => (
                   <option key={c.code} value={c.code}>{c.flag ? `${c.flag} ` : ''}{c.code}</option>
