@@ -105,7 +105,7 @@ export default function PostPage() {
         )}
 
         {!netError && !loading && post && !gone && (
-          <PostCard post={post} initialLiked={liked} initialSaved={saved} onDeleted={() => setGone(true)} defaultCommentsOpen={openComments} />
+          <PostCard post={post} initialLiked={liked} initialSaved={saved} onDeleted={() => setGone(true)} defaultCommentsOpen={openComments} showFullText />
         )}
       </div>
     </div>
