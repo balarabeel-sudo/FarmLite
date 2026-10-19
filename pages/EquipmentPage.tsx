@@ -82,7 +82,7 @@ export default function EquipmentPage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
   const [imageCap, setImageCap] = useState(5)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => (searchParams.get('q') || '').slice(0, 80))
   const [filter, setFilter] = useState<TypeFilter>((searchParams.get('type') as TypeFilter) || 'all')
   const [mineOnly, setMineOnly] = useState(searchParams.get('mine') === '1')
   const [hasMore, setHasMore] = useState(false)
