@@ -5,7 +5,7 @@ import PremiumFlow from '../PremiumFlow'
 import { readCheckoutContext, clearCheckoutContext } from '../premiumShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
+  bg: '#FFFFFF',
   card: '#FFFFFF',
   text: '#1A2E1A',
 }
@@ -33,14 +33,17 @@ export default function PremiumPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-        <div onClick={leave} style={{ cursor: 'pointer', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '16px' }}>
+      <div style={{ padding: 'calc(14px + env(safe-area-inset-top, 0px)) 16px 8px' }}>
+        <div
+          role="button"
+          aria-label="Back"
+          onClick={leave}
+          style={{ width: '44px', height: '44px', borderRadius: '22px', background: COLORS.card, boxShadow: '0 1px 6px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <Icon name="arrowLeft" size={22} color={COLORS.text} />
         </div>
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Premium</p>
       </div>
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '8px 16px 0' }}>
         <PremiumFlow audience="user" initialReference={reference} showBenefits={showBenefits} onExit={leave} onDone={leave} />
       </div>
     </div>
