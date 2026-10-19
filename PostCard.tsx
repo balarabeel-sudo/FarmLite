@@ -245,11 +245,11 @@ export default function PostCard({
               </div>
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p onClick={() => navigate(`/communities/${group.id}`)} style={{ fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{group.name}</p>
+              <p onClick={() => navigate(`/communities/${group.id}`)} style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{group.name}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, marginTop: '1px' }}>
-                <p onClick={() => authorTarget && navigate(authorTarget)} title={fullTime} style={{ fontSize: '11.5px', fontWeight: 600, lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: authorTarget ? 'pointer' : 'default' }}>{authorName}</p>
+                <p onClick={() => authorTarget && navigate(authorTarget)} title={fullTime} style={{ margin: 0, fontSize: '11.5px', fontWeight: 600, lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: authorTarget ? 'pointer' : 'default' }}>{authorName}</p>
                 {!!author && isPremiumActive(author.is_premium, author.premium_until) && <PremiumTick size={12} />}
-                <p title={fullTime} style={{ fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>· {time}</p>
+                <p title={fullTime} style={{ margin: 0, fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>· {time}</p>
               </div>
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function PostCard({
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                <p onClick={() => target && navigate(target)} style={{ fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: target ? 'pointer' : 'default' }}>{name}</p>
+                <p onClick={() => target && navigate(target)} style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: target ? 'pointer' : 'default' }}>{name}</p>
                 {premium && <PremiumTick size={14} />}
                 {showFollow && (
                   <>
@@ -275,7 +275,7 @@ export default function PostCard({
                   </>
                 )}
               </div>
-              <p title={fullTime} style={{ fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <p title={fullTime} style={{ margin: '1px 0 0', fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {sub ? `${sub} · ${time}` : time}
               </p>
             </div>
