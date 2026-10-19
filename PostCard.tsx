@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
@@ -66,7 +66,7 @@ type MenuItem = { label: string; danger?: boolean; onClick: () => void }
 // One post card used by Home, company pages, user profiles, groups and the post page.
 // It owns its like / save state; the parent only passes the initial values.
 export default function PostCard({
-  post, initialLiked, initialSaved, onCommentCountChange, pinned, menuActions, emphasize, children, hideFollow, onDeleted, defaultCommentsOpen, inGroup,
+  post, initialLiked, initialSaved, onCommentCountChange, pinned, menuActions, emphasize, children, hideFollow, onDeleted, defaultCommentsOpen, inGroup, showFullText,
 }: {
   post: PostCardData
   initialLiked: boolean
@@ -83,10 +83,13 @@ export default function PostCard({
   defaultCommentsOpen?: boolean
   // The card is shown inside a group page: posts of a group cannot be re-shared, only linked.
   inGroup?: boolean
+  // The single-post page shows the whole text; everywhere else long text is cut with a "See more" link.
+  showFullText?: boolean
 }) {
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  const cardRef = useRef<HTMLDivElement>(null)
   const [liked, setLiked] = useState(initialLiked)
   const [saved, setSaved] = useState(initialSaved)
   const [likes, setLikes] = useState(post.likes_count)
@@ -223,7 +226,7 @@ export default function PostCard({
   const sub = company ? 'Company' : author?.username ? `@${author.username}` : ''
 
   return (
-    <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+    <div ref={cardRef} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', scrollMarginTop: '72px' }}>
       {pinned && <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.green, marginBottom: '8px' }}>📌 Pinned post</p>}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
@@ -297,7 +300,12 @@ export default function PostCard({
       </div>
 
       {post.content.trim() !== '' && (
-        <p style={{ fontSize: emphasize ? '14px' : '13px', fontWeight: emphasize ? 700 : 400, color: COLORS.text, lineHeight: 1.5, marginBottom: '10px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{post.content}</p>
+        <ExpandableText
+          text={post.content}
+          cardRef={cardRef}
+          fullText={!!showFullText}
+          style={{ fontSize: emphasize ? '14px' : '13px', fontWeight: emphasize ? 700 : 400, color: COLORS.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+        />
       )}
 
       {post.is_share ? (
@@ -357,6 +365,66 @@ export default function PostCard({
 }
 
 // The original post shown inside a share (or a note when the original was deleted).
+// Long post text is cut after a few lines with a "See more" link (like other social apps).
+// "See less" folds it back and, if the top of the post has scrolled out of view, brings the post back into view.
+const COLLAPSED_LINES = 6
+const HEADER_ROOM = 72
+
+function ExpandableText({ text, style, cardRef, fullText }: { text: string; style: CSSProperties; cardRef: RefObject<HTMLDivElement>; fullText: boolean }) {
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+
+  // Is the text longer than the cut-off? Measured while it is collapsed, and again when the width changes.
+  useLayoutEffect(() => {
+    if (fullText) return
+    const el = ref.current
+    if (!el) return
+    const measure = () => {
+      if (expanded) return
+      setOverflowing(el.scrollHeight > el.clientHeight + 1)
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [text, expanded, fullText])
+
+  const collapse = () => {
+    const card = cardRef.current
+    const topHidden = !!card && card.getBoundingClientRect().top < HEADER_ROOM
+    setExpanded(false)
+    if (card && topHidden) {
+      requestAnimationFrame(() => card.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+    }
+  }
+
+  const clamp = !fullText && !expanded
+  const clampStyle: CSSProperties = clamp
+    ? { display: '-webkit-box', WebkitLineClamp: COLLAPSED_LINES, WebkitBoxOrient: 'vertical', overflow: 'hidden' }
+    : {}
+  const linkStyle: CSSProperties = {
+    display: 'block', marginTop: '4px', padding: '2px 0', background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: '12.5px', fontWeight: 700, color: COLORS.green, fontFamily: 'inherit',
+  }
+
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <p ref={ref} style={{ ...style, margin: 0, ...clampStyle }}>{text}</p>
+      {!fullText && overflowing && !expanded && (
+        <button type="button" aria-expanded={false} onClick={() => setExpanded(true)} style={linkStyle}>See more</button>
+      )}
+      {!fullText && expanded && (
+        <button type="button" aria-expanded={true} onClick={collapse} style={linkStyle}>See less</button>
+      )}
+    </div>
+  )
+}
+
 function SharedPostCard({ shared, onOpen }: { shared: SharedPostData | null; onOpen: (id: string) => void }) {
   if (!shared) {
     return (
