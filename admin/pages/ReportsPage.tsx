@@ -697,7 +697,7 @@ export default function ReportsPage() {
                     )}
                     {sel.report_type === 'marketplace' && sel.content_id && !removed && sel.snapshot.hidden !== true && (
                       <>
-                        <a className="rp-btn" href={sel.content_table === 'equipment' ? '/admin/equipment' : '/admin/marketplace'}><Icon name="link" size={14} /> View Listing</a>
+                        <a className="rp-btn" href={`${sel.content_table === 'equipment' ? '/admin/equipment' : '/admin/marketplace'}?open=${sel.content_id}`}><Icon name="link" size={14} /> View Listing</a>
                         {canMarket && <button className="rp-btn danger" disabled={busy} onClick={() => { setConfirmNote(''); setConfirm({ kind: 'remove' }) }}>Remove Listing</button>}
                       </>
                     )}
