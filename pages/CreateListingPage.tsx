@@ -61,7 +61,14 @@ const EMPTY: FormState = {
   country: '', state: '', city: '', area: '', companyId: null, status: 'available',
 }
 
-type Usage = { used: number; limit: number; premium: boolean }
+type Usage = { used: number; limit: number; premium: boolean; reset_at?: string | null }
+
+function resetText(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+}
 
 const ICON_PATHS: Record<string, ReactNode> = {
   leaf: <path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l8-8" />,
@@ -174,7 +181,7 @@ export default function CreateListingPage() {
     })()
   }, [user, editId])
 
-  // Active listings usage ("2 / 3 listings")
+  // Weekly listing usage ("2 / 3 this week")
   useEffect(() => {
     if (!user) return
     supabase.rpc('listing_usage', { p_company: form.companyId }).then(({ data }) => {
@@ -357,11 +364,6 @@ export default function CreateListingPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div onClick={back} style={{ cursor: 'pointer', display: 'flex' }}><Icon name="arrowLeft" size={22} color={COLORS.text} /></div>
         <p style={{ flex: 1, fontSize: 16, fontWeight: 800, color: COLORS.text }}>{editing ? 'Edit Listing' : 'Create Listing'}</p>
-        {usage && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: usage.used >= usage.limit ? '#92400E' : COLORS.greenDark, background: usage.used >= usage.limit ? '#FEF3C7' : COLORS.greenSoft, borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap' }}>
-            {usage.used} / {usage.limit} listings
-          </span>
-        )}
       </div>
 
       <div style={{ padding: 16 }}>
@@ -386,12 +388,12 @@ export default function CreateListingPage() {
         {atLimit && (
           <div style={{ background: '#FEF3C7', borderRadius: 14, padding: 14, marginBottom: 14 }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: '#92400E' }}>
-              You've reached your {usage?.premium ? 'Premium' : 'Free'} listing limit.
+              You've reached your weekly listing limit.
             </p>
             <p style={{ fontSize: 12, color: '#92400E', margin: '4px 0 10px', lineHeight: 1.5 }}>
               {usage?.premium
-                ? 'Mark a listing as sold or hidden to add a new one. You can still save this as a draft.'
-                : 'Upgrade to Premium to create more listings. You can still save this as a draft.'}
+                ? `You can post again${resetText(usage?.reset_at) ? ' from ' + resetText(usage?.reset_at) : ' when your week resets'}. You can still save this as a draft.`
+                : `You can post again${resetText(usage?.reset_at) ? ' from ' + resetText(usage?.reset_at) : ' when your week resets'}, or upgrade to Premium to post more. You can still save this as a draft.`}
             </p>
             {!usage?.premium && (
               <div onClick={() => navigate('/premium')} style={{ display: 'inline-block', background: COLORS.green, color: 'white', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>Upgrade to Premium</div>
