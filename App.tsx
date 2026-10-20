@@ -21,6 +21,9 @@ import CommunitiesPage from './pages/CommunitiesPage'
 import AccountPage from './pages/AccountPage'
 import EditProfilePage from './pages/EditProfilePage'
 import EquipmentPage from './pages/EquipmentPage'
+import EquipmentNewPage from './pages/EquipmentNewPage'
+import EquipmentDetailsPage from './pages/EquipmentDetailsPage'
+import MyEquipmentPage from './pages/MyEquipmentPage'
 import SavedPage from './pages/SavedPage'
 import MessagesPage from './pages/MessagesPage'
 import NotificationsPage from './pages/NotificationsPage'
@@ -186,6 +189,46 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EquipmentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/new"
+              element={
+                <ProtectedRoute>
+                  <EquipmentNewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/new/:kind"
+              element={
+                <ProtectedRoute>
+                  <EquipmentNewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/mine"
+              element={
+                <ProtectedRoute>
+                  <MyEquipmentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EquipmentNewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/:id"
+              element={
+                <ProtectedRoute>
+                  <EquipmentDetailsPage />
                 </ProtectedRoute>
               }
             />
