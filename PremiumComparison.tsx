@@ -36,19 +36,9 @@ function Dash() {
   )
 }
 
-function SoonPill({ label }: { label: string }) {
-  return (
-    <span style={{ display: 'inline-block', marginLeft: 6, verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: C.gold, background: C.goldSoft, borderRadius: 6, padding: '2px 6px', letterSpacing: '0.3px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-      {label}
-    </span>
-  )
-}
-
-const isNumber = (v: string) => /^\d+$/.test(v)
-
 // Features | Free | Pro
 // grey check = included in Free, dash = not in Free, blue check = included in Pro.
-// A feature that is not live yet carries a small "Soon" tag, so nothing is promised that does not work today.
+// Limits (numbers) are never shown here; they are enforced in the database only.
 export function PlanTable({ features, proLabel }: { features: Feature[]; proLabel: string }) {
   const head: CSSProperties = { fontSize: '15px', fontWeight: 700, color: C.text }
   return (
@@ -61,25 +51,21 @@ export function PlanTable({ features, proLabel }: { features: Feature[]; proLabe
 
       {features.map((f) => {
         const freeNo = f.free === 'No' || f.free === '0'
-        const showNumbers = !!f.limitKey && !f.hideNumbers
         return (
           <div key={f.title} style={{ display: 'grid', gridTemplateColumns: COLS, columnGap: 6, alignItems: 'center', padding: '14px 0' }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: '15.5px', fontWeight: 500, color: C.text, lineHeight: 1.3 }}>
                 {f.title}
-                {!f.live && <SoonPill label={f.soonLabel || 'Soon'} />}
               </p>
               <p style={{ margin: '3px 0 0', fontSize: '12px', color: C.muted, lineHeight: 1.35 }}>{f.sub}</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               {freeNo ? <Dash /> : <Check color={C.free} label="Included in Free" />}
-              {showNumbers && !freeNo && isNumber(f.free) && <span style={{ fontSize: '11px', color: C.muted, fontWeight: 600 }}>{f.free}</span>}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               <Check color={C.pro} label={`Included in ${proLabel}`} />
-              {showNumbers && isNumber(f.premium) && <span style={{ fontSize: '11px', color: C.pro, fontWeight: 700 }}>{f.premium}</span>}
             </div>
           </div>
         )
