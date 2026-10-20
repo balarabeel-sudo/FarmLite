@@ -392,7 +392,7 @@ export default function HomePage() {
                 {(tabItems[feedTab] || []).map((it) => (
                   <div
                     key={it.id}
-                    onClick={() => navigate(feedTab === 'products' ? `/marketplace?listing=${it.id}` : '/equipment')}
+                    onClick={() => navigate(feedTab === 'products' ? `/marketplace?listing=${it.id}` : `/equipment/${it.id}`)}
                     style={{ display: 'flex', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '10px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                     <div style={{ width: '72px', height: '72px', borderRadius: '10px', background: '#E5EFE5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {it.images?.[0] ? <img src={it.images[0]} alt={it.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={feedTab === 'products' ? 'leaf' : 'tractor'} size={26} color={COLORS.green} />}
