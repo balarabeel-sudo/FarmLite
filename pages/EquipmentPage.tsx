@@ -1,590 +1,314 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
-import ImageUploader from '../ImageUploader'
-import { formatMoney } from '../moneyUtils'
-import { validatePhone, cleanPhone, whatsappLink } from '../phoneUtils'
-import { COLORS, inputStyle, labelStyle, ErrorBanner, PAGE_SIZE, LoadMoreButton, PremiumBadge } from '../shared'
+import EquipmentCard from '../EquipmentCard'
+import { Chip, PrimaryButton, SelectField, TextField } from '../EquipmentFormKit'
+import { COLORS, LoadMoreButton, PAGE_SIZE } from '../shared'
+import {
+  CONDITION_OPTIONS, COUNTRIES, CURRENCIES, EQUIPMENT_CATEGORIES, EQUIP_SELECT, SERVICE_CATEGORIES,
+} from '../equipmentConfig'
+import type { DbType, EquipmentRow } from '../equipmentConfig'
 
-type ListingType = 'buy' | 'rent'
-type Status = 'available' | 'unavailable'
-type Condition = '' | 'new' | 'used'
+type TypeTab = 'all' | DbType
 
-type Seller = {
-  full_name: string | null
-  username: string | null
-  profile_image: string | null
-  phone: string | null
-  is_premium: boolean
-}
-
-type Equipment = {
-  id: string
-  seller_id: string
-  name: string
-  category: string | null
-  description: string | null
-  listing_type: ListingType
-  price: number
-  currency: string
-  unit: string | null
-  location: string | null
-  images: string[] | null
-  status: Status
-  whatsapp: string | null
-  negotiable: boolean
-  condition: 'new' | 'used' | null
-  seller: Seller | null
-}
-
-type TypeFilter = 'all' | ListingType
-
-const CURRENCIES = ['NGN', 'USD', 'GHS', 'KES']
-const RENT_UNITS = ['hour', 'day', 'week', 'month', 'season']
-const BUY_UNITS = ['piece', 'set']
-
-type Form = {
-  name: string
+type Filters = {
   category: string
-  listingType: ListingType
-  price: string
+  condition: string
+  country: string
+  state: string
+  city: string
+  brand: string
+  minPrice: string
+  maxPrice: string
   currency: string
-  unit: string
-  condition: Condition
-  negotiable: boolean
-  location: string
-  whatsapp: string
-  description: string
-  status: Status
-  images: string[]
+  availableNow: boolean
 }
 
-const EMPTY_FORM: Form = {
-  name: '', category: '', listingType: 'rent', price: '', currency: 'NGN', unit: 'day', condition: '',
-  negotiable: false, location: '', whatsapp: '', description: '', status: 'available', images: [],
+const NO_FILTERS: Filters = { category: '', condition: '', country: '', state: '', city: '', brand: '', minPrice: '', maxPrice: '', currency: 'NGN', availableNow: false }
+
+const TABS: { key: TypeTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'buy', label: 'For Sale' },
+  { key: 'rent', label: 'For Rent' },
+  { key: 'service', label: 'Services' },
+]
+
+function clean(s: string): string {
+  return s.trim().replace(/[%,()*\\]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-const COLUMNS =
-  'id, seller_id, name, category, description, listing_type, price, currency, unit, location, images, status, whatsapp, negotiable, condition, seller:profiles!equipment_seller_id_fkey(full_name, username, profile_image, phone, is_premium)'
+function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
+function activeCount(f: Filters): number {
+  let n = 0
+  if (f.condition) n++
+  if (f.country) n++
+  if (f.state.trim()) n++
+  if (f.city.trim()) n++
+  if (f.brand.trim()) n++
+  if (f.minPrice.trim() || f.maxPrice.trim()) n++
+  if (f.availableNow) n++
+  return n
+}
+
+// Old links (Account > My Equipment uses ?mine=1) keep working
 export default function EquipmentPage() {
+  const [searchParams] = useSearchParams()
+  if (searchParams.get('mine') === '1') return <Navigate to="/equipment/mine" replace />
+  return <EquipmentBrowse />
+}
+
+function EquipmentBrowse() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
 
+  const startType = searchParams.get('type')
+  const [tab, setTab] = useState<TypeTab>(startType === 'buy' || startType === 'rent' || startType === 'service' ? startType : 'all')
+  const [search, setSearch] = useState(() => (searchParams.get('q') || '').slice(0, 80))
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS)
+  const [draft, setDraft] = useState<Filters>(NO_FILTERS)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const [items, setItems] = useState<EquipmentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
-  const [items, setItems] = useState<Equipment[]>([])
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [myDefaults, setMyDefaults] = useState({ location: '', whatsapp: '' })
-  const [imageCap, setImageCap] = useState(5)
-  const [search, setSearch] = useState(() => (searchParams.get('q') || '').slice(0, 80))
-  const [filter, setFilter] = useState<TypeFilter>((searchParams.get('type') as TypeFilter) || 'all')
-  const [mineOnly, setMineOnly] = useState(searchParams.get('mine') === '1')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const seq = useRef(0)
 
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<Form>(EMPTY_FORM)
-  const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [formError, setFormError] = useState('')
+  const buildQuery = (from: number, to: number) => {
+    let q = supabase.from('equipment').select(EQUIP_SELECT).eq('status', 'available').eq('is_hidden_by_admin', false)
+    if (tab !== 'all') q = q.eq('listing_type', tab)
 
-  const [detail, setDetail] = useState<Equipment | null>(null)
+    if (filters.category) q = tab === 'service' ? q.eq('service_category', filters.category) : q.eq('category', filters.category)
 
-  const setField = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
-
-  const itemsQuery = (from: number, to: number) => {
-    let q = supabase.from('equipment').select(COLUMNS)
-    if (mineOnly) {
-      q = q.eq('seller_id', user!.id)
-    } else {
-      q = user ? q.or(`status.eq.available,seller_id.eq.${user.id}`) : q.eq('status', 'available')
+    const term = clean(search)
+    if (term) {
+      const like = `%${term}%`
+      q = q.or(['name', 'brand', 'model', 'category', 'service_category', 'city', 'state'].map((c) => `${c}.ilike.${like}`).join(','))
     }
-    if (filter !== 'all') q = q.eq('listing_type', filter)
-    const term = search.trim().replace(/[%,()*\\]/g, ' ').trim()
-    if (term) q = q.ilike('name', `%${term}%`)
+
+    const cond = CONDITION_OPTIONS.find((o) => o.key === filters.condition)
+    if (cond) {
+      q = q.eq('condition', cond.condition)
+      if (cond.grade) q = q.eq('condition_grade', cond.grade)
+    }
+    if (filters.country) q = q.eq('country', filters.country)
+    const st = clean(filters.state)
+    if (st) q = q.ilike('state', `%${st}%`)
+    const city = clean(filters.city)
+    if (city) q = q.ilike('city', `%${city}%`)
+    const brand = clean(filters.brand)
+    if (brand) q = q.ilike('brand', `%${brand}%`)
+
+    if (filters.minPrice.trim() || filters.maxPrice.trim()) {
+      // a price range only makes sense in one currency, and quote-only services have no price
+      q = q.eq('currency', filters.currency).or('price_mode.is.null,price_mode.neq.quote')
+      const min = Number(filters.minPrice)
+      const max = Number(filters.maxPrice)
+      if (filters.minPrice.trim() && !Number.isNaN(min)) q = q.gte('price', min)
+      if (filters.maxPrice.trim() && !Number.isNaN(max)) q = q.lte('price', max)
+    }
+    if (filters.availableNow) {
+      const t = todayStr()
+      q = q.or(`available_from.is.null,available_from.lte.${t}`).or(`available_until.is.null,available_until.gte.${t}`)
+    }
     return q.order('created_at', { ascending: false }).range(from, to)
   }
 
   const load = async () => {
-    if (!user) return
+    const mine = ++seq.current
     setNetError(false)
     setLoading(true)
-
-    const [itemsRes, savedRes, meRes] = await Promise.all([
-      itemsQuery(0, PAGE_SIZE - 1),
-      supabase.from('saved_items').select('equipment_id').eq('user_id', user.id).not('equipment_id', 'is', null),
-      supabase.from('profiles').select('location, whatsapp, is_premium').eq('user_id', user.id).maybeSingle(),
-    ])
-
-    if (itemsRes.error) {
+    const { data, error } = await buildQuery(0, PAGE_SIZE - 1)
+    if (mine !== seq.current) return
+    if (error) {
       setNetError(true)
       setLoading(false)
       return
     }
-
-    const page = (itemsRes.data || []) as any as Equipment[]
+    const page = (data || []) as unknown as EquipmentRow[]
     setItems(page)
     setHasMore(page.length === PAGE_SIZE)
-    setSavedIds(new Set((savedRes.data || []).map((r: any) => r.equipment_id)))
-    const me = meRes.data as any
-    setMyDefaults({ location: me?.location || '', whatsapp: me?.whatsapp || '' })
-    setImageCap(me?.is_premium ? 10 : 5)
     setLoading(false)
   }
 
   const loadMore = async () => {
-    if (!user || loadingMore) return
+    if (loadingMore) return
+    const mine = seq.current
     setLoadingMore(true)
-    const { data, error } = await itemsQuery(items.length, items.length + PAGE_SIZE - 1)
-    if (!error) {
-      const more = (data || []) as any as Equipment[]
-      setItems((prev) => [...prev, ...more])
+    const { data, error } = await buildQuery(items.length, items.length + PAGE_SIZE - 1)
+    if (mine === seq.current && !error) {
+      const more = (data || []) as unknown as EquipmentRow[]
+      setItems((prev) => [...prev, ...more.filter((m) => !prev.some((p) => p.id === m.id))])
       setHasMore(more.length === PAGE_SIZE)
     }
     setLoadingMore(false)
   }
 
-  useEffect(() => { load() }, [user, filter, mineOnly])
-
   useEffect(() => {
     if (!user) return
-    const timer = setTimeout(() => load(), 300)
-    return () => clearTimeout(timer)
+    supabase.from('saved_items').select('equipment_id').eq('user_id', user.id).not('equipment_id', 'is', null)
+      .then(({ data }) => setSavedIds(new Set((data || []).map((r: any) => r.equipment_id as string))))
+  }, [user])
+
+  // tabs and filters load straight away; typing waits a moment
+  useEffect(() => { load() }, [tab, filters])
+  const firstRun = useRef(true)
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return }
+    const t = setTimeout(load, 350)
+    return () => clearTimeout(t)
   }, [search])
 
-  const closeForm = () => {
-    setShowForm(false)
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-    setFormError('')
-  }
-
-  const openNew = () => {
-    setEditingId(null)
-    setForm({ ...EMPTY_FORM, location: myDefaults.location, whatsapp: myDefaults.whatsapp })
-    setFormError('')
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const openEdit = (it: Equipment) => {
-    setDetail(null)
-    setEditingId(it.id)
-    setForm({
-      name: it.name,
-      category: it.category || '',
-      listingType: it.listing_type,
-      price: String(it.price),
-      currency: it.currency || 'NGN',
-      unit: it.unit || (it.listing_type === 'rent' ? 'day' : 'piece'),
-      condition: it.condition || '',
-      negotiable: !!it.negotiable,
-      location: it.location || '',
-      whatsapp: it.whatsapp || '',
-      description: it.description || '',
-      status: it.status,
-      images: it.images || [],
-    })
-    setFormError('')
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const changeType = (t: ListingType) => {
-    setForm((f) => ({ ...f, listingType: t, unit: t === 'rent' ? 'day' : 'piece' }))
-  }
-
-  const handleSave = async () => {
-    if (!user || uploading) return
-    setFormError('')
-
-    const priceNum = Number(form.price)
-    if (!form.name.trim()) return setFormError('Enter the equipment name.')
-    if (form.price.trim() === '' || Number.isNaN(priceNum) || priceNum < 0) return setFormError('Enter a valid price.')
-    if (form.images.length === 0) return setFormError('Add at least one photo.')
-    const phoneErr = validatePhone(form.whatsapp)
-    if (phoneErr) return setFormError(phoneErr)
-
-    const payload = {
-      name: form.name.trim(),
-      category: form.category.trim() || null,
-      description: form.description.trim() || null,
-      listing_type: form.listingType,
-      price: priceNum,
-      currency: form.currency,
-      unit: form.unit || null,
-      condition: form.condition || null,
-      negotiable: form.negotiable,
-      location: form.location.trim() || null,
-      whatsapp: cleanPhone(form.whatsapp) || null,
-      status: form.status,
-      images: form.images,
-    }
-
-    setSaving(true)
-    const { error } = editingId
-      ? await supabase.from('equipment').update(payload).eq('id', editingId).eq('seller_id', user.id)
-      : await supabase.from('equipment').insert({ ...payload, seller_id: user.id })
-    setSaving(false)
-
-    if (error) {
-      setFormError(error.message || 'Could not save this equipment listing.')
-      return
-    }
-
-    closeForm()
-    load()
-  }
-
-  const handleDelete = async () => {
-    if (!user || !editingId) return
-    if (!window.confirm('Delete this listing? This cannot be undone.')) return
-    const { error } = await supabase.from('equipment').delete().eq('id', editingId).eq('seller_id', user.id)
-    if (error) {
-      setFormError('Could not delete the listing. Try again.')
-      return
-    }
-    closeForm()
-    load()
-  }
-
-  const toggleSave = async (equipmentId: string) => {
+  const toggleSave = async (id: string) => {
     if (!user) return
-    if (savedIds.has(equipmentId)) {
-      await supabase.from('saved_items').delete().eq('user_id', user.id).eq('equipment_id', equipmentId)
-      setSavedIds((prev) => { const next = new Set(prev); next.delete(equipmentId); return next })
+    if (savedIds.has(id)) {
+      setSavedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      const { error } = await supabase.from('saved_items').delete().eq('user_id', user.id).eq('equipment_id', id)
+      if (error) setSavedIds((prev) => new Set(prev).add(id))
     } else {
-      await supabase.from('saved_items').insert({ user_id: user.id, equipment_id: equipmentId })
-      setSavedIds((prev) => new Set(prev).add(equipmentId))
+      setSavedIds((prev) => new Set(prev).add(id))
+      const { error } = await supabase.from('saved_items').insert({ user_id: user.id, equipment_id: id })
+      if (error) setSavedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
     }
   }
 
-  const filtered = items
-
-  const onHeaderAdd = () => (showForm ? closeForm() : openNew())
-
-  if (netError) {
-    return (
-      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
-        <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
-        <NetworkError onRetry={load} />
-      </div>
-    )
+  const changeTab = (t: TypeTab) => {
+    setTab(t)
+    setFilters((f) => ({ ...f, category: '' }))
   }
 
-  const units = form.listingType === 'rent' ? RENT_UNITS : BUY_UNITS
+  const openSheet = () => { setDraft(filters); setSheetOpen(true) }
+  const applySheet = () => { setFilters(draft); setSheetOpen(false) }
+  const resetAll = () => { setFilters(NO_FILTERS); setDraft(NO_FILTERS); setSearch(''); setTab('all'); setSheetOpen(false) }
+
+  const nActive = activeCount(filters)
+  const anyFilter = nActive > 0 || !!filters.category || !!search.trim() || tab !== 'all'
+  const categories = tab === 'service' ? SERVICE_CATEGORIES : EQUIPMENT_CATEGORIES
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
-      <Header onBack={() => navigate('/')} onAdd={onHeaderAdd} open={showForm} />
+    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button type="button" aria-label="Go back" onClick={() => navigate('/')} style={{ display: 'flex', background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+            <Icon name="arrowLeft" size={22} color={COLORS.text} />
+          </button>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Equipment Marketplace</p>
+        </div>
+        <button type="button" onClick={() => navigate('/equipment/mine')}
+          style={{ minHeight: '36px', padding: '0 12px', borderRadius: '10px', border: `1px solid ${COLORS.border}`, background: COLORS.card, color: COLORS.greenDark, fontSize: '12px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+          My Listings
+        </button>
+      </div>
 
       <div style={{ padding: '16px' }}>
-        {mineOnly && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
-            <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: COLORS.greenDark }}>Showing your equipment</p>
-            <span onClick={() => setMineOnly(false)} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.greenDark, cursor: 'pointer' }}>Show all</span>
+        <p style={{ fontSize: '13px', color: COLORS.textMuted, lineHeight: 1.5, marginBottom: '14px' }}>
+          Discover agricultural machinery, tools, rental services, and equipment professionals.
+        </p>
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}><Icon name="search" size={16} color={COLORS.textMuted} /></div>
+            <input value={search} onChange={(e) => setSearch(e.target.value.slice(0, 80))} placeholder="Search name, brand, category or place" aria-label="Search equipment"
+              style={{ width: '100%', padding: '12px 14px 12px 36px', borderRadius: '12px', border: `1px solid ${COLORS.border}`, fontSize: '13.5px', boxSizing: 'border-box', background: COLORS.card }} />
           </div>
-        )}
-        <div style={{ position: 'relative', marginBottom: '12px' }}>
-          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-            <Icon name="search" size={16} color={COLORS.textMuted} />
-          </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search equipment..."
-            style={{ width: '100%', padding: '11px 14px 11px 36px', borderRadius: '12px', border: `1px solid ${COLORS.border}`, fontSize: '13px', boxSizing: 'border-box', background: COLORS.card }}
-          />
+          <button type="button" aria-label="Filters" onClick={openSheet}
+            style={{ position: 'relative', width: '46px', borderRadius: '12px', border: `1px solid ${nActive ? COLORS.green : COLORS.border}`, background: nActive ? '#F0FDF4' : COLORS.card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="filter" size={18} color={nActive ? COLORS.green : COLORS.textMuted} />
+            {nActive > 0 && <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px', borderRadius: '9px', background: COLORS.green, color: 'white', fontSize: '10.5px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{nActive}</span>}
+          </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          {(['all', 'buy', 'rent'] as TypeFilter[]).map((f) => (
-            <Chip key={f} active={filter === f} onClick={() => setFilter(f)} label={f === 'all' ? 'All' : f === 'buy' ? 'Buy' : 'Rent'} />
-          ))}
+        <PrimaryButton icon="plus" onClick={() => navigate('/equipment/new')}>List Your Equipment</PrimaryButton>
+
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '16px 0 4px' }}>
+          {TABS.map((t) => <Chip key={t.key} active={tab === t.key} onClick={() => changeTab(t.key)} label={t.label} />)}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '8px 0 14px' }}>
+          <Chip small active={!filters.category} onClick={() => setFilters((f) => ({ ...f, category: '' }))} label="All categories" />
+          {categories.map((c) => <Chip key={c} small active={filters.category === c} onClick={() => setFilters((f) => ({ ...f, category: f.category === c ? '' : c }))} label={c} />)}
         </div>
 
-        {showForm && (
-          <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-            <p style={{ fontSize: '14px', fontWeight: 700, marginBottom: '10px', color: COLORS.text }}>{editingId ? 'Edit equipment' : 'List equipment'}</p>
-            <ErrorBanner text={formError} />
-
-            <p style={labelStyle}>Photos</p>
-            <div style={{ marginBottom: '12px' }}>
-              <ImageUploader value={form.images} onChange={(urls) => setField('images', urls)} folder="equipment" max={imageCap} onBusyChange={setUploading} />
-            </div>
-
-            <input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="Name, e.g. Tractor (New Holland)" maxLength={100} style={inputStyle} />
-            <input value={form.category} onChange={(e) => setField('category', e.target.value)} placeholder="Category, e.g. Tractors, Irrigation" maxLength={60} style={inputStyle} />
-
-            <p style={labelStyle}>Type</p>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <Chip active={form.listingType === 'rent'} onClick={() => changeType('rent')} label="For Rent" />
-              <Chip active={form.listingType === 'buy'} onClick={() => changeType('buy')} label="For Sale" />
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input value={form.price} onChange={(e) => setField('price', e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Price" inputMode="decimal" style={{ ...inputStyle, flex: 2 }} />
-              <select value={form.currency} onChange={(e) => setField('currency', e.target.value)} style={{ ...inputStyle, flex: 1 }}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <select value={form.unit} onChange={(e) => setField('unit', e.target.value)} style={inputStyle}>
-              {units.map((u) => <option key={u} value={u}>{form.listingType === 'rent' ? `per ${u}` : `per ${u}`}</option>)}
-            </select>
-
-            <p style={labelStyle}>Condition</p>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <Chip active={form.condition === 'new'} onClick={() => setField('condition', form.condition === 'new' ? '' : 'new')} label="New" />
-              <Chip active={form.condition === 'used'} onClick={() => setField('condition', form.condition === 'used' ? '' : 'used')} label="Used" />
-            </div>
-
-            <div onClick={() => setField('negotiable', !form.negotiable)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `1.5px solid ${form.negotiable ? COLORS.green : COLORS.border}`, background: form.negotiable ? COLORS.green : COLORS.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {form.negotiable && <Icon name="check" size={13} color="white" strokeWidth={3} />}
-              </div>
-              <p style={{ fontSize: '12.5px', color: COLORS.text }}>Price is negotiable</p>
-            </div>
-
-            <input value={form.location} onChange={(e) => setField('location', e.target.value)} placeholder="Location" maxLength={80} style={inputStyle} />
-            <input value={form.whatsapp} onChange={(e) => setField('whatsapp', e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-            <textarea value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="Description: model, year, power, delivery..." rows={3} maxLength={1000} style={{ ...inputStyle, resize: 'none' }} />
-
-            {editingId && (
-              <>
-                <p style={labelStyle}>Status</p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  <Chip active={form.status === 'available'} onClick={() => setField('status', 'available')} label="Available" />
-                  <Chip active={form.status === 'unavailable'} onClick={() => setField('status', 'unavailable')} label="Unavailable" />
-                </div>
-              </>
-            )}
-
-            <div onClick={saving || uploading ? undefined : handleSave} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '11px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: saving || uploading ? 0.6 : 1 }}>
-              <Icon name={editingId ? 'check' : 'upload'} size={15} color="white" />
-              {saving ? 'Saving...' : uploading ? 'Uploading photos...' : editingId ? 'Save Changes' : 'Post Equipment'}
-            </div>
-
-            {editingId && (
-              <div onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px', padding: '10px', borderRadius: '10px', border: '1px solid #FECACA', color: COLORS.red, fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>
-                <Icon name="trash" size={14} color={COLORS.red} /> Delete Listing
-              </div>
-            )}
+        {anyFilter && !loading && !netError && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <p style={{ fontSize: '12px', color: COLORS.textMuted }}>{items.length}{hasMore ? '+' : ''} result{items.length === 1 && !hasMore ? '' : 's'}</p>
+            <button type="button" onClick={resetAll} style={{ background: 'none', border: 'none', fontSize: '12px', fontWeight: 800, color: COLORS.green, cursor: 'pointer', fontFamily: 'inherit' }}>Reset Filters</button>
           </div>
         )}
 
-        {loading ? (
-          <ListCardSkeleton count={5} />
-        ) : filtered.length === 0 ? (
-          <div style={{ background: COLORS.card, padding: '32px 20px', textAlign: 'center', borderRadius: '14px', color: COLORS.textMuted, fontSize: '13px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-              <Icon name="tractor" size={28} color={COLORS.textMuted} />
-            </div>
-            {items.length === 0 ? 'No equipment listed yet. Tap + to add the first one.' : 'No equipment matches your search or filter.'}
+        {netError ? (
+          <NetworkError onRetry={load} />
+        ) : loading ? (
+          <ListCardSkeleton count={4} />
+        ) : items.length === 0 ? (
+          <div style={{ background: COLORS.card, padding: '34px 20px', textAlign: 'center', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><Icon name="tractor" size={32} color={COLORS.textMuted} /></div>
+            <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text }}>{anyFilter ? 'No equipment matches your search' : 'No equipment has been listed yet'}</p>
+            <p style={{ fontSize: '12.5px', color: COLORS.textMuted, margin: '6px 0 16px', lineHeight: 1.5 }}>
+              {anyFilter ? 'Try a different word, remove a filter, or look at another category.' : 'Be the first to list machinery, a rental or an equipment service.'}
+            </p>
+            {anyFilter
+              ? <PrimaryButton tone="ghost" onClick={resetAll}>Reset Filters</PrimaryButton>
+              : <PrimaryButton icon="plus" onClick={() => navigate('/equipment/new')}>List Your Equipment</PrimaryButton>}
           </div>
         ) : (
-          filtered.map((it) => (
-            <div key={it.id} onClick={() => setDetail(it)} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '10px', flexShrink: 0, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                {it.images?.[0] ? <img src={it.images[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="tractor" size={26} color={COLORS.orange} />}
-                {(it.images?.length || 0) > 1 && (
-                  <div style={{ position: 'absolute', left: '3px', bottom: '3px', display: 'flex', alignItems: 'center', gap: '2px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '999px' }}>
-                    <Icon name="image" size={9} color="white" /> {it.images?.length}
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</p>
-                {it.location && (
-                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Icon name="mapPin" size={10} color={COLORS.textMuted} /> {it.location}
-                  </p>
-                )}
-                <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>
-                  {formatMoney(Number(it.price), it.currency)}{it.unit ? ` / ${it.unit}` : ''}
-                </p>
-                {it.seller_id === user?.id && (
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: it.status === 'available' ? COLORS.orange : COLORS.red, marginTop: '3px' }}>
-                    {it.status === 'available' ? 'Your listing' : 'Your listing · Unavailable'}
-                  </p>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                <div onClick={(e) => { e.stopPropagation(); toggleSave(it.id) }} style={{ cursor: 'pointer' }}>
-                  <Icon name="bookmark" size={16} color={savedIds.has(it.id) ? COLORS.orange : COLORS.textMuted} />
-                </div>
-                <div style={{ padding: '5px 11px', borderRadius: '8px', background: it.listing_type === 'rent' ? COLORS.orange : COLORS.green, color: 'white', fontSize: '10.5px', fontWeight: 700 }}>
-                  {it.listing_type === 'rent' ? 'Rent' : 'Buy'}
-                </div>
-              </div>
-            </div>
-          ))
+          <>
+            {items.map((it) => (
+              <EquipmentCard key={it.id} item={it} onOpen={() => navigate(`/equipment/${it.id}`)} saved={savedIds.has(it.id)} onToggleSave={user ? () => toggleSave(it.id) : undefined} />
+            ))}
+            <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore} />
+          </>
         )}
-
-        <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
       </div>
 
-      {detail && (
-        <DetailSheet
-          item={detail}
-          isMine={detail.seller_id === user?.id}
-          saved={savedIds.has(detail.id)}
-          onToggleSave={() => toggleSave(detail.id)}
-          onEdit={() => openEdit(detail)}
-          onClose={() => setDetail(null)}
-        />
+      {sheetOpen && (
+        <div onClick={() => setSheetOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div role="dialog" aria-label="Filters" onClick={(e) => e.stopPropagation()} style={{ background: COLORS.card, width: '100%', maxWidth: '480px', maxHeight: '88vh', overflowY: 'auto', borderRadius: '20px 20px 0 0', padding: '18px 16px 22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Filters</p>
+              <button type="button" aria-label="Close filters" onClick={() => setSheetOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '4px' }}><Icon name="close" size={20} color={COLORS.textMuted} /></button>
+            </div>
+
+            <SelectField id="f-cond" label="Condition" value={draft.condition} onChange={(v) => setDraft({ ...draft, condition: v })} options={CONDITION_OPTIONS.map((o): [string, string] => [o.key, o.label])} placeholder="Any condition"
+              hint={tab === 'service' ? 'Condition does not apply to services.' : undefined} />
+            <SelectField id="f-country" label="Country" value={draft.country} onChange={(v) => setDraft({ ...draft, country: v })} options={COUNTRIES} placeholder="Any country" />
+            <TextField id="f-state" label="State or region" value={draft.state} onChange={(v) => setDraft({ ...draft, state: v })} placeholder="e.g. Kaduna" maxLength={60} />
+            <TextField id="f-city" label="City or town" value={draft.city} onChange={(v) => setDraft({ ...draft, city: v })} placeholder="e.g. Zaria" maxLength={60} />
+            <TextField id="f-brand" label="Brand" value={draft.brand} onChange={(v) => setDraft({ ...draft, brand: v })} placeholder="e.g. Massey Ferguson" maxLength={60} />
+
+            <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }}>Price range</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1 }}><TextField id="f-min" label="Min" value={draft.minPrice} onChange={(v) => setDraft({ ...draft, minPrice: v.replace(/[^0-9.]/g, '') })} inputMode="decimal" placeholder="0" /></div>
+              <div style={{ flex: 1 }}><TextField id="f-max" label="Max" value={draft.maxPrice} onChange={(v) => setDraft({ ...draft, maxPrice: v.replace(/[^0-9.]/g, '') })} inputMode="decimal" placeholder="Any" /></div>
+              <div style={{ flex: 1 }}>
+                <SelectField id="f-cur" label="Currency" value={draft.currency} onChange={(v) => setDraft({ ...draft, currency: v || 'NGN' })} options={CURRENCIES} placeholder="Currency" />
+              </div>
+            </div>
+            <p style={{ fontSize: '11px', color: COLORS.textMuted, margin: '-6px 0 14px', lineHeight: 1.4 }}>Prices are compared in the currency you choose. Listings priced in another currency, and services that need a quote, are not included.</p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, marginBottom: '6px' }}>Availability</p>
+              <Chip active={draft.availableNow} onClick={() => setDraft({ ...draft, availableNow: !draft.availableNow })} label="Rentals open today" />
+              <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '6px', lineHeight: 1.4 }}>Hides rentals whose availability dates have not started or have ended. This uses the dates the owner entered, not live bookings.</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <PrimaryButton tone="ghost" onClick={() => setDraft(NO_FILTERS)}>Clear</PrimaryButton>
+              <PrimaryButton onClick={applySheet}>Show results</PrimaryButton>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
-  )
-}
-
-function Chip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        padding: '7px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-        background: active ? COLORS.green : COLORS.card,
-        color: active ? 'white' : COLORS.textMuted,
-        border: `1px solid ${active ? COLORS.green : COLORS.border}`,
-      }}>
-      {label}
-    </div>
-  )
-}
-
-function DetailSheet({ item: it, isMine, saved, onToggleSave, onEdit, onClose }: {
-  item: Equipment
-  isMine: boolean
-  saved: boolean
-  onToggleSave: () => void
-  onEdit: () => void
-  onClose: () => void
-}) {
-  const images = it.images || []
-  const callNumber = it.seller?.phone || ''
-
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.card, width: '100%', maxWidth: '480px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '20px 20px 0 0' }}>
-        <div style={{ position: 'relative' }}>
-          {images.length > 0 ? (
-            <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
-              {images.map((url) => (
-                <img key={url} src={url} alt={it.name} style={{ width: '100%', height: '240px', objectFit: 'cover', flexShrink: 0, scrollSnapAlign: 'start' }} />
-              ))}
-            </div>
-          ) : (
-            <div style={{ height: '160px', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="tractor" size={40} color={COLORS.orange} />
-            </div>
-          )}
-          <div onClick={onClose} style={{ position: 'absolute', top: '12px', right: '12px', width: '32px', height: '32px', borderRadius: '16px', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Icon name="close" size={16} color="white" />
-          </div>
-          {images.length > 1 && (
-            <div style={{ position: 'absolute', left: '12px', bottom: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px' }}>
-              Swipe for {images.length} photos
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, flex: 1 }}>{it.name}</p>
-            <div onClick={onToggleSave} style={{ cursor: 'pointer', display: 'flex', padding: '2px' }}>
-              <Icon name="bookmark" size={20} color={saved ? COLORS.orange : COLORS.textMuted} />
-            </div>
-          </div>
-
-          <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.green, marginTop: '6px' }}>
-            {formatMoney(Number(it.price), it.currency)}{it.unit ? ` / ${it.unit}` : ''}
-            {it.negotiable && <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.orange, marginLeft: '8px' }}>Negotiable</span>}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-            <DetailRow icon="tag" text={`${it.listing_type === 'rent' ? 'For rent' : 'For sale'}${it.category ? ` · ${it.category}` : ''}`} />
-            {it.condition && <DetailRow icon="check" text={it.condition === 'new' ? 'New' : 'Used'} />}
-            {it.location && <DetailRow icon="mapPin" text={it.location} />}
-            {it.status !== 'available' && <DetailRow icon="alertTriangle" text="Not available right now" color={COLORS.red} />}
-          </div>
-
-          {it.description && <p style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.5, marginTop: '14px' }}>{it.description}</p>}
-
-          {it.seller && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '12px', background: COLORS.bg, borderRadius: '12px' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {it.seller.profile_image ? <img src={it.seller.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{it.seller.full_name || it.seller.username || 'Seller'}</p>
-                {it.seller.is_premium && <PremiumBadge />}
-              </div>
-                {it.seller.username && <p style={{ fontSize: '11px', color: COLORS.textMuted }}>@{it.seller.username}</p>}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-            {isMine ? (
-              <div onClick={onEdit} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
-                <Icon name="edit" size={15} color="white" /> Edit Listing
-              </div>
-            ) : (
-              <>
-                {it.whatsapp && (
-                  <a href={whatsappLink(it.whatsapp)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: COLORS.green, color: 'white', padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
-                    <Icon name="message" size={15} color="white" /> WhatsApp
-                  </a>
-                )}
-                {callNumber && (
-                  <a href={`tel:${cleanPhone(callNumber)}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: `1px solid ${COLORS.green}`, color: COLORS.green, padding: '12px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}>
-                    <Icon name="phone" size={15} color={COLORS.green} /> Call
-                  </a>
-                )}
-                {!it.whatsapp && !callNumber && (
-                  <p style={{ fontSize: '12px', color: COLORS.textMuted }}>The seller has not added contact details yet.</p>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DetailRow({ icon, text, color = COLORS.textMuted }: { icon: string; text: string; color?: string }) {
-  return (
-    <p style={{ fontSize: '12.5px', color, display: 'flex', alignItems: 'center', gap: '6px' }}>
-      <Icon name={icon} size={14} color={color} /> {text}
-    </p>
-  )
-}
-
-function Header({ onBack, onAdd, open }: { onBack: () => void; onAdd: () => void; open: boolean }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
-      background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
-          <Icon name="arrowLeft" size={22} color={COLORS.text} />
-        </div>
-        <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Equipment</p>
-      </div>
-      <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon name={open ? 'close' : 'plus'} size={18} color="white" />
-      </div>
     </div>
   )
 }
