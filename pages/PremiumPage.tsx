@@ -6,8 +6,8 @@ import { readCheckoutContext, clearCheckoutContext } from '../premiumShared'
 
 const COLORS = {
   bg: '#FFFFFF',
-  card: '#FFFFFF',
-  text: '#1A2E1A',
+  card: 'var(--fx-card)',
+  text: 'var(--fx-text)',
 }
 
 // Used for both /premium (start) and /premium/verify (return from the payment page).

@@ -11,7 +11,7 @@ import { followTarget, useFollowing } from '../followShared'
 import { VIDEO_SELECT, deleteShortVideo, videoLink } from '../videoShared'
 import type { VideoRow } from '../videoShared'
 
-const G = { green: '#16A34A', text: '#1A2E1A', muted: '#5B6B5B', border: '#E5EFE5', red: '#DC2626' }
+const G = { green: '#16A34A', text: 'var(--fx-text)', muted: 'var(--fx-muted)', border: 'var(--fx-border)', red: '#DC2626' }
 const PAGE = 8
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -250,7 +250,7 @@ export default function VideosPage() {
 
       {menuFor && (
         <div onClick={() => { setMenuFor(null); setConfirmDelete(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 90, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '8px 16px calc(16px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--fx-card)', width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '8px 16px calc(16px + env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
             <div style={{ width: '38px', height: '4px', borderRadius: '2px', background: G.border, margin: '4px auto 10px' }} />
             <div role="button" onClick={() => copyLink(menuFor)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 4px', cursor: 'pointer' }}>
               <Icon name="link" size={18} color={G.text} />
@@ -262,7 +262,7 @@ export default function VideosPage() {
                   <p style={{ fontSize: '13px', fontWeight: 700, color: G.text, marginBottom: '10px' }}>Delete this video?</p>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <div role="button" onClick={() => setConfirmDelete(false)} style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', border: `1px solid ${G.border}`, fontSize: '13px', fontWeight: 700, color: G.muted, cursor: 'pointer' }}>Cancel</div>
-                    <div role="button" onClick={() => removeVideo(menuFor)} style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', background: G.red, fontSize: '13px', fontWeight: 700, color: 'white', cursor: 'pointer' }}>Delete</div>
+                    <div role="button" onClick={() => removeVideo(menuFor)} style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', background: '#DC2626', fontSize: '13px', fontWeight: 700, color: 'white', cursor: 'pointer' }}>Delete</div>
                   </div>
                 </div>
               ) : (
@@ -412,7 +412,7 @@ function Slide({ index, height, video, active, near, muted, liked, isOwn, userId
 
         <div style={{ position: 'absolute', left: '14px', right: '72px', bottom: '22px', color: 'white' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div onClick={onProfile} style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: '2px solid white', cursor: 'pointer' }}>
+            <div onClick={onProfile} style={{ width: '38px', height: '38px', borderRadius: '19px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: '2px solid white', cursor: 'pointer' }}>
               {author?.profile_image
                 ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <Icon name="user" size={16} color={G.green} />}
@@ -433,7 +433,7 @@ function Slide({ index, height, video, active, near, muted, liked, isOwn, userId
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '3px', background: 'rgba(255,255,255,0.25)' }}>
-          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'white' }} />
+          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--fx-card)' }} />
         </div>
       </div>
     </div>

@@ -117,7 +117,7 @@ export default function RegisterPage() {
     return (
       <AuthPage>
         <div style={{ paddingTop: '90px', textAlign: 'center' }}>
-          <div style={{ width: '88px', height: '88px', borderRadius: '50%', background: '#DCFCE7', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '88px', height: '88px', borderRadius: '50%', background: 'var(--fx-tint-green)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="mail" size={40} color={AUTH.green} />
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: AUTH.greenDark, marginTop: '24px' }}>Check your email</h1>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
         <AuthField icon="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" autoComplete="email" autoCapitalize="none" />
 
         {/* Phone number with country code */}
-        <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: `1.5px solid ${AUTH.fieldBorder}`, borderRadius: '14px', padding: '0 16px', marginBottom: '13px', height: '54px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`, borderRadius: '14px', padding: '0 16px', marginBottom: '13px', height: '54px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)' }}>
           <span style={{ marginRight: '12px', display: 'flex' }}><Icon name="phone" size={20} color="#3F4A42" strokeWidth={1.7} /></span>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '12px', marginRight: '12px', borderRight: `1px solid ${AUTH.fieldBorder}`, height: '28px' }}>
             <span style={{ fontSize: '20px', lineHeight: 1 }}>{country.flag}</span>

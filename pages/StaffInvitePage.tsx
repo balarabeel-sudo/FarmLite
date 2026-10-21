@@ -82,7 +82,7 @@ export default function StaffInvitePage() {
   } else if (loadError) {
     body = (
       <>
-        <p style={{ fontSize: '13px', color: '#B91C1C', textAlign: 'center' }}>Could not check your invitation. Check your connection.</p>
+        <p style={{ fontSize: '13px', color: 'var(--fx-red-text)', textAlign: 'center' }}>Could not check your invitation. Check your connection.</p>
         <Button label="Try again" onClick={loadInvite} />
       </>
     )
@@ -109,7 +109,7 @@ export default function StaffInvitePage() {
         <p style={{ fontSize: '11.5px', color: COLORS.textMuted, textAlign: 'center' }}>Signed in as {email}</p>
 
         {invite.email_confirmed === false ? (
-          <p style={{ fontSize: '12.5px', color: '#B45309', textAlign: 'center', marginTop: '14px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '12.5px', color: 'var(--fx-amber-text2)', textAlign: 'center', marginTop: '14px', lineHeight: 1.5 }}>
             Confirm your email address first (check your inbox), then come back to this page.
           </p>
         ) : (
@@ -137,7 +137,7 @@ export default function StaffInvitePage() {
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div style={{ background: COLORS.card, width: '100%', maxWidth: '400px', borderRadius: '20px', padding: '28px 22px', boxShadow: '0 2px 14px rgba(0,0,0,0.06)' }}>
-        <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+        <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           <Icon name="leaf" size={26} color={COLORS.green} />
         </div>
         <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, textAlign: 'center', marginBottom: '14px' }}>Farmxie team invitation</p>

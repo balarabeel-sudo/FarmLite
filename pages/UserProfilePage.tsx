@@ -417,7 +417,7 @@ export default function UserProfilePage() {
                   <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginTop: '10px', paddingBottom: '2px' }}>
                     {listings.map((l) => (
                       <div key={l.id} onClick={() => navigate(`/marketplace?listing=${l.id}`)} style={{ minWidth: '120px', width: '120px', border: `1px solid ${COLORS.border}`, borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}>
-                        <div style={{ height: '72px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ height: '72px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {l.images?.[0] ? <img src={l.images[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={20} color={COLORS.green} />}
                         </div>
                         <div style={{ padding: '8px' }}>

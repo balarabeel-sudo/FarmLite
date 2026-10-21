@@ -9,12 +9,12 @@ import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 const ROLE_LABELS: Record<string, string> = { farmer: 'Farmer', buyer: 'Buyer', agribusiness: 'Agribusiness' }
@@ -210,7 +210,7 @@ function SectionLabel({ text }: { text: string }) {
 
 function Avatar({ url, icon, round = false }: { url: string | null; icon: string; round?: boolean }) {
   return (
-    <div style={{ width: '40px', height: '40px', borderRadius: round ? '20px' : '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: '40px', height: '40px', borderRadius: round ? '20px' : '10px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
       {url ? <img src={url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={icon} size={17} color={COLORS.green} />}
     </div>
   )

@@ -8,12 +8,12 @@ import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 type SavedRow = {
@@ -138,7 +138,7 @@ export default function SavedPage() {
 
             return (
               <div key={row.id} style={{ background: COLORS.card, borderRadius: '14px', padding: '14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={listing ? 'leaf' : equip ? 'tractor' : company ? 'building' : 'users'} size={20} color={COLORS.green} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>

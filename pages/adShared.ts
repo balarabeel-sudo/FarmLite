@@ -24,14 +24,14 @@ export type DisplayStatus = { key: string; label: string; bg: string; color: str
 // "active" in the database becomes "Running" or "Ended" depending on the end date.
 export function displayStatus(a: Pick<AdRow, 'status' | 'ends_at'>): DisplayStatus {
   switch (a.status) {
-    case 'pending_review': return { key: 'review', label: 'In review', bg: '#FEF3C7', color: '#92400E' }
-    case 'approved': return { key: 'approved', label: 'Approved: pay to start', bg: '#DBEAFE', color: '#1D4ED8' }
-    case 'rejected': return { key: 'rejected', label: 'Rejected', bg: '#FEE2E2', color: '#B91C1C' }
-    case 'cancelled': return { key: 'cancelled', label: 'Cancelled', bg: '#E5E7EB', color: '#4B5563' }
+    case 'pending_review': return { key: 'review', label: 'In review', bg: 'var(--fx-tint-amber)', color: 'var(--fx-amber-text)' }
+    case 'approved': return { key: 'approved', label: 'Approved: pay to start', bg: 'var(--fx-tint-blue)', color: 'var(--fx-blue-text2)' }
+    case 'rejected': return { key: 'rejected', label: 'Rejected', bg: 'var(--fx-tint-red)', color: 'var(--fx-red-text)' }
+    case 'cancelled': return { key: 'cancelled', label: 'Cancelled', bg: 'var(--fx-border3)', color: 'var(--fx-muted3)' }
     case 'active':
       return a.ends_at && new Date(a.ends_at).getTime() <= Date.now()
-        ? { key: 'ended', label: 'Ended', bg: '#E5E7EB', color: '#4B5563' }
-        : { key: 'running', label: 'Running', bg: '#DCFCE7', color: '#166534' }
+        ? { key: 'ended', label: 'Ended', bg: 'var(--fx-border3)', color: 'var(--fx-muted3)' }
+        : { key: 'running', label: 'Running', bg: 'var(--fx-tint-green)', color: 'var(--fx-green-dark)' }
   }
 }
 

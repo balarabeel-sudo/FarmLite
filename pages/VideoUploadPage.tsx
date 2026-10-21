@@ -123,7 +123,7 @@ export default function VideoUploadPage() {
           <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', padding: '40px 0' }}>Loading...</p>
         ) : !allowed ? (
           <div style={{ background: COLORS.card, borderRadius: '16px', padding: '28px 18px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '28px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '28px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={COLORS.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M10.5 9.5v5l4-2.5-4-2.5Z" fill={COLORS.green} />
               </svg>
@@ -152,7 +152,7 @@ export default function VideoUploadPage() {
               <div
                 onClick={checking ? undefined : () => inputRef.current?.click()}
                 style={{ background: COLORS.card, border: `2px dashed ${COLORS.border}`, borderRadius: '16px', padding: '40px 18px', textAlign: 'center', cursor: checking ? 'default' : 'pointer' }}>
-                <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                <div style={{ width: '54px', height: '54px', borderRadius: '27px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                   <Icon name="camera" size={24} color={COLORS.green} />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, marginTop: '12px' }}>{checking ? 'Checking video...' : 'Choose or record a video'}</p>

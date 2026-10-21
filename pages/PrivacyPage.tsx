@@ -26,16 +26,16 @@ const PRIVACY_EMAIL = '[PRIVACY CONTACT EMAIL]'
 const DPO_NAME = '[DATA PROTECTION OFFICER NAME / CONTACT, IF APPOINTED]'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  text: '#1A2E1A',
+  greenDark: 'var(--fx-green-dark)',
+  text: 'var(--fx-text)',
   textMuted: '#4B5B4B',
-  amberBg: '#FFFBEB',
-  amberBorder: '#FDE68A',
-  amberText: '#92400E',
+  amberBg: 'var(--fx-tint-amber2)',
+  amberBorder: 'var(--fx-bd-amber)',
+  amberText: 'var(--fx-amber-text)',
 }
 
 type Block = { p?: string; list?: string[]; sub?: string }
@@ -268,7 +268,7 @@ const SECTIONS: Section[] = [
 ]
 
 function Ph({ children }: { children: ReactNode }) {
-  return <mark style={{ background: '#FEF3C7', color: COLORS.amberText, padding: '0 4px', borderRadius: '4px', fontWeight: 700 }}>{children}</mark>
+  return <mark style={{ background: 'var(--fx-tint-amber)', color: COLORS.amberText, padding: '0 4px', borderRadius: '4px', fontWeight: 700 }}>{children}</mark>
 }
 
 // Turns "[PLACEHOLDER]" text into highlighted placeholders so the owner cannot miss them
