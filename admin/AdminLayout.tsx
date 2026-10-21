@@ -91,7 +91,7 @@ export default function AdminLayout({ children, title }: { children: ReactNode; 
   })).filter((g) => g.items.length > 0)
 
   return (
-    <div style={{ minHeight: '100vh', background: A.bg, display: 'flex' }}>
+    <div data-theme="light" style={{ minHeight: '100vh', background: A.bg, display: 'flex', colorScheme: 'light' }}>
       <style>{`
         .admin-menu-btn { display: none; }
         @media (max-width: 900px) {
