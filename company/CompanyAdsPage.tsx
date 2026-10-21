@@ -82,7 +82,7 @@ export default function CompanyAdsPage() {
       ) : !error && summary && (
         <>
           {summary.waiting_payment > 0 && (
-            <div onClick={() => navigate('/company/ads/campaigns')} style={{ cursor: 'pointer', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-blue-text2)' }}>
+            <div onClick={() => navigate('/company/ads/campaigns')} style={{ cursor: 'pointer', background: 'var(--fx-tint-blue)', border: '1px solid var(--fx-bd-blue)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-blue-text2)' }}>
               {summary.waiting_payment === 1 ? '1 ad is' : `${summary.waiting_payment} ads are`} approved and waiting for payment.
             </div>
           )}

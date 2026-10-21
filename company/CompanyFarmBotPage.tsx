@@ -413,7 +413,7 @@ export default function CompanyFarmBotPage() {
       </div>
 
       <div style={{ display: 'flex', height: desktop ? 'calc(100dvh - 190px)' : 'calc(100dvh - 200px)', minHeight: 420, background: COLORS.card, borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
-        {desktop && <div style={{ width: 270, borderRight: `1px solid ${COLORS.border}`, background: '#FBFDFB', flexShrink: 0 }}>{chatList}</div>}
+        {desktop && <div style={{ width: 270, borderRight: `1px solid ${COLORS.border}`, background: 'var(--fx-grey1)', flexShrink: 0 }}>{chatList}</div>}
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: desktop ? '24px 28px' : '14px' }}>
@@ -516,7 +516,7 @@ export default function CompanyFarmBotPage() {
                   <Icon name="camera" size={19} color={canPhotos ? COLORS.green : COLORS.textMuted} />
                   {!canPhotos && (
                     <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', borderRadius: '8px', background: '#F5D060', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="crown" size={10} color="#7A5B00" />
+                      <Icon name="crown" size={10} color="var(--fx-amber-text)" />
                     </span>
                   )}
                 </div>
@@ -532,7 +532,7 @@ export default function CompanyFarmBotPage() {
                 />
                 <div role="button" aria-label="Send" onClick={() => send()} style={{
                   padding: '12px 20px', borderRadius: '12px', fontWeight: 800, fontSize: '13px', cursor: canSend ? 'pointer' : 'default',
-                  background: canSend ? COLORS.green : '#BBD9C3', color: 'white',
+                  background: canSend ? COLORS.green : 'var(--fx-border2)', color: 'white',
                 }}>
                   Send
                 </div>

@@ -537,7 +537,7 @@ function Choice({ active, onClick, title, sub }: { active: boolean; onClick: () 
 
 function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '8px 0', borderTop: '1px solid #F1F5EF', fontSize: strong ? '14px' : '13px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '8px 0', borderTop: '1px solid var(--fx-grey1)', fontSize: strong ? '14px' : '13px' }}>
       <span style={{ color: COLORS.textMuted }}>{label}</span>
       <span style={{ color: COLORS.text, fontWeight: strong ? 800 : 600, textAlign: 'right' }}>{value}</span>
     </div>

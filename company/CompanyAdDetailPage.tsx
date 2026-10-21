@@ -218,7 +218,7 @@ export default function CompanyAdDetailPage() {
               <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>No activity yet.</p>
             ) : (
               history.map((h, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid #F1F5EF' }}>
+                <div key={i} style={{ display: 'flex', gap: 12, padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid var(--fx-grey1)' }}>
                   <span style={{ width: 8, height: 8, borderRadius: 4, background: COLORS.green, marginTop: 6, flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>{HISTORY_LABELS[h.action] ?? h.action}</p>
@@ -245,7 +245,7 @@ export default function CompanyAdDetailPage() {
 }
 
 function Banner({ tone, children }: { tone: 'blue' | 'amber' | 'red' | 'green'; children: ReactNode }) {
-  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'], green: ['var(--fx-tint-green3)', 'var(--fx-bd-green)'] }[tone]
+  const map = { blue: ['var(--fx-tint-blue)', 'var(--fx-bd-blue)'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'], green: ['var(--fx-tint-green3)', 'var(--fx-bd-green)'] }[tone]
   return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: map[0], border: `1px solid ${map[1]}`, borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>{children}</div>
 }
 
@@ -269,7 +269,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderTop: '1px solid #F1F5EF', fontSize: '13px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderTop: '1px solid var(--fx-grey1)', fontSize: '13px' }}>
       <span style={{ color: COLORS.textMuted }}>{label}</span>
       <span style={{ color: COLORS.text, fontWeight: 600, textAlign: 'right' }}>{value}</span>
     </div>

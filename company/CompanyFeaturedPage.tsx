@@ -218,7 +218,7 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
 }
 
 function Banner({ tone, children }: { tone: 'blue' | 'amber' | 'green' | 'red'; children: ReactNode }) {
-  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], green: [COLORS.greenSoft, 'var(--fx-bd-green)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'] }[tone]
+  const map = { blue: ['var(--fx-tint-blue)', 'var(--fx-bd-blue)'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], green: [COLORS.greenSoft, 'var(--fx-bd-green)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'] }[tone]
   return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: map[0], border: `1px solid ${map[1]}`, borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>{children}</div>
 }
 

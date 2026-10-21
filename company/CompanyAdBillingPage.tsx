@@ -83,7 +83,7 @@ export default function CompanyAdBillingPage() {
             {rows.map((r, i) => {
               const p = PAY[r.payment_status]
               return (
-                <div key={r.id} onClick={() => navigate(`/company/ads/${r.campaign_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderTop: i === 0 ? 'none' : '1px solid #F1F5EF', cursor: 'pointer', flexWrap: 'wrap' }}>
+                <div key={r.id} onClick={() => navigate(`/company/ads/${r.campaign_id}`)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderTop: i === 0 ? 'none' : '1px solid var(--fx-grey1)', cursor: 'pointer', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text }}>{r.headline}</p>
                     <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: 3 }}>

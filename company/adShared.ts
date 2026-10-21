@@ -37,7 +37,7 @@ export function displayStatus(a: Pick<AdRow, 'status' | 'ends_at'>): DisplayStat
     case 'approved': return { key: 'approved', label: 'Approved: pay to start', bg: 'var(--fx-tint-blue)', color: 'var(--fx-blue-text2)' }
     case 'rejected': return { key: 'rejected', label: 'Rejected', bg: 'var(--fx-tint-red)', color: 'var(--fx-red-text)' }
     case 'cancelled': return { key: 'cancelled', label: 'Cancelled', bg: 'var(--fx-border3)', color: 'var(--fx-muted3)' }
-    case 'paused': return { key: 'paused', label: 'Paused', bg: '#FFEDD5', color: '#9A3412' }
+    case 'paused': return { key: 'paused', label: 'Paused', bg: 'var(--fx-tint-amber)', color: 'var(--fx-amber-text)' }
     case 'completed': return { key: 'completed', label: 'Completed', bg: 'var(--fx-border3)', color: 'var(--fx-muted3)' }
     case 'active':
       return a.ends_at && new Date(a.ends_at).getTime() <= Date.now()

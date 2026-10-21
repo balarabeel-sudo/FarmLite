@@ -131,7 +131,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 function Chip({ label, tone }: { label: string; tone: 'good' | 'premium' | 'neutral' }) {
-  const bg = tone === 'good' ? COLORS.greenSoft : tone === 'premium' ? 'var(--fx-tint-amber)' : '#EEF2EE'
+  const bg = tone === 'good' ? COLORS.greenSoft : tone === 'premium' ? 'var(--fx-tint-amber)' : 'var(--fx-grey2)'
   const color = tone === 'good' ? COLORS.greenDark : tone === 'premium' ? 'var(--fx-amber-text)' : COLORS.textMuted
   return <span style={{ fontSize: '11px', fontWeight: 800, color, background: bg, borderRadius: '10px', padding: '4px 10px' }}>{label}</span>
 }

@@ -152,7 +152,7 @@ function Table({ head, rows, onRow }: { head: string[]; rows: string[][]; onRow?
         <tbody>
           {rows.map((r, ri) => (
             <tr key={ri} onClick={onRow ? () => onRow(ri) : undefined} style={{ cursor: onRow ? 'pointer' : 'default' }}>
-              {r.map((c, ci) => <td key={ci} style={{ textAlign: ci === 0 ? 'left' : 'right', padding: '9px 8px', color: COLORS.text, fontWeight: ci === 0 ? 700 : 500, borderBottom: '1px solid #F1F5EF' }}>{c}</td>)}
+              {r.map((c, ci) => <td key={ci} style={{ textAlign: ci === 0 ? 'left' : 'right', padding: '9px 8px', color: COLORS.text, fontWeight: ci === 0 ? 700 : 500, borderBottom: '1px solid var(--fx-grey1)' }}>{c}</td>)}
             </tr>
           ))}
         </tbody>

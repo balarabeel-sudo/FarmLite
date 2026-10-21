@@ -261,7 +261,7 @@ function Bars({ data }: { data: Group[] }) {
             <span style={{ color: CHART.textMuted }}>{g.value} · {Math.round((g.value / total) * 100)}%</span>
           </div>
           <div style={{ height: 8, borderRadius: 4, background: CHART.bg, overflow: 'hidden' }}>
-            <div style={{ width: `${(g.value / max) * 100}%`, height: '100%', borderRadius: 4, background: g.label === 'Unknown' || g.label === 'Others' ? '#CBD5C8' : PALETTE[i % PALETTE.length] }} />
+            <div style={{ width: `${(g.value / max) * 100}%`, height: '100%', borderRadius: 4, background: g.label === 'Unknown' || g.label === 'Others' ? 'var(--fx-border2)' : PALETTE[i % PALETTE.length] }} />
           </div>
         </div>
       ))}
