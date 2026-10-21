@@ -11,11 +11,11 @@ import { deleteShortVideo, formatDuration, videoLink } from './videoShared'
 import type { VideoRow } from './videoShared'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -100,7 +100,7 @@ export default function VideoCard({
     <div style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
         <div onClick={() => target && navigate(target)} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, cursor: target ? 'pointer' : 'default' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '18px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
             {author?.profile_image
               ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <Icon name="user" size={16} color={COLORS.green} />}
@@ -127,7 +127,7 @@ export default function VideoCard({
                       <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text, marginBottom: '10px' }}>Delete this video?</p>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <div onClick={() => setConfirmDelete(false)} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: '8px', border: `1px solid ${COLORS.border}`, fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, cursor: 'pointer' }}>Cancel</div>
-                        <div onClick={deleting ? undefined : remove} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: '8px', background: COLORS.red, fontSize: '12px', fontWeight: 700, color: 'white', cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1 }}>{deleting ? '...' : 'Delete'}</div>
+                        <div onClick={deleting ? undefined : remove} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: '8px', background: '#DC2626', fontSize: '12px', fontWeight: 700, color: 'white', cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1 }}>{deleting ? '...' : 'Delete'}</div>
                       </div>
                     </div>
                   ) : (

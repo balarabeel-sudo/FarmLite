@@ -106,7 +106,7 @@ export default function PullToRefresh({ children }: { children: (refreshKey: num
           aria-hidden="true"
           style={{
             position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 8px)', left: '50%', zIndex: 9000,
-            width: '38px', height: '38px', marginLeft: '-19px', borderRadius: '19px', background: '#FFFFFF',
+            width: '38px', height: '38px', marginLeft: '-19px', borderRadius: '19px', background: 'var(--fx-card)',
             boxShadow: '0 2px 10px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             transform: `translateY(${Math.max(0, pull - 20)}px)`, opacity: spinning ? 1 : Math.max(0.25, progress),
             transition: spinning ? 'transform .2s ease-out' : 'none', pointerEvents: 'none',

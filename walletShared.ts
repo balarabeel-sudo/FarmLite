@@ -74,23 +74,23 @@ export const WITHDRAWAL_COLUMNS =
   'id, user_id, amount, bank_name, account_number, account_name, status, admin_note, created_at, processed_at'
 
 export const WITHDRAWAL_STATUS: Record<WithdrawalStatus, { label: string; color: string; bg: string }> = {
-  pending: { label: 'Awaiting approval', color: '#B45309', bg: '#FEF3C7' },
-  processing: { label: 'Sending', color: '#1D4ED8', bg: '#DBEAFE' },
-  paid: { label: 'Sent', color: '#166534', bg: '#DCFCE7' },
-  rejected: { label: 'Rejected', color: '#B91C1C', bg: '#FEE2E2' },
-  failed: { label: 'Failed', color: '#B91C1C', bg: '#FEE2E2' },
-  cancelled: { label: 'Cancelled', color: '#5B6B5B', bg: '#E5EFE5' },
+  pending: { label: 'Awaiting approval', color: 'var(--fx-amber-text2)', bg: 'var(--fx-tint-amber)' },
+  processing: { label: 'Sending', color: 'var(--fx-blue-text2)', bg: 'var(--fx-tint-blue)' },
+  paid: { label: 'Sent', color: 'var(--fx-green-dark)', bg: 'var(--fx-tint-green)' },
+  rejected: { label: 'Rejected', color: 'var(--fx-red-text)', bg: 'var(--fx-tint-red)' },
+  failed: { label: 'Failed', color: 'var(--fx-red-text)', bg: 'var(--fx-tint-red)' },
+  cancelled: { label: 'Cancelled', color: 'var(--fx-muted)', bg: 'var(--fx-border)' },
 }
 
 export const ORDER_COLUMNS =
   'id, code, listing_id, listing_title, buyer_id, seller_id, quantity, unit_price, amount, currency, status, dispute_reason, disputed_by, resolution_note, created_at, completed_at, expected_delivery_at, cancelled_at, orig_currency, orig_unit_price, orig_amount, fx_rate'
 
 export const STATUS_INFO: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  escrow_held: { label: 'In escrow', color: '#B45309', bg: '#FEF3C7' },
-  completed: { label: 'Completed', color: '#166534', bg: '#DCFCE7' },
-  disputed: { label: 'Dispute', color: '#B91C1C', bg: '#FEE2E2' },
-  refunded: { label: 'Refunded', color: '#1D4ED8', bg: '#DBEAFE' },
-  cancelled: { label: 'Cancelled', color: '#5B6B5B', bg: '#E5EFE5' },
+  escrow_held: { label: 'In escrow', color: 'var(--fx-amber-text2)', bg: 'var(--fx-tint-amber)' },
+  completed: { label: 'Completed', color: 'var(--fx-green-dark)', bg: 'var(--fx-tint-green)' },
+  disputed: { label: 'Dispute', color: 'var(--fx-red-text)', bg: 'var(--fx-tint-red)' },
+  refunded: { label: 'Refunded', color: 'var(--fx-blue-text2)', bg: 'var(--fx-tint-blue)' },
+  cancelled: { label: 'Cancelled', color: 'var(--fx-muted)', bg: 'var(--fx-border)' },
 }
 
 export const TX_LABELS: Record<string, string> = {

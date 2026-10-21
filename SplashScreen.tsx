@@ -4,11 +4,11 @@ import { supabase } from './supabaseClient'
 import FarmLiteLogo from './FarmLiteLogo'
 
 const COLORS = {
-  bg: '#F8FAF6',
+  bg: 'var(--fx-bg)',
   green: '#16A34A',
-  greenDark: '#166534',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 const SPLASH_DURATION_MS = 4000

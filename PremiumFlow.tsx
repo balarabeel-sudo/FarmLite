@@ -19,14 +19,14 @@ import {
 import type { Audience, PriceInfo, VerifyResult, Limits } from './premiumShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
   dark: '#0E2A16',
 }
@@ -187,7 +187,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
       )}
 
       {error && step !== 'verifying' && (
-        <div style={{ background: '#FEF2F2', color: COLORS.red, borderRadius: '12px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px' }}>{error}</div>
+        <div style={{ background: 'var(--fx-tint-red2)', color: COLORS.red, borderRadius: '12px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px' }}>{error}</div>
       )}
       {notice && (
         <div style={{ background: COLORS.greenSoft, color: COLORS.greenDark, borderRadius: '12px', padding: '10px 12px', fontSize: '12.5px', marginBottom: '12px' }}>{notice}</div>
@@ -202,7 +202,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
           {isCompany && companyName && <p style={{ fontSize: '12.5px', color: COLORS.textMuted, margin: '-10px 0 16px' }}>For: <b>{companyName}</b></p>}
 
           {isActive && (
-            <div style={{ background: COLORS.greenDark, border: `1px solid #B8860B`, borderRadius: '20px', padding: '16px 18px', color: 'white', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: '#166534', border: `1px solid #B8860B`, borderRadius: '20px', padding: '16px 18px', color: 'white', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="crown" size={20} color="#F5D060" />
               </div>
@@ -216,7 +216,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
           )}
 
           {expired && (
-            <div style={{ background: '#FEF3C7', color: '#92400E', borderRadius: '16px', padding: '11px 13px', fontSize: '12.5px', marginBottom: '14px', lineHeight: 1.5 }}>
+            <div style={{ background: 'var(--fx-tint-amber)', color: 'var(--fx-amber-text)', borderRadius: '16px', padding: '11px 13px', fontSize: '12.5px', marginBottom: '14px', lineHeight: 1.5 }}>
               <b>Premium Expired</b> on {formatDate(info?.status?.premium_until)}. Your data is safe. Renew to get Premium tools back.
             </div>
           )}
@@ -334,7 +334,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
       {/* 7. Failed */}
       {step === 'failed' && (
         <div style={{ textAlign: 'center', padding: '30px 4px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '32px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '32px', background: 'var(--fx-tint-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
             <Icon name="shield" size={28} color={COLORS.red} />
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text }}>Payment unsuccessful</h2>

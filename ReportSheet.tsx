@@ -17,7 +17,7 @@ type Props = {
   context?: string
 }
 
-const G = { green: '#16A34A', text: '#0F1A0F', muted: '#6B7280', border: '#E3E7E3', bg: '#F7F8F7', red: '#B91C1C' }
+const G = { green: '#16A34A', text: 'var(--fx-text-strong)', muted: 'var(--fx-muted2)', border: 'var(--fx-border2)', bg: 'var(--fx-grey1)', red: 'var(--fx-red-text)' }
 
 export default function ReportSheet({ open, onClose, type, contentId, userId, contentTable, targetLabel, titleLabel, context }: Props) {
   const [reason, setReason] = useState('')
@@ -57,12 +57,12 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
   return (
     <div onClick={() => { if (!sending) onClose() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div role="dialog" aria-label={`Report ${(titleLabel || typeLabel(type)).toLowerCase()}`} onClick={(e) => e.stopPropagation()}
-        style={{ background: 'white', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', padding: '18px 18px 22px' }}>
+        style={{ background: 'var(--fx-card)', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', padding: '18px 18px 22px' }}>
         <div style={{ width: '38px', height: '4px', borderRadius: '2px', background: G.border, margin: '0 auto 14px' }} />
 
         {sent ? (
           <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#ECF7EF', color: G.green, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '10px' }}>✓</div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--fx-tint-green2)', color: G.green, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '10px' }}>✓</div>
             <p style={{ fontSize: '16px', fontWeight: 800, color: G.text, marginBottom: '6px' }}>Report sent</p>
             <p style={{ fontSize: '13px', color: G.muted, lineHeight: 1.5, marginBottom: '16px' }}>
               Thank you. Our team will review it and take action if it breaks Farmxie guidelines.
@@ -104,7 +104,7 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
             {error && <p style={{ fontSize: '12.5px', color: G.red, margin: '6px 0 0', lineHeight: 1.4 }}>{error}</p>}
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-              <button onClick={onClose} disabled={sending} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${G.border}`, background: 'white', color: G.text, fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={onClose} disabled={sending} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `1px solid ${G.border}`, background: 'var(--fx-card)', color: G.text, fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
               <button onClick={send} disabled={!canSend} style={{ flex: 1.4, padding: '12px', borderRadius: '12px', border: 'none', background: G.green, color: 'white', fontSize: '14px', fontWeight: 700, cursor: canSend ? 'pointer' : 'default', opacity: canSend ? 1 : 0.5 }}>
                 {sending ? 'Sending...' : 'Submit report'}
               </button>

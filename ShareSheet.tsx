@@ -4,12 +4,12 @@ import { useAuth } from './AuthContext'
 import Icon from './Icons'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 type MyGroup = { id: string; name: string; image: string | null }
@@ -126,7 +126,7 @@ export default function ShareSheet({ open, onClose, postId, postUrl, snippet, ca
               onChange={(e) => setComment(e.target.value.slice(0, 500))}
               placeholder="Say something about this post (optional)"
               rows={2}
-              style={{ width: '100%', boxSizing: 'border-box', resize: 'none', border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: COLORS.text, fontFamily: 'inherit', outline: 'none', background: '#F8FAF6' }}
+              style={{ width: '100%', boxSizing: 'border-box', resize: 'none', border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: COLORS.text, fontFamily: 'inherit', outline: 'none', background: 'var(--fx-bg)' }}
             />
             <Row icon="user" label="Share to your profile" sub="Followers will see it in their feed" busy={busyKey === 'me'} onClick={() => repost('me', null)} />
 

@@ -155,7 +155,7 @@ export default function VideoCommentsSheet({ videoId, videoOwnerId, open, onClos
                   <div key={c.id} style={{ display: 'flex', gap: '10px', padding: '9px 0' }}>
                     <div
                       onClick={() => { if (c.profiles?.username) { onClose(); navigate(`/u/${c.profiles.username}`) } }}
-                      style={{ width: '34px', height: '34px', borderRadius: '17px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: c.profiles?.username ? 'pointer' : 'default' }}>
+                      style={{ width: '34px', height: '34px', borderRadius: '17px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: c.profiles?.username ? 'pointer' : 'default' }}>
                       {c.profiles?.profile_image
                         ? <img src={c.profiles.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <Icon name="user" size={15} color={COLORS.green} />}

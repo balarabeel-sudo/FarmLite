@@ -7,14 +7,14 @@ import PremiumTick from './PremiumTick'
 // and the public Company page (pages/CompanyDetailsPage.tsx), so both look and behave the same.
 
 export const PCOLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 const HEADER_HEIGHT = 56
@@ -43,7 +43,7 @@ export function ProfileHeader({ onBack, title, subtitle }: { onBack: () => void;
 // Wide 3:1 cover, like X.
 export function ProfileCover({ src }: { src?: string | null }) {
   return (
-    <div style={{ width: '100%', aspectRatio: '3 / 1', background: src ? '#E5EFE5' : 'linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 55%, #86EFAC 100%)', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', aspectRatio: '3 / 1', background: src ? 'var(--fx-border)' : 'linear-gradient(135deg, var(--fx-tint-green) 0%, var(--fx-bd-green) 55%, #86EFAC 100%)', position: 'relative', overflow: 'hidden' }}>
       {src
         ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         : <div style={{ position: 'absolute', right: '-12px', bottom: '-18px', opacity: 0.35 }}><Icon name="leaf" size={110} color={PCOLORS.green} /></div>}
@@ -141,7 +141,7 @@ export function NameRow({ name, verified, verifiedLabel, premium, premiumLabel, 
       {verified && <span title={verifiedLabel || 'Verified'} style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={PCOLORS.green} /></span>}
       {premium && <PremiumTick size={18} label={premiumLabel} />}
       {!premium && onUpgrade && (
-        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
+        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: 'var(--fx-blue-text2)', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
           <PremiumTick size={14} /> Upgrade
         </div>
       )}
@@ -297,7 +297,7 @@ export function PhotoGrid({ images, empty }: { images: string[]; empty: string }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
       {images.map((src, i) => (
-        <a key={`${src}-${i}`} href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', aspectRatio: '1 / 1', background: '#E5EFE5', borderRadius: '8px', overflow: 'hidden' }}>
+        <a key={`${src}-${i}`} href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', aspectRatio: '1 / 1', background: 'var(--fx-border)', borderRadius: '8px', overflow: 'hidden' }}>
           <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </a>
       ))}
@@ -313,7 +313,7 @@ export function ListingGrid({ listings, formatPrice, onOpen, by }: { listings: L
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
       {listings.map((l) => (
         <div key={l.id} onClick={() => onOpen(l.id)} style={{ background: PCOLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-          <div style={{ width: '100%', height: '90px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '100%', height: '90px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {l.images?.[0] ? <img src={l.images[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={22} color={PCOLORS.green} />}
           </div>
           <div style={{ padding: '9px' }}>

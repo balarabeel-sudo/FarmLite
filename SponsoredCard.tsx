@@ -6,13 +6,13 @@ import PremiumTick from './PremiumTick'
 import { isPremiumActive } from './premiumShared'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 // What ads_for_slot() returns for each ad.
@@ -109,7 +109,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
 
   return (
     <div ref={ref} onClick={open} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: preview ? 'default' : 'pointer', border: `1px solid ${COLORS.greenSoft}` }}>
-      <div style={{ width: '100%', height: '100px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <div style={{ width: '100%', height: '100px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={ad.target_type === 'company' ? 'building' : 'leaf'} size={26} color={COLORS.green} />}
         {badge}
       </div>

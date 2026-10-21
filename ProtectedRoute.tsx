@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 
-const COLORS = { bg: '#F8FAF6', green: '#16A34A' }
+const COLORS = { bg: 'var(--fx-bg)', green: '#16A34A' }
 
 // allowPending: the "choose your username" page itself, which new accounts must pass through first.
 export default function ProtectedRoute({ children, allowPending = false }: { children: ReactNode; allowPending?: boolean }) {

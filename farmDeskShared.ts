@@ -1,13 +1,13 @@
 // Shared constants + helpers for the Farm Desk customer pages.
 
 export const FD = {
-  bg: '#F0FDF4',
-  card: '#FFFFFF',
-  border: '#DCFCE7',
+  bg: 'var(--fx-tint-green3)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-tint-green)',
   green: '#16A34A',
-  greenDark: '#14532D',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-deep)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 export type FarmDeskStatus =
@@ -15,17 +15,17 @@ export type FarmDeskStatus =
   | 'customer_review' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'unable_to_source'
 
 export const STATUS_META: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
-  new: { label: 'New', bg: '#DBEAFE', fg: '#1D4ED8', hint: 'Request submitted.' },
-  reviewing: { label: 'Reviewing', bg: '#FEF3C7', fg: '#B45309', hint: 'Farmxie is reviewing your request.' },
-  sourcing: { label: 'Sourcing', bg: '#FEF3C7', fg: '#B45309', hint: 'Farmxie is actively looking for suppliers.' },
-  options_found: { label: 'Options Found', bg: '#DCFCE7', fg: '#15803D', hint: 'Potential sources have been found.' },
-  quotation_ready: { label: 'Quotation Ready', bg: '#DCFCE7', fg: '#15803D', hint: 'Farmxie has prepared an option for you.' },
+  new: { label: 'New', bg: 'var(--fx-tint-blue)', fg: 'var(--fx-blue-text2)', hint: 'Request submitted.' },
+  reviewing: { label: 'Reviewing', bg: 'var(--fx-tint-amber)', fg: 'var(--fx-amber-text2)', hint: 'Farmxie is reviewing your request.' },
+  sourcing: { label: 'Sourcing', bg: 'var(--fx-tint-amber)', fg: 'var(--fx-amber-text2)', hint: 'Farmxie is actively looking for suppliers.' },
+  options_found: { label: 'Options Found', bg: 'var(--fx-tint-green)', fg: 'var(--fx-green-mid)', hint: 'Potential sources have been found.' },
+  quotation_ready: { label: 'Quotation Ready', bg: 'var(--fx-tint-green)', fg: 'var(--fx-green-mid)', hint: 'Farmxie has prepared an option for you.' },
   customer_review: { label: 'Your Review', bg: '#EDE9FE', fg: '#6D28D9', hint: 'Waiting for your decision.' },
-  confirmed: { label: 'Confirmed', bg: '#DCFCE7', fg: '#15803D', hint: 'You accepted the proposed option.' },
-  in_progress: { label: 'In Progress', bg: '#DBEAFE', fg: '#1D4ED8', hint: 'Farmxie is coordinating the next steps.' },
-  completed: { label: 'Completed', bg: '#E5E7EB', fg: '#374151', hint: 'Request completed.' },
-  cancelled: { label: 'Cancelled', bg: '#FEE2E2', fg: '#B91C1C', hint: 'Request cancelled.' },
-  unable_to_source: { label: 'Unable to Source', bg: '#FEE2E2', fg: '#B91C1C', hint: 'Farmxie could not find a suitable source.' },
+  confirmed: { label: 'Confirmed', bg: 'var(--fx-tint-green)', fg: 'var(--fx-green-mid)', hint: 'You accepted the proposed option.' },
+  in_progress: { label: 'In Progress', bg: 'var(--fx-tint-blue)', fg: 'var(--fx-blue-text2)', hint: 'Farmxie is coordinating the next steps.' },
+  completed: { label: 'Completed', bg: 'var(--fx-border3)', fg: 'var(--fx-muted4)', hint: 'Request completed.' },
+  cancelled: { label: 'Cancelled', bg: 'var(--fx-tint-red)', fg: 'var(--fx-red-text)', hint: 'Request cancelled.' },
+  unable_to_source: { label: 'Unable to Source', bg: 'var(--fx-tint-red)', fg: 'var(--fx-red-text)', hint: 'Farmxie could not find a suitable source.' },
 }
 
 export const PAYMENT_LABELS: Record<string, string> = {
