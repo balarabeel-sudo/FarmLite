@@ -148,11 +148,11 @@ export default function RegisterPage() {
 
         {/* Phone number with country code */}
         <div style={{ display: 'flex', alignItems: 'center', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`, borderRadius: '14px', padding: '0 16px', marginBottom: '13px', height: '54px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)' }}>
-          <span style={{ marginRight: '12px', display: 'flex' }}><Icon name="phone" size={20} color="#3F4A42" strokeWidth={1.7} /></span>
+          <span style={{ marginRight: '12px', display: 'flex' }}><Icon name="phone" size={20} color="var(--fx-muted3)" strokeWidth={1.7} /></span>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '12px', marginRight: '12px', borderRight: `1px solid ${AUTH.fieldBorder}`, height: '28px' }}>
             <span style={{ fontSize: '20px', lineHeight: 1 }}>{country.flag}</span>
             <span style={{ fontSize: '15px', fontWeight: 700, color: AUTH.text }}>{country.dial}</span>
-            <Icon name="chevronDown" size={16} color="#3F4A42" />
+            <Icon name="chevronDown" size={16} color="var(--fx-muted3)" />
             <select
               aria-label="Country code"
               value={countryCode}

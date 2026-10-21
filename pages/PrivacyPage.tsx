@@ -32,7 +32,7 @@ const COLORS = {
   green: '#16A34A',
   greenDark: 'var(--fx-green-dark)',
   text: 'var(--fx-text)',
-  textMuted: '#4B5B4B',
+  textMuted: 'var(--fx-muted3)',
   amberBg: 'var(--fx-tint-amber2)',
   amberBorder: 'var(--fx-bd-amber)',
   amberText: 'var(--fx-amber-text)',

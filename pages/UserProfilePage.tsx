@@ -329,7 +329,7 @@ export default function UserProfilePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px', flexWrap: 'wrap' }}>
           <p style={{ fontSize: '13px', color: COLORS.textMuted }}>@{profile.username}</p>
           {!isSelf && followsMe && (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, background: '#EEF2EE', borderRadius: '6px', padding: '2px 7px' }}>{isFollowing ? 'Mutual' : 'Follows you'}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, background: 'var(--fx-grey2)', borderRadius: '6px', padding: '2px 7px' }}>{isFollowing ? 'Mutual' : 'Follows you'}</span>
           )}
         </div>
 

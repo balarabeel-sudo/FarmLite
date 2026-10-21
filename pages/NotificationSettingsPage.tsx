@@ -26,7 +26,7 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean
       onClick={() => !disabled && onChange(!on)}
       style={{
         width: '44px', height: '26px', borderRadius: '13px', padding: '3px', flexShrink: 0,
-        background: on ? COLORS.green : '#CBD5CB', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
+        background: on ? COLORS.green : 'var(--fx-border2)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
         display: 'flex', justifyContent: on ? 'flex-end' : 'flex-start', transition: 'background 0.15s',
       }}>
       <div style={{ width: '20px', height: '20px', borderRadius: '10px', background: 'var(--fx-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
@@ -131,7 +131,7 @@ export default function NotificationSettingsPage() {
             </button>
           )}
           {pushState === 'on' && (
-            <button onClick={turnOff} disabled={busy} style={buttonStyle('#F1F5F1', COLORS.text)}>
+            <button onClick={turnOff} disabled={busy} style={buttonStyle('var(--fx-grey1)', COLORS.text)}>
               {busy ? 'Please wait...' : 'Turn off on this device'}
             </button>
           )}

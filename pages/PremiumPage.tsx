@@ -5,7 +5,7 @@ import PremiumFlow from '../PremiumFlow'
 import { readCheckoutContext, clearCheckoutContext } from '../premiumShared'
 
 const COLORS = {
-  bg: '#FFFFFF',
+  bg: 'var(--fx-card)',
   card: 'var(--fx-card)',
   text: 'var(--fx-text)',
 }

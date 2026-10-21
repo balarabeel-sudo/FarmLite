@@ -63,7 +63,7 @@ const COLUMNS =
 const STATUS_CHIP: Record<string, { label: string; bg: string; color: string }> = {
   available: { label: 'Available', bg: COLORS.greenSoft, color: COLORS.greenDark },
   sold: { label: 'Sold', bg: 'var(--fx-tint-red)', color: COLORS.red },
-  inactive: { label: 'Hidden', bg: '#EEF2EE', color: COLORS.textMuted },
+  inactive: { label: 'Hidden', bg: 'var(--fx-grey2)', color: COLORS.textMuted },
 }
 
 export default function ListingDetailsPage() {

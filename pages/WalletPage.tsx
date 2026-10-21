@@ -23,7 +23,7 @@ const COLORS = {
   border: '#1B4A31',
   green: '#16A34A',
   greenLight: '#4ADE80',
-  text: '#F1F8F3',
+  text: 'var(--fx-tint-green3)',
   textMuted: '#8FB09C',
   red: '#F87171',
   amber: '#FBBF24',

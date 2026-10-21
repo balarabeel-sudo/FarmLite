@@ -225,7 +225,7 @@ export default function MarketplacePage() {
                   )}
 
                   {l.status !== 'available' && (
-                    <div style={{ position: 'absolute', left: '6px', top: '6px', background: l.status === 'sold' ? COLORS.red : COLORS.textMuted, color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>
+                    <div style={{ position: 'absolute', left: '6px', top: '6px', background: l.status === 'sold' ? '#DC2626' : 'var(--fx-muted2)', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px' }}>
                       {l.status === 'sold' ? 'Sold' : 'Hidden'}
                     </div>
                   )}
