@@ -1,0 +1,327 @@
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
+import { useAuth } from '../AuthContext'
+import Icon from '../Icons'
+import { ProfileHeaderSkeleton } from '../LoadingSkeleton'
+import NetworkError from '../NetworkError'
+import { COLORS } from '../shared'
+import { useLocale } from '../LocaleContext'
+import type { Currency } from '../LocaleContext'
+import { isPremiumActive, formatDate } from '../premiumShared'
+import PremiumTick from '../PremiumTick'
+import { AnalyticsIcon } from '../AnalyticsCharts'
+import { setThemeMode, useThemeMode } from '../theme'
+import type { ThemeMode } from '../theme'
+
+type Profile = {
+  full_name: string | null
+  username: string | null
+  profile_image: string | null
+  role: string
+  location: string | null
+  is_verified: boolean
+  is_premium: boolean
+  premium_until: string | null
+  posts_count: number
+  farmlite_id: string | null
+}
+
+// The private control center for the signed-in user: settings, Premium and the company switch.
+// Everything about the person's own farm, marketplace and community lives on My Profile (/my-profile).
+export default function AccountPage() {
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const { currency, currencies, setCurrency } = useLocale()
+
+  const [loading, setLoading] = useState(true)
+  const [netError, setNetError] = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [myCompany, setMyCompany] = useState<{ id: string; name: string } | null>(null)
+  // Set only for active staff members: their role title, shown on the Admin Console link
+  const [staffRole, setStaffRole] = useState<string | null>(null)
+
+  const load = async () => {
+    if (!user) return
+    setNetError(false)
+    setLoading(true)
+
+    const [profileRes, companyRes, staffRes] = await Promise.all([
+      supabase.from('profiles').select('full_name, username, profile_image, role, location, is_verified, is_premium, premium_until, posts_count, farmlite_id').eq('user_id', user.id).maybeSingle(),
+      supabase.from('companies').select('id, name').eq('owner_id', user.id).order('created_at', { ascending: true }).limit(1),
+      // Read-only look at the person's own active staff row (never claims or changes anything)
+      supabase.from('staff').select('id, roles(name)').eq('user_id', user.id).eq('status', 'active').limit(1),
+    ])
+
+    if (profileRes.error) {
+      setNetError(true)
+      setLoading(false)
+      return
+    }
+
+    setProfile(profileRes.data as any)
+    setMyCompany(companyRes.data && companyRes.data.length ? (companyRes.data[0] as any) : null)
+    const staffRow: any = !staffRes.error && staffRes.data && staffRes.data.length ? staffRes.data[0] : null
+    const roleJoin = staffRow ? (Array.isArray(staffRow.roles) ? staffRow.roles[0] : staffRow.roles) : null
+    setStaffRole(staffRow ? (roleJoin?.name || 'Staff') : null)
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [user])
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
+
+  if (netError) {
+    return (
+      <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto' }}>
+        <Header onBack={() => navigate(-1)} />
+        <NetworkError onRetry={load} />
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
+      <Header onBack={() => navigate(-1)} />
+
+      <div style={{ padding: '16px' }}>
+        {loading || !profile ? (
+          <ProfileHeaderSkeleton />
+        ) : (
+          <>
+            {/* My Profile: its own page (/my-profile) with everything personal: farm, marketplace, community, FarmBot */}
+            <Section title="Profile" first>
+              <div
+                onClick={() => navigate('/my-profile')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>My Profile</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <p style={{ fontSize: '11px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {profile.full_name || profile.username || 'Farmxie user'}
+                    </p>
+                    {profile.is_verified && <Icon name="checkCircle" size={12} color={COLORS.green} />}
+                    {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
+                  </div>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            </Section>
+
+            <Section title="Wallet">
+              <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
+            </Section>
+
+            <Section title="FarmBot">
+              <Row icon="message" label="FarmBot History" onClick={() => navigate('/farmbot')} />
+            </Section>
+
+            <Section title="Insights">
+              <div
+                onClick={() => navigate('/analytics')}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
+                <AnalyticsIcon size={17} color={COLORS.textMuted} />
+                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Analytics</p>
+                {!isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            </Section>
+
+            <Section title="Settings">
+              <Row icon="bell" label="Notifications" onClick={() => navigate('/notifications')} />
+              <ThemeRow />
+              <Row icon="shield" label="Privacy & Security" comingSoon />
+              <SelectRow icon="currency" label="Currency" value={currency} onChange={(v) => setCurrency(v as Currency)}>
+                {currencies.map((c: { code: string; flag?: string }) => (
+                  <option key={c.code} value={c.code}>{c.flag ? `${c.flag} ` : ''}{c.code}</option>
+                ))}
+              </SelectRow>
+              <Row icon="helpCircle" label="Help & Support" onClick={() => navigate('/help')} />
+              <Row icon="fileText" label="Terms & Conditions" onClick={() => navigate('/terms')} />
+              <Row icon="shield" label="Privacy Policy" onClick={() => navigate('/privacy')} />
+              <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
+            </Section>
+
+            {/* Premium card: Free -> Upgrade, Active -> Extend / View Benefits, Expired -> Renew */}
+            {(() => {
+              const active = isPremiumActive(profile.is_premium, profile.premium_until)
+              const expired = !active && !!profile.premium_until
+              return (
+                <div style={{ marginTop: '22px', background: '#166534', border: '1px solid #B8860B', borderRadius: '16px', padding: '18px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '21px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="crown" size={21} color="#F5D060" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Farmxie Premium ✓' : expired ? 'Premium Expired' : 'Farmxie Premium'}</p>
+                      <p style={{ fontSize: '11.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.45 }}>
+                        {active
+                          ? (profile.premium_until ? `Active until ${formatDate(profile.premium_until)}` : 'Your Premium membership is active.')
+                          : expired
+                            ? `Ended on ${formatDate(profile.premium_until)}. Your data is safe.`
+                            : 'Unlock more tools and insights.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                    <div
+                      onClick={() => navigate('/premium')}
+                      style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'var(--fx-card)', color: 'var(--fx-green-dark)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+                      {active ? 'Extend Premium' : expired ? 'Renew Premium' : 'Upgrade to Premium'}
+                    </div>
+                    {active && (
+                      <div
+                        onClick={() => navigate('/premium?benefits=1')}
+                        style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.5)', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                        View Benefits
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Only for people who own a company: a separate dashboard with its own menu */}
+            {myCompany && (
+              <div
+                onClick={() => navigate('/company', { replace: true })}
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid var(--fx-border)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="building" size={19} color={COLORS.green} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>Switch to Company Dashboard</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{myCompany.name}</p>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            )}
+
+            {/* Only for active staff: a link into the admin console, titled with their role */}
+            {staffRole && (
+              <div
+                onClick={() => navigate('/admin')}
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid var(--fx-border)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="shield" size={19} color={COLORS.green} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>{staffRole}</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>Open Admin Console</p>
+                </div>
+                <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
+  return (
+    <div style={{ marginTop: first ? 0 : 20 }}>
+      <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>{title}</p>
+      <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>{children}</div>
+    </div>
+  )
+}
+
+function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
+  icon: string
+  label: string
+  onClick?: () => void
+  rightText?: string
+  comingSoon?: boolean
+  danger?: boolean
+}) {
+  const disabled = comingSoon || !onClick
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px',
+        borderBottom: `1px solid ${COLORS.bg}`, cursor: disabled ? 'default' : 'pointer',
+        opacity: comingSoon ? 0.55 : 1,
+      }}>
+      <Icon name={icon} size={17} color={danger ? '#DC2626' : COLORS.textMuted} />
+      <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: danger ? '#DC2626' : COLORS.text }}>{label}</p>
+      {comingSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: COLORS.textMuted }}>Coming soon</span>}
+      {!comingSoon && rightText && <span style={{ fontSize: '11px', color: COLORS.textMuted }}>{rightText}</span>}
+      {!comingSoon && !rightText && onClick && <Icon name="chevronRight" size={15} color={COLORS.textMuted} />}
+    </div>
+  )
+}
+
+// Appearance: Light, Dark or follow the phone. The choice is remembered on this device.
+function ThemeRow() {
+  const mode = useThemeMode()
+  const options: { key: ThemeMode; label: string }[] = [
+    { key: 'light', label: 'Light' },
+    { key: 'dark', label: 'Dark' },
+    { key: 'system', label: 'System' },
+  ]
+  return (
+    <div style={{ padding: '13px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+        <Icon name="moon" size={17} color={COLORS.textMuted} />
+        <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Appearance</p>
+      </div>
+      <div role="radiogroup" aria-label="Appearance" style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px' }}>
+        {options.map((o) => {
+          const on = mode === o.key
+          return (
+            <div
+              key={o.key}
+              role="radio"
+              aria-checked={on}
+              onClick={() => setThemeMode(o.key)}
+              style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.textMuted }}>
+              {o.label}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function SelectRow({ icon, label, value, onChange, children }: {
+  icon: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  children: ReactNode
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
+      <Icon name={icon} size={17} color={COLORS.textMuted} />
+      <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>{label}</p>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ border: 'none', background: 'transparent', fontSize: '12px', fontWeight: 700, color: COLORS.green, outline: 'none', cursor: 'pointer', textAlign: 'right' }}>
+        {children}
+      </select>
+    </div>
+  )
+}
+
+function Header({ onBack }: { onBack: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
+        <Icon name="arrowLeft" size={22} color={COLORS.text} />
+      </div>
+      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Account</p>
+    </div>
+  )
+}

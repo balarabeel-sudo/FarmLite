@@ -12,6 +12,61 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Farmxie" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <style>
+      /* Farmxie colors. Light values are the original look; dark values are used when data-theme="dark". */
+      :root, [data-theme="light"] {
+        --fx-bg: #F8FAF6; --fx-card: #FFFFFF; --fx-border: #E5EFE5; --fx-border2: #E3E7E3; --fx-border3: #E5E7EB;
+        --fx-text: #1A2E1A; --fx-text-strong: #0F1A0F; --fx-muted: #5B6B5B; --fx-muted2: #6B7280; --fx-muted3: #4B5563; --fx-muted4: #374151; --fx-muted5: #9AA39B;
+        --fx-green-dark: #166534; --fx-green-deep: #14532D; --fx-green-mid: #15803D;
+        --fx-tint-green: #DCFCE7; --fx-tint-green2: #ECF7EF; --fx-tint-green3: #F0FDF4;
+        --fx-tint-amber: #FEF3C7; --fx-tint-amber2: #FFFBEB; --fx-tint-red: #FEE2E2; --fx-tint-red2: #FEF2F2; --fx-tint-blue: #DBEAFE;
+        --fx-grey1: #F7F8F7; --fx-grey2: #EEF1EE; --fx-grey3: #F1F3F1;
+        --fx-bd-red: #FECACA; --fx-bd-green: #BBF7D0; --fx-bd-amber: #FDE68A; --fx-bd-amber2: #F3E2B8;
+        --fx-amber-text: #92400E; --fx-amber-text2: #B45309; --fx-red-text: #B91C1C; --fx-red-text2: #991B1B; --fx-blue-text: #1E40AF; --fx-blue-text2: #1D4ED8;
+      }
+      [data-theme="dark"] {
+        --fx-bg: #0B100C; --fx-card: #131A14; --fx-border: #243327; --fx-border2: #2A372C; --fx-border3: #2A372C;
+        --fx-text: #E7EFE7; --fx-text-strong: #F1F6F1; --fx-muted: #93A494; --fx-muted2: #9CA3AF; --fx-muted3: #B4BCC8; --fx-muted4: #D1D5DB; --fx-muted5: #7E8C80;
+        --fx-green-dark: #86EFAC; --fx-green-deep: #86EFAC; --fx-green-mid: #4ADE80;
+        --fx-tint-green: #163820; --fx-tint-green2: #112A19; --fx-tint-green3: #0F2616;
+        --fx-tint-amber: #3B2D0C; --fx-tint-amber2: #2B2108; --fx-tint-red: #3F1717; --fx-tint-red2: #301212; --fx-tint-blue: #15284A;
+        --fx-grey1: #1A231B; --fx-grey2: #1F2A21; --fx-grey3: #1C261E;
+        --fx-bd-red: #7F1D1D; --fx-bd-green: #1F5A33; --fx-bd-amber: #6B5214; --fx-bd-amber2: #5C4814;
+        --fx-amber-text: #FCD34D; --fx-amber-text2: #FBBF24; --fx-red-text: #FCA5A5; --fx-red-text2: #FCA5A5; --fx-blue-text: #93C5FD; --fx-blue-text2: #93C5FD;
+      }
+      html, body { background: var(--fx-bg); color: var(--fx-text); }
+
+      /* Computers and tablets: the app is no longer a narrow phone strip. */
+      .fx-side { display: none; position: fixed; top: 0; bottom: 0; width: 76px; right: calc(50% + 352px); overflow-y: auto; }
+      .fx-side-label { display: none; }
+      @media (min-width: 768px) {
+        /* every full page and the bottom bar: wider column, still centered */
+        [style*="max-width: 480px"][style*="min-height: 100vh"] { max-width: 680px !important; }
+        [style*="position: fixed"][style*="max-width: 480px"] { max-width: 680px !important; }
+      }
+      @media (min-width: 1024px) {
+        .fx-side { display: flex; }
+        /* the left menu replaces the bottom bar */
+        [style*="position: fixed"][style*="max-width: 480px"] { display: none !important; }
+        body { padding-bottom: 0; }
+      }
+      @media (min-width: 1280px) {
+        .fx-side { width: 232px; }
+        .fx-side-label { display: inline; }
+      }
+    </style>
+    <script>
+      // Apply the saved theme before the app paints, so there is no white flash in dark mode.
+      (function () {
+        try {
+          var m = localStorage.getItem('farmxie-theme');
+          var t = m === 'dark' ? 'dark' : m === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.style.colorScheme = t;
+          if (t === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0B100C');
+        } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

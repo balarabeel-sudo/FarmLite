@@ -1,14 +1,14 @@
 import type { CSSProperties } from 'react'
 
 export const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
+  greenDark: 'var(--fx-green-dark)',
   orange: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -22,7 +22,7 @@ export const labelStyle: CSSProperties = { fontSize: '12px', fontWeight: 700, co
 export function ErrorBanner({ text }: { text: string }) {
   if (!text) return null
   return (
-    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
+    <div style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
       <p style={{ fontSize: '11.5px', color: COLORS.red }}>{text}</p>
     </div>
   )

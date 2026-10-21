@@ -12,16 +12,16 @@ import { followTarget, unfollowTarget, useFollowing } from './followShared'
 import ShareSheet from './ShareSheet'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
   orange: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 // Same size for everyone: person, company and group posts line up the same way.
-const AVATAR = 40
+const AVATAR = 44
 
 // Select string every page should use so PostCard gets everything it needs.
 export const POST_SELECT =
@@ -225,109 +225,116 @@ export default function PostCard({
   const fullTime = new Date(post.created_at).toLocaleString()
   const sub = company ? 'Company' : author?.username ? `@${author.username}` : ''
 
-  return (
-    <div ref={cardRef} style={{ background: COLORS.card, borderRadius: '16px', padding: '14px', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', scrollMarginTop: '72px' }}>
-      {pinned && <p style={{ fontSize: '10.5px', fontWeight: 700, color: COLORS.green, marginBottom: '8px' }}>📌 Pinned post</p>}
+  const avatarBox = (size: number, radius: string): CSSProperties => ({ width: `${size}px`, height: `${size}px`, borderRadius: radius, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 })
+  const actionStyle = (color: string): CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color, cursor: 'pointer', minWidth: '44px', minHeight: '32px' })
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', position: 'relative' }}>
+  return (
+    <div ref={cardRef} style={{ padding: '12px 0 10px', borderBottom: `1px solid ${COLORS.border}`, scrollMarginTop: '72px' }}>
+      {pinned && <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, margin: '0 0 6px 56px' }}>📌 Pinned post</p>}
+
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        {/* Left: the profile picture, like X. Groups show the group picture with the poster's small picture on it. */}
         {group ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-            <div onClick={() => navigate(`/communities/${group.id}`)} style={{ position: 'relative', width: `${AVATAR}px`, height: `${AVATAR}px`, flexShrink: 0, cursor: 'pointer' }}>
-              <div style={{ width: `${AVATAR}px`, height: `${AVATAR}px`, borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {group.cover_url
-                  ? <img src={group.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <Icon name="users" size={18} color={COLORS.green} />}
-              </div>
-              <div style={{ position: 'absolute', right: '-5px', bottom: '-5px', width: '20px', height: '20px', borderRadius: '10px', background: '#DCFCE7', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {author?.profile_image
-                  ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <Icon name="user" size={10} color={COLORS.green} />}
-              </div>
+          <div onClick={() => navigate(`/communities/${group.id}`)} style={{ position: 'relative', width: `${AVATAR}px`, height: `${AVATAR}px`, flexShrink: 0, cursor: 'pointer' }}>
+            <div style={avatarBox(AVATAR, '12px')}>
+              {group.cover_url
+                ? <img src={group.cover_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <Icon name="users" size={18} color={COLORS.green} />}
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p onClick={() => navigate(`/communities/${group.id}`)} style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{group.name}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, marginTop: '1px' }}>
-                <p onClick={() => authorTarget && navigate(authorTarget)} title={fullTime} style={{ margin: 0, fontSize: '11.5px', fontWeight: 600, lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: authorTarget ? 'pointer' : 'default' }}>{authorName}</p>
-                {!!author && isPremiumActive(author.is_premium, author.premium_until) && <PremiumTick size={12} />}
-                <p title={fullTime} style={{ margin: 0, fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>· {time}</p>
-              </div>
+            <div style={{ ...avatarBox(20, '10px'), position: 'absolute', right: '-5px', bottom: '-5px', border: `2px solid ${COLORS.card}` }}>
+              {author?.profile_image
+                ? <img src={author.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <Icon name="user" size={10} color={COLORS.green} />}
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-            <div onClick={() => target && navigate(target)} style={{ width: `${AVATAR}px`, height: `${AVATAR}px`, borderRadius: company ? '12px' : '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: target ? 'pointer' : 'default' }}>
-              {image
-                ? <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <Icon name={company ? 'building' : 'user'} size={18} color={COLORS.green} />}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                <p onClick={() => target && navigate(target)} style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, lineHeight: 1.25, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: target ? 'pointer' : 'default' }}>{name}</p>
-                {premium && <PremiumTick size={14} />}
-                {showFollow && (
-                  <>
-                    <span style={{ fontSize: '12px', color: COLORS.textMuted, flexShrink: 0 }}>·</span>
-                    {justFollowed && following ? (
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, flexShrink: 0 }}>Following</span>
-                    ) : (
-                      <span role="button" onClick={follow} style={{ fontSize: '12px', fontWeight: 800, color: COLORS.green, cursor: 'pointer', flexShrink: 0, opacity: followBusy ? 0.5 : 1 }}>Follow</span>
-                    )}
-                  </>
-                )}
-              </div>
-              <p title={fullTime} style={{ margin: '1px 0 0', fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {sub ? `${sub} · ${time}` : time}
-              </p>
-            </div>
+          <div onClick={() => target && navigate(target)} style={{ ...avatarBox(AVATAR, company ? '12px' : '50%'), cursor: target ? 'pointer' : 'default' }}>
+            {image
+              ? <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <Icon name={company ? 'building' : 'user'} size={18} color={COLORS.green} />}
           </div>
         )}
 
-        <div style={{ flexShrink: 0 }}>
-          <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '-6px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={COLORS.textMuted} aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
-          </div>
-          {menuOpen && (
-            <>
-              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-              <div style={{ position: 'absolute', right: 0, top: '36px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '12px', boxShadow: '0 6px 20px rgba(0,0,0,0.12)', minWidth: '180px', maxWidth: '260px', overflow: 'hidden' }}>
-                {items.map((a, i) => (
-                  <div key={a.label} onClick={() => { setMenuOpen(false); a.onClick() }} style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 600, color: a.danger ? '#DC2626' : COLORS.text, cursor: 'pointer', borderBottom: i < items.length - 1 ? `1px solid ${COLORS.border}` : 'none', wordBreak: 'break-word' }}>{a.label}</div>
-                ))}
+        {/* Right: name line, text, photos, actions */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', position: 'relative' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {group ? (
+                <>
+                  <p onClick={() => navigate(`/communities/${group.id}`)} style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, lineHeight: 1.3, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{group.name}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                    <p onClick={() => authorTarget && navigate(authorTarget)} title={fullTime} style={{ margin: 0, fontSize: '13px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, cursor: authorTarget ? 'pointer' : 'default' }}>{authorName}</p>
+                    {!!author && isPremiumActive(author.is_premium, author.premium_until) && <PremiumTick size={13} />}
+                    <p title={fullTime} style={{ margin: 0, fontSize: '13px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>· {time}</p>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flexWrap: 'nowrap' }}>
+                  <p onClick={() => target && navigate(target)} style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, lineHeight: 1.3, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1, cursor: target ? 'pointer' : 'default' }}>{name}</p>
+                  {premium && <PremiumTick size={14} />}
+                  {sub && <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 2 }}>{sub}</p>}
+                  <p title={fullTime} style={{ margin: 0, fontSize: '13px', lineHeight: 1.3, color: COLORS.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>· {time}</p>
+                  {showFollow && (
+                    justFollowed && following ? (
+                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.textMuted, flexShrink: 0, marginLeft: '2px' }}>Following</span>
+                    ) : (
+                      <span role="button" onClick={follow} style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, cursor: 'pointer', flexShrink: 0, marginLeft: '2px', opacity: followBusy ? 0.5 : 1 }}>Follow</span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ flexShrink: 0 }}>
+              <div role="button" aria-label="More options" onClick={() => setMenuOpen((o) => !o)} style={{ width: '32px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={COLORS.textMuted} aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
               </div>
-            </>
+              {menuOpen && (
+                <>
+                  <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+                  <div style={{ position: 'absolute', right: 0, top: '28px', zIndex: 21, background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '12px', boxShadow: '0 6px 20px rgba(0,0,0,0.18)', minWidth: '180px', maxWidth: '260px', overflow: 'hidden' }}>
+                    {items.map((a, i) => (
+                      <div key={a.label} onClick={() => { setMenuOpen(false); a.onClick() }} style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 600, color: a.danger ? '#DC2626' : COLORS.text, cursor: 'pointer', borderBottom: i < items.length - 1 ? `1px solid ${COLORS.border}` : 'none', wordBreak: 'break-word' }}>{a.label}</div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {post.content.trim() !== '' && (
+            <div style={{ marginTop: '2px' }}>
+              <ExpandableText
+                text={post.content}
+                cardRef={cardRef}
+                fullText={!!showFullText}
+                style={{ fontSize: emphasize ? '15px' : '14.5px', fontWeight: emphasize ? 700 : 400, color: COLORS.text, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+              />
+            </div>
           )}
+
+          {post.is_share ? (
+            <SharedPostCard shared={post.shared || null} onOpen={(id) => navigate(`/post/${id}`)} />
+          ) : (
+            <div style={{ marginBottom: '4px' }}><PostImages images={post.images} /></div>
+          )}
+          {children}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', paddingRight: '2px' }}>
+            <span onClick={() => setCommentsOpen(true)} style={actionStyle(COLORS.textMuted)}>
+              <Icon name="comment" size={18} color={COLORS.textMuted} /> {comments > 0 ? comments : ''}
+            </span>
+            <span onClick={() => setShareOpen(true)} style={actionStyle(COLORS.textMuted)}>
+              <ShareIcon size={18} color={COLORS.textMuted} /> {shares > 0 ? shares : ''}
+            </span>
+            <span onClick={toggleLike} style={actionStyle(liked ? '#DC2626' : COLORS.textMuted)}>
+              <Icon name="heart" size={18} color={liked ? '#DC2626' : COLORS.textMuted} /> {likes > 0 ? likes : ''}
+            </span>
+            <span onClick={toggleSave} style={{ ...actionStyle(COLORS.textMuted), minWidth: '32px', justifyContent: 'flex-end' }}>
+              <Icon name="bookmark" size={18} color={saved ? COLORS.orange : COLORS.textMuted} />
+            </span>
+          </div>
         </div>
-      </div>
-
-      {post.content.trim() !== '' && (
-        <ExpandableText
-          text={post.content}
-          cardRef={cardRef}
-          fullText={!!showFullText}
-          style={{ fontSize: emphasize ? '14px' : '13px', fontWeight: emphasize ? 700 : 400, color: COLORS.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-        />
-      )}
-
-      {post.is_share ? (
-        <SharedPostCard shared={post.shared || null} onOpen={(id) => navigate(`/post/${id}`)} />
-      ) : (
-        <div style={{ marginBottom: '12px' }}><PostImages images={post.images} /></div>
-      )}
-      {children}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '22px', paddingTop: '10px', borderTop: `1px solid ${COLORS.border}` }}>
-        <span onClick={toggleLike} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: liked ? '#DC2626' : COLORS.textMuted, cursor: 'pointer' }}>
-          <Icon name="heart" size={16} color={liked ? '#DC2626' : COLORS.textMuted} /> {likes}
-        </span>
-        <span onClick={() => setCommentsOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: COLORS.textMuted, cursor: 'pointer' }}>
-          <Icon name="comment" size={16} color={COLORS.textMuted} /> {comments}
-        </span>
-        <span onClick={() => setShareOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: COLORS.textMuted, cursor: 'pointer' }}>
-          <ShareIcon size={16} color={COLORS.textMuted} /> {shares > 0 ? shares : ''}
-        </span>
-        <span onClick={toggleSave} style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', cursor: 'pointer' }}>
-          <Icon name="bookmark" size={16} color={saved ? COLORS.orange : COLORS.textMuted} />
-        </span>
       </div>
 
       <ShareSheet
@@ -356,7 +363,7 @@ export default function PostCard({
       )}
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', background: COLORS.text, color: 'white', fontSize: '12px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', zIndex: 70, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', background: '#1F2F21', color: 'white', fontSize: '12px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', zIndex: 70, whiteSpace: 'nowrap' }}>
           {toast}
         </div>
       )}
@@ -428,7 +435,7 @@ function ExpandableText({ text, style, cardRef, fullText }: { text: string; styl
 function SharedPostCard({ shared, onOpen }: { shared: SharedPostData | null; onOpen: (id: string) => void }) {
   if (!shared) {
     return (
-      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '14px', marginBottom: '12px', background: '#F8FAF6' }}>
+      <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '14px', marginBottom: '12px', background: 'var(--fx-bg)' }}>
         <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.45 }}>This post is no longer available.</p>
       </div>
     )
@@ -442,9 +449,9 @@ function SharedPostCard({ shared, onOpen }: { shared: SharedPostData | null; onO
     : !!author && isPremiumActive(author.is_premium, author.premium_until)
   const pics = (shared.images || []).filter(Boolean)
   return (
-    <div role="button" onClick={() => onOpen(shared.id)} style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '10px', marginBottom: '12px', cursor: 'pointer', background: '#FCFDFB' }}>
+    <div role="button" onClick={() => onOpen(shared.id)} style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '10px', margin: '8px 0 6px', cursor: 'pointer', background: 'var(--fx-bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <div style={{ width: '28px', height: '28px', borderRadius: company ? '8px' : '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: '28px', height: '28px', borderRadius: company ? '8px' : '50%', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
           {image ? <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={company ? 'building' : 'user'} size={14} color={COLORS.green} />}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -464,7 +471,7 @@ function SharedPostCard({ shared, onOpen }: { shared: SharedPostData | null; onO
 }
 
 // Forward-arrow share icon (Facebook-style).
-function ShareIcon({ size = 16, color = '#5B6B5B' }: { size?: number; color?: string }) {
+function ShareIcon({ size = 16, color = 'var(--fx-muted)' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 9V5l8 7-8 7v-4c-5.5 0-9 1.5-12 5 1-6 4.5-10.5 12-11z" />
