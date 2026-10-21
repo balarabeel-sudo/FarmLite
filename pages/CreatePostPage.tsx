@@ -10,12 +10,12 @@ import { captureThumbnail, fetchVideoPermission, formatDuration, postShortVideo,
 const MAX_PICK_BYTES = 200 * 1024 * 1024
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -220,14 +220,14 @@ export default function CreatePostPage() {
 
       <div style={{ padding: '16px' }}>
         {communityId && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--fx-tint-green)', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
             <Icon name="users" size={15} color={COLORS.green} />
             <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text }}>Posting in {communityName || 'group'}</p>
           </div>
         )}
 
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px' }}>
+          <div style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px' }}>
             <p style={{ fontSize: '11.5px', color: COLORS.red }}>{error}</p>
           </div>
         )}
@@ -245,7 +245,7 @@ export default function CreatePostPage() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px 6px 6px', borderRadius: '999px',
                       cursor: 'pointer', whiteSpace: 'nowrap',
-                      background: active ? '#DCFCE7' : COLORS.card,
+                      background: active ? 'var(--fx-tint-green)' : COLORS.card,
                       border: `1px solid ${active ? COLORS.green : COLORS.border}`,
                     }}>
                     <div style={{
@@ -347,11 +347,11 @@ export default function CreatePostPage() {
         {showUpgradeForVideo && (
           <div
             onClick={() => navigate('/premium')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', padding: '10px 14px', borderRadius: '12px', background: '#FFFBEB', border: '1px dashed #F59E0B', cursor: 'pointer' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', padding: '10px 14px', borderRadius: '12px', background: 'var(--fx-tint-amber2)', border: '1px dashed #F59E0B', cursor: 'pointer' }}>
             <Icon name="crown" size={20} color="#F59E0B" />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>Add video</p>
-              <p style={{ fontSize: '11.5px', fontWeight: 700, color: '#B45309', marginTop: '1px' }}>Upgrade to Premium</p>
+              <p style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--fx-amber-text2)', marginTop: '1px' }}>Upgrade to Premium</p>
             </div>
             <Icon name="chevronRight" size={16} color={COLORS.textMuted} />
           </div>

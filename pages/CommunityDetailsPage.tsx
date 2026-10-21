@@ -179,12 +179,12 @@ export default function CommunityDetailsPage() {
       </div>
 
       <div style={{ background: COLORS.card, padding: '0 16px 14px', borderBottom: `1px solid ${COLORS.border}` }}>
-        <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: '#DCFCE7', border: `3px solid ${COLORS.card}`, boxSizing: 'border-box', marginTop: '-30px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{ width: '72px', height: '72px', borderRadius: '18px', background: 'var(--fx-tint-green)', border: `3px solid ${COLORS.card}`, boxSizing: 'border-box', marginTop: '-30px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={28} color={COLORS.green} />}
         </div>
         <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text, marginTop: '8px', wordBreak: 'break-word' }}>{group.name}</p>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '10px', background: group.privacy === 'private' ? '#FEF3C7' : '#DCFCE7', color: group.privacy === 'private' ? '#92400E' : '#166534' }}>{group.privacy === 'private' ? 'Private group' : 'Public group'}</span>
+          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '10px', background: group.privacy === 'private' ? 'var(--fx-tint-amber)' : 'var(--fx-tint-green)', color: group.privacy === 'private' ? 'var(--fx-amber-text)' : 'var(--fx-green-dark)' }}>{group.privacy === 'private' ? 'Private group' : 'Public group'}</span>
           {cat && <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '10px', background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>{cat}</span>}
           {group.country && <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '10px', background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>{group.country}</span>}
         </div>

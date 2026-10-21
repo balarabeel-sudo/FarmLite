@@ -173,13 +173,13 @@ export default function ChooseUsernamePage() {
         <>
           <ErrorBox message={error} />
 
-          <div style={{ background: '#FFFFFF', border: `1.5px solid ${AUTH.fieldBorder}`, borderRadius: '18px', padding: '18px 16px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)' }}>
+          <div style={{ background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`, borderRadius: '18px', padding: '18px 16px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)' }}>
             {!editing ? (
               <>
                 <p style={{ fontSize: '12.5px', color: AUTH.textMuted, fontWeight: 600 }}>Your username</p>
                 <p style={{ fontSize: '26px', fontWeight: 800, color: AUTH.text, marginTop: '4px', wordBreak: 'break-all' }}>@{current}</p>
                 {renamed && (
-                  <p style={{ fontSize: '13px', color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '8px 10px', marginTop: '12px', lineHeight: 1.45 }}>
+                  <p style={{ fontSize: '13px', color: 'var(--fx-amber-text)', background: 'var(--fx-tint-amber2)', border: '1px solid var(--fx-bd-amber)', borderRadius: '10px', padding: '8px 10px', marginTop: '12px', lineHeight: 1.45 }}>
                     @{wanted} was already taken by someone else, so we gave you @{current}. You can keep it or change it.
                   </p>
                 )}

@@ -10,12 +10,12 @@ import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   orange: '#F59E0B',
   red: '#DC2626',
 }
@@ -155,7 +155,7 @@ export default function CompaniesPage() {
               <div style={{ marginBottom: '10px' }}><SponsoredCard ad={ads[idx === 1 ? 0 : 1]} layout="wide" placement="companies" /></div>
             )}
             <div onClick={() => navigate(`/companies/${c.id}`)} style={{ background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={24} color={COLORS.green} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

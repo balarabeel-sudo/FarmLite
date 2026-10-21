@@ -6,9 +6,9 @@ import { fetchUserAnalytics } from '../analyticsShared'
 import type { AnalyticsData } from '../analyticsShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  text: '#1A2E1A',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  text: 'var(--fx-text)',
 }
 
 // The user's own analytics. Premium accounts see real data; free accounts see a blurred sample.

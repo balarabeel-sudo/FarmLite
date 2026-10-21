@@ -14,14 +14,14 @@ import {
 import type { CategoryKey, FieldDef } from '../listingConfig'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
   gold: '#B8860B',
 }
@@ -61,14 +61,7 @@ const EMPTY: FormState = {
   country: '', state: '', city: '', area: '', companyId: null, status: 'available',
 }
 
-type Usage = { used: number; limit: number; premium: boolean; reset_at?: string | null }
-
-function resetText(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-}
+type Usage = { used: number; limit: number; premium: boolean }
 
 const ICON_PATHS: Record<string, ReactNode> = {
   leaf: <path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l8-8" />,
@@ -181,7 +174,7 @@ export default function CreateListingPage() {
     })()
   }, [user, editId])
 
-  // Weekly listing usage ("2 / 3 this week")
+  // Active listings usage ("2 / 3 listings")
   useEffect(() => {
     if (!user) return
     supabase.rpc('listing_usage', { p_company: form.companyId }).then(({ data }) => {
@@ -364,6 +357,11 @@ export default function CreateListingPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div onClick={back} style={{ cursor: 'pointer', display: 'flex' }}><Icon name="arrowLeft" size={22} color={COLORS.text} /></div>
         <p style={{ flex: 1, fontSize: 16, fontWeight: 800, color: COLORS.text }}>{editing ? 'Edit Listing' : 'Create Listing'}</p>
+        {usage && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: usage.used >= usage.limit ? 'var(--fx-amber-text)' : COLORS.greenDark, background: usage.used >= usage.limit ? 'var(--fx-tint-amber)' : COLORS.greenSoft, borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap' }}>
+            {usage.used} / {usage.limit} listings
+          </span>
+        )}
       </div>
 
       <div style={{ padding: 16 }}>
@@ -386,14 +384,14 @@ export default function CreateListingPage() {
 
         {/* Limit notice */}
         {atLimit && (
-          <div style={{ background: '#FEF3C7', borderRadius: 14, padding: 14, marginBottom: 14 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: '#92400E' }}>
-              You've reached your weekly listing limit.
+          <div style={{ background: 'var(--fx-tint-amber)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--fx-amber-text)' }}>
+              You've reached your {usage?.premium ? 'Premium' : 'Free'} listing limit.
             </p>
-            <p style={{ fontSize: 12, color: '#92400E', margin: '4px 0 10px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--fx-amber-text)', margin: '4px 0 10px', lineHeight: 1.5 }}>
               {usage?.premium
-                ? `You can post again${resetText(usage?.reset_at) ? ' from ' + resetText(usage?.reset_at) : ' when your week resets'}. You can still save this as a draft.`
-                : `You can post again${resetText(usage?.reset_at) ? ' from ' + resetText(usage?.reset_at) : ' when your week resets'}, or upgrade to Premium to post more. You can still save this as a draft.`}
+                ? 'Mark a listing as sold or hidden to add a new one. You can still save this as a draft.'
+                : 'Upgrade to Premium to create more listings. You can still save this as a draft.'}
             </p>
             {!usage?.premium && (
               <div onClick={() => navigate('/premium')} style={{ display: 'inline-block', background: COLORS.green, color: 'white', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>Upgrade to Premium</div>
@@ -402,7 +400,7 @@ export default function CreateListingPage() {
         )}
 
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
+          <div style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
             <p style={{ fontSize: 12.5, color: COLORS.red, lineHeight: 1.5 }}>{error}</p>
             {limitHit && !usage?.premium && (
               <div onClick={() => navigate('/premium')} style={{ display: 'inline-block', marginTop: 8, background: COLORS.green, color: 'white', borderRadius: 10, padding: '7px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Upgrade to Premium</div>
@@ -422,7 +420,7 @@ export default function CreateListingPage() {
                 <p style={{ fontSize: 12, color: COLORS.text, margin: '3px 0 10px' }}>{draft.title || 'Untitled listing'}{draft.category ? ` · ${categoryLabel(draft.category)}` : ''}</p>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div onClick={() => { setForm({ ...draft, status: 'available' }); setDraft(null) }} style={{ flex: 1, textAlign: 'center', background: COLORS.green, color: 'white', borderRadius: 10, padding: 9, fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>Continue draft</div>
-                  <div onClick={discardDraft} style={{ flex: 1, textAlign: 'center', background: COLORS.card, color: COLORS.red, border: '1px solid #FECACA', borderRadius: 10, padding: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Discard draft</div>
+                  <div onClick={discardDraft} style={{ flex: 1, textAlign: 'center', background: COLORS.card, color: COLORS.red, border: '1px solid var(--fx-bd-red)', borderRadius: 10, padding: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Discard draft</div>
                 </div>
               </div>
             )}
@@ -582,7 +580,7 @@ export default function CreateListingPage() {
           <>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: COLORS.text, marginBottom: 12 }}>Review your listing</h2>
             <div style={{ background: COLORS.card, borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-              <div style={{ position: 'relative', height: 200, background: '#E5EFE5' }}>
+              <div style={{ position: 'relative', height: 200, background: 'var(--fx-border)' }}>
                 {form.images[0] && <img src={form.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 {form.images.length > 1 && <span style={{ position: 'absolute', right: 10, bottom: 10, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999 }}>1/{form.images.length}</span>}
               </div>
@@ -626,7 +624,7 @@ export default function CreateListingPage() {
       </div>
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', background: COLORS.text, color: 'white', borderRadius: 999, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, zIndex: 40 }}>{toast}</div>
+        <div style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', background: '#1F2F21', color: 'white', borderRadius: 999, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, zIndex: 40 }}>{toast}</div>
       )}
 
       {/* Bottom actions */}

@@ -277,7 +277,7 @@ export default function CommunitiesPage() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               {([['public', 'Public', 'Anyone can join and read posts'], ['private', 'Private', 'People request to join; only members read posts']] as const).map(([k, t, d]) => (
                 <div key={k} role="radio" aria-checked={privacy === k} tabIndex={0} onClick={() => setPrivacy(k)} onKeyDown={(e) => { if (e.key === 'Enter') setPrivacy(k) }}
-                  style={{ flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', border: `1.5px solid ${privacy === k ? COLORS.green : COLORS.border}`, background: privacy === k ? '#F0FDF4' : COLORS.card }}>
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', border: `1.5px solid ${privacy === k ? COLORS.green : COLORS.border}`, background: privacy === k ? 'var(--fx-tint-green3)' : COLORS.card }}>
                   <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{t}</p>
                   <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '2px', lineHeight: 1.4 }}>{d}</p>
                 </div>
@@ -371,11 +371,11 @@ function GroupCard({ g, isMember, requested, busy, onOpen, onJoin, onCancel }: {
         </div>
         <div style={{ padding: '0 14px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', marginTop: '-22px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: '#DCFCE7', border: `2.5px solid ${COLORS.card}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0, background: 'var(--fx-tint-green)', border: `2.5px solid ${COLORS.card}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {avatar ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={20} color={COLORS.green} />}
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingBottom: '2px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', background: g.privacy === 'private' ? '#FEF3C7' : '#DCFCE7', color: g.privacy === 'private' ? '#92400E' : '#166534' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', background: g.privacy === 'private' ? 'var(--fx-tint-amber)' : 'var(--fx-tint-green)', color: g.privacy === 'private' ? 'var(--fx-amber-text)' : 'var(--fx-green-dark)' }}>
                 {g.privacy === 'private' ? 'Private' : 'Public'}
               </span>
               {cat && <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}` }}>{cat}</span>}

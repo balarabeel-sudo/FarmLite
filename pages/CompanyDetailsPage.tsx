@@ -312,8 +312,8 @@ export default function CompanyDetailsPage() {
 
         {(company.trusted_partner || (isOwner && !verified)) && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-            {company.trusted_partner && <Chip bg="#FEF3C7" color="#92400E">★ Trusted Partner</Chip>}
-            {isOwner && !verified && <Chip bg="#FEF3C7" color="#92400E">{company.status === 'rejected' ? 'Verification rejected' : 'Verification pending'}</Chip>}
+            {company.trusted_partner && <Chip bg="var(--fx-tint-amber)" color="var(--fx-amber-text)">★ Trusted Partner</Chip>}
+            {isOwner && !verified && <Chip bg="var(--fx-tint-amber)" color="var(--fx-amber-text)">{company.status === 'rejected' ? 'Verification rejected' : 'Verification pending'}</Chip>}
           </div>
         )}
 

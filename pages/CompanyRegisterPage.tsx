@@ -330,7 +330,7 @@ function DocumentPicker({ value, uploading, onUpload, onRemove }: { value: strin
       ) : (
         <label style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', borderRadius: '10px',
-          border: `1.5px dashed ${COLORS.green}`, background: '#F0FDF4', color: COLORS.green, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+          border: `1.5px dashed ${COLORS.green}`, background: 'var(--fx-tint-green3)', color: COLORS.green, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
         }}>
           <Icon name={uploading ? 'refresh' : 'upload'} size={16} color={COLORS.green} />
           {uploading ? 'Uploading...' : 'Upload certificate (image or PDF)'}
