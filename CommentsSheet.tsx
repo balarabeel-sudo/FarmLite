@@ -274,7 +274,7 @@ export default function CommentsSheet({ postId, open, onClose, onCountChange }: 
 
     return (
       <div key={c.id} style={{ display: 'flex', gap: '8px', padding: '7px 0' }}>
-        <div onClick={goProfile} style={{ width: `${avatar}px`, height: `${avatar}px`, borderRadius: `${avatar / 2}px`, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
+        <div onClick={goProfile} style={{ width: `${avatar}px`, height: `${avatar}px`, borderRadius: `${avatar / 2}px`, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
           {p?.profile_image ? <img src={p.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={isReply ? 13 : 15} color={COLORS.green} />}
         </div>
 

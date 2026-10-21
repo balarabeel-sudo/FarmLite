@@ -182,7 +182,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
               {money.isForeign && money.currency !== listingCur && totalReady && <Row label={`In ${money.currency}`} value={`≈ ${money.format(total)}`} />}
               <Row label="Your wallet" value={wallet ? money.formatNgn(wallet.available) : '...'} />
             </div>
-            {!isNgn && quoteError && <p style={{ fontSize: '12px', color: '#B91C1C', marginTop: '8px', lineHeight: 1.5 }}>{quoteError}</p>}
+            {!isNgn && quoteError && <p style={{ fontSize: '12px', color: 'var(--fx-red-text)', marginTop: '8px', lineHeight: 1.5 }}>{quoteError}</p>}
             {!isNgn && quote && (
               <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '8px', lineHeight: 1.5 }}>
                 This listing is priced in {listingCur}. You pay in NGN at the rate above, and that rate is locked when you place the order.
@@ -197,7 +197,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
 
             {wallet && totalReady && !enough ? (
               <>
-                <p style={{ fontSize: '12px', color: '#B45309', marginTop: '10px', fontWeight: 600 }}>
+                <p style={{ fontSize: '12px', color: 'var(--fx-amber-text2)', marginTop: '10px', fontWeight: 600 }}>
                   You need {money.formatNgn(shortfall)} more in your wallet.
                 </p>
                 <div onClick={() => navigate('/wallet')} style={{ marginTop: '10px', textAlign: 'center', padding: '13px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}>

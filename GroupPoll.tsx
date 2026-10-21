@@ -3,13 +3,13 @@ import { supabase } from './supabaseClient'
 import Icon from './Icons'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -119,7 +119,7 @@ export default function GroupPoll({
                 position: 'relative', overflow: 'hidden', borderRadius: '10px', background: COLORS.card,
                 border: `1.5px solid ${isMine ? COLORS.green : COLORS.border}`, cursor: closed || !canVote ? 'default' : 'pointer',
               }}>
-              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: isMine ? '#BBF7D0' : COLORS.greenSoft, transition: 'width .3s' }} />
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: isMine ? 'var(--fx-bd-green)' : COLORS.greenSoft, transition: 'width .3s' }} />
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
                 <div style={{ width: '16px', height: '16px', flexShrink: 0, borderRadius: poll.multiple ? '4px' : '8px', border: `1.5px solid ${isMine ? COLORS.green : COLORS.border}`, background: isMine ? COLORS.green : COLORS.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {isMine && <Icon name="check" size={11} color="white" />}

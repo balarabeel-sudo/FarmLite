@@ -6,7 +6,7 @@ import { Pill } from './EquipmentFormKit'
 import { availabilityText, conditionLabel, displayName, isGenuinelyVerified, kindLabel, placeText, priceText, STATUS_LABEL } from './equipmentConfig'
 import type { EquipmentRow } from './equipmentConfig'
 
-const TONE = { good: COLORS.green, warn: '#B45309', bad: COLORS.red } as const
+const TONE = { good: COLORS.green, warn: 'var(--fx-amber-text2)', bad: COLORS.red } as const
 
 export default function EquipmentCard({ item: it, onOpen, saved, onToggleSave, footer, showStatus }: {
   item: EquipmentRow

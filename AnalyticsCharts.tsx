@@ -3,14 +3,14 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { compact, trend } from './analyticsShared'
 
 export const CHART = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
-  bg: '#F8FAF6',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
+  bg: 'var(--fx-bg)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
   blue: '#1D9BF0',
   amber: '#D97706',
@@ -251,7 +251,7 @@ export function TrendBadge({ total, prev }: { total: number; prev: number }) {
   const up = t.dir === 'up'
   const color = up ? CHART.greenDark : CHART.red
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '11px', fontWeight: 800, color, background: up ? CHART.greenSoft : '#FEE2E2', borderRadius: 999, padding: '2px 7px' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '11px', fontWeight: 800, color, background: up ? CHART.greenSoft : 'var(--fx-tint-red)', borderRadius: 999, padding: '2px 7px' }}>
       <svg width="9" height="9" viewBox="0 0 10 10" style={{ transform: up ? undefined : 'rotate(180deg)' }}>
         <path d="M5 1.5 L9 7.5 H1 Z" fill={color} />
       </svg>

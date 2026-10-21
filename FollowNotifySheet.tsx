@@ -3,11 +3,11 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 // Bottom sheet from the profile "..." menu: get a notification when this person / company you follow
@@ -73,7 +73,7 @@ export default function FollowNotifySheet({ open, onClose, kind, targetId, name 
 
   const Switch = ({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) => (
     <div role="switch" aria-checked={on} onClick={() => loaded && !busy && onChange(!on)} style={{ width: '44px', height: '26px', borderRadius: '13px', background: on ? COLORS.green : '#D1D9D1', position: 'relative', cursor: loaded ? 'pointer' : 'default', flexShrink: 0, transition: 'background 0.15s', opacity: loaded ? 1 : 0.5 }}>
-      <div style={{ position: 'absolute', top: '3px', left: on ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+      <div style={{ position: 'absolute', top: '3px', left: on ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'var(--fx-card)', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
     </div>
   )
 

@@ -6,14 +6,14 @@ import { useAuth } from './AuthContext'
 // FarmBot uses it to make its answers fit. It is saved in the person's own row (only they can read or change it).
 
 const COLORS = {
-  bg: '#F0FDF4',
-  card: '#FFFFFF',
-  border: '#DCFCE7',
+  bg: 'var(--fx-tint-green3)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-tint-green)',
   green: '#16A34A',
-  greenDark: '#14532D',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-deep)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 // The database allows up to 20 items of up to 40 characters each

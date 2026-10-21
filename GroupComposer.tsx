@@ -69,7 +69,7 @@ export default function GroupComposer({ groupId, avatar, onPosted, defaultMode =
   if (!open) {
     return (
       <div style={{ background: COLORS.card, borderRadius: '16px', padding: '12px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#DCFCE7', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'var(--fx-tint-green)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="users" size={16} color={COLORS.green} />}
         </div>
         <div role="button" tabIndex={0} onClick={() => { setMode(defaultMode); setOpen(true) }} onKeyDown={(e) => { if (e.key === 'Enter') { setMode(defaultMode); setOpen(true) } }}
@@ -77,7 +77,7 @@ export default function GroupComposer({ groupId, avatar, onPosted, defaultMode =
           Share something with this group...
         </div>
         <div role="button" aria-label="Create poll" onClick={() => { setMode('poll'); setOpen(true) }}
-          style={{ padding: '8px 10px', borderRadius: '10px', background: '#F0FDF4', color: COLORS.green, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Poll</div>
+          style={{ padding: '8px 10px', borderRadius: '10px', background: 'var(--fx-tint-green3)', color: COLORS.green, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Poll</div>
       </div>
     )
   }
@@ -122,7 +122,7 @@ export default function GroupComposer({ groupId, avatar, onPosted, defaultMode =
             <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, flexShrink: 0 }}>Voting</p>
             {[false, true].map((m) => (
               <div key={String(m)} role="radio" aria-checked={multiple === m} onClick={() => setMultiple(m)}
-                style={{ padding: '5px 12px', borderRadius: '14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', background: multiple === m ? '#DCFCE7' : COLORS.bg, color: multiple === m ? '#166534' : COLORS.textMuted, border: `1px solid ${multiple === m ? COLORS.green : COLORS.border}` }}>
+                style={{ padding: '5px 12px', borderRadius: '14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', background: multiple === m ? 'var(--fx-tint-green)' : COLORS.bg, color: multiple === m ? 'var(--fx-green-dark)' : COLORS.textMuted, border: `1px solid ${multiple === m ? COLORS.green : COLORS.border}` }}>
                 {m ? 'Multiple choice' : 'Single choice'}
               </div>
             ))}
@@ -131,7 +131,7 @@ export default function GroupComposer({ groupId, avatar, onPosted, defaultMode =
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
             {CLOSE_CHOICES.map((c) => (
               <div key={c.label} role="radio" aria-checked={closeHours === c.hours} onClick={() => setCloseHours(c.hours)}
-                style={{ padding: '5px 12px', borderRadius: '14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', background: closeHours === c.hours ? '#DCFCE7' : COLORS.bg, color: closeHours === c.hours ? '#166534' : COLORS.textMuted, border: `1px solid ${closeHours === c.hours ? COLORS.green : COLORS.border}` }}>
+                style={{ padding: '5px 12px', borderRadius: '14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', background: closeHours === c.hours ? 'var(--fx-tint-green)' : COLORS.bg, color: closeHours === c.hours ? 'var(--fx-green-dark)' : COLORS.textMuted, border: `1px solid ${closeHours === c.hours ? COLORS.green : COLORS.border}` }}>
                 {c.label}
               </div>
             ))}

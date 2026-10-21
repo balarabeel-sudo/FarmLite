@@ -118,11 +118,11 @@ export function Stepper({ titles, current, reached, onJump }: { titles: string[]
 
 export function Pill({ text, tone = 'green' }: { text: string; tone?: 'green' | 'orange' | 'red' | 'gray' | 'blue' }) {
   const map = {
-    green: { bg: '#DCFCE7', fg: COLORS.greenDark },
-    orange: { bg: '#FEF3C7', fg: '#92400E' },
-    red: { bg: '#FEE2E2', fg: '#991B1B' },
+    green: { bg: 'var(--fx-tint-green)', fg: COLORS.greenDark },
+    orange: { bg: 'var(--fx-tint-amber)', fg: 'var(--fx-amber-text)' },
+    red: { bg: 'var(--fx-tint-red)', fg: 'var(--fx-red-text2)' },
     gray: { bg: '#EEF2EE', fg: COLORS.textMuted },
-    blue: { bg: '#DBEAFE', fg: '#1E40AF' },
+    blue: { bg: 'var(--fx-tint-blue)', fg: 'var(--fx-blue-text)' },
   }[tone]
   return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', background: map.bg, color: map.fg, fontSize: '10.5px', fontWeight: 800, whiteSpace: 'nowrap' }}>{text}</span>
 }
@@ -131,7 +131,7 @@ export function PrimaryButton({ onClick, children, disabled, icon, tone = 'green
   const styles = {
     green: { background: COLORS.green, color: 'white', border: `1px solid ${COLORS.green}` },
     ghost: { background: COLORS.card, color: COLORS.green, border: `1px solid ${COLORS.green}` },
-    danger: { background: COLORS.card, color: COLORS.red, border: '1px solid #FECACA' },
+    danger: { background: COLORS.card, color: COLORS.red, border: '1px solid var(--fx-bd-red)' },
   }[tone]
   return (
     <button type="button" onClick={onClick} disabled={disabled}

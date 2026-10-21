@@ -8,7 +8,7 @@ import Icon from './Icons'
 
 export const AUTH = {
   bg: '#F3F9F2',
-  card: '#FFFFFF',
+  card: 'var(--fx-card)',
   fieldBorder: '#D8E2D8',
   green: '#1B8035',
   greenBright: '#16A34A',
@@ -36,7 +36,7 @@ function Leaf({ style, rotate = 0 }: { style: CSSProperties; rotate?: number }) 
 
 export function AuthPage({ children }: { children: ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${AUTH.bg} 0%, #FFFFFF 55%, #F3F9F2 100%)`, display: 'flex', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${AUTH.bg} 0%, var(--fx-card) 55%, #F3F9F2 100%)`, display: 'flex', justifyContent: 'center' }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: '480px', minHeight: '100vh', overflow: 'hidden', padding: '0 24px 32px', fontFamily: AUTH_FONT }}>
         <Leaf style={{ top: '30px', left: '-34px', width: '110px', height: '110px' }} rotate={-35} />
         <Leaf style={{ top: '60px', right: '-30px', width: '100px', height: '100px' }} rotate={35} />
@@ -86,7 +86,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
 }
 
 const fieldWrap: CSSProperties = {
-  display: 'flex', alignItems: 'center', background: '#FFFFFF', border: `1.5px solid ${AUTH.fieldBorder}`,
+  display: 'flex', alignItems: 'center', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`,
   borderRadius: '14px', padding: '0 16px', marginBottom: '13px', height: '54px', boxShadow: '0 1px 2px rgba(15,81,50,0.04)',
 }
 
@@ -133,7 +133,7 @@ export const authPrimaryButton = (loading: boolean): CSSProperties => ({
 export function ErrorBox({ message }: { message: string }) {
   if (!message) return null
   return (
-    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '10px 12px', marginBottom: '14px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+    <div style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: '12px', padding: '10px 12px', marginBottom: '14px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
       <span style={{ marginTop: '1px', flexShrink: 0 }}><Icon name="alertTriangle" size={15} color={AUTH.red} /></span>
       <p style={{ fontSize: '12.5px', color: AUTH.red, lineHeight: 1.4 }}>{message}</p>
     </div>
@@ -183,7 +183,7 @@ export function GoogleButton({ label, onError }: { label: string; onError: (mess
       onClick={go}
       disabled={busy}
       style={{
-        width: '100%', height: '54px', borderRadius: '14px', background: '#FFFFFF', border: `1.5px solid ${AUTH.fieldBorder}`,
+        width: '100%', height: '54px', borderRadius: '14px', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: busy ? 'default' : 'pointer',
         fontSize: '16px', fontWeight: 600, color: AUTH.text, fontFamily: 'inherit', opacity: busy ? 0.6 : 1,
       }}

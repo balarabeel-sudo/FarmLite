@@ -71,14 +71,14 @@ export default function GroupAboutTab({ group, myRole, onChanged }: { group: Gro
     const p = person(id)
     return (
       <div key={id} onClick={() => p?.username && navigate(`/u/${p.username}`)} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', cursor: p?.username ? 'pointer' : 'default' }}>
-        <div style={{ width: '34px', height: '34px', borderRadius: '17px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '34px', height: '34px', borderRadius: '17px', background: 'var(--fx-tint-green)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {p?.profile_image ? <img src={p.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={15} color={COLORS.green} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{p?.full_name || p?.username || 'Farmxie user'}</p>
           {p?.username && <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>@{p.username}</p>}
         </div>
-        <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '8px', background: badge === 'Moderator' ? '#E0F2FE' : '#DCFCE7', color: badge === 'Moderator' ? '#075985' : '#166534' }}>{badge}</span>
+        <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '8px', background: badge === 'Moderator' ? '#E0F2FE' : 'var(--fx-tint-green)', color: badge === 'Moderator' ? '#075985' : 'var(--fx-green-dark)' }}>{badge}</span>
       </div>
     )
   }
@@ -143,7 +143,7 @@ export default function GroupAboutTab({ group, myRole, onChanged }: { group: Gro
           <p style={labelStyle}>Who can join?</p>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
             {(['public', 'private'] as const).map((k) => (
-              <div key={k} role="radio" aria-checked={privacy === k} onClick={() => setPrivacy(k)} style={{ flex: 1, textAlign: 'center', padding: '9px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${privacy === k ? COLORS.green : COLORS.border}`, background: privacy === k ? '#F0FDF4' : COLORS.card, color: COLORS.text }}>
+              <div key={k} role="radio" aria-checked={privacy === k} onClick={() => setPrivacy(k)} style={{ flex: 1, textAlign: 'center', padding: '9px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${privacy === k ? COLORS.green : COLORS.border}`, background: privacy === k ? 'var(--fx-tint-green3)' : COLORS.card, color: COLORS.text }}>
                 {k === 'public' ? 'Public' : 'Private'}
               </div>
             ))}
@@ -229,7 +229,7 @@ export default function GroupAboutTab({ group, myRole, onChanged }: { group: Gro
               <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.red }}>{reasonText(r.reason)} · {formatDate(r.created_at)}</p>
               <p style={{ fontSize: '12.5px', color: COLORS.text, margin: '4px 0', lineHeight: 1.5 }}>{r.excerpt}</p>
               {r.description && <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginBottom: '6px' }}>“{r.description}”</p>}
-              <div role="button" onClick={() => removePost(r)} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '9px', background: '#FEF2F2', color: COLORS.red, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Remove post</div>
+              <div role="button" onClick={() => removePost(r)} style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '9px', background: 'var(--fx-tint-red2)', color: COLORS.red, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Remove post</div>
             </div>
           ))}
           <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '10px' }}>Farmxie staff also review every report. Removing a post here does not replace their review.</p>
