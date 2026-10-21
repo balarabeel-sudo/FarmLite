@@ -131,7 +131,7 @@ export default function EquipmentDetailsPage() {
       )}
 
       {/* gallery */}
-      <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#E8F3E8', marginBottom: '12px', position: 'relative' }}>
+      <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--fx-grey2)', marginBottom: '12px', position: 'relative' }}>
         {images.length > 0 ? (
           <>
             <div ref={galleryRef} onScroll={(e) => { const el = e.currentTarget; setPhoto(Math.round(el.scrollLeft / el.clientWidth)) }}

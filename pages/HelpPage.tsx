@@ -22,7 +22,7 @@ const COLORS = {
   greenDark: 'var(--fx-green-dark)',
   greenSoft: 'var(--fx-tint-green3)',
   text: 'var(--fx-text)',
-  textMuted: '#4B5B4B',
+  textMuted: 'var(--fx-muted3)',
   red: 'var(--fx-red-text)',
   redBg: 'var(--fx-tint-red2)',
   redBorder: 'var(--fx-bd-red)',

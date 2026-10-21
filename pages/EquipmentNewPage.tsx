@@ -609,7 +609,7 @@ function Preview({ form, kind, companies, onEdit }: { form: Form; kind: Kind; co
   return (
     <>
       {f.images[0] && (
-        <div style={{ borderRadius: '16px', overflow: 'hidden', marginBottom: '14px', background: '#E8F3E8' }}>
+        <div style={{ borderRadius: '16px', overflow: 'hidden', marginBottom: '14px', background: 'var(--fx-grey2)' }}>
           <img src={f.images[0]} alt="Cover" style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }} />
         </div>
       )}

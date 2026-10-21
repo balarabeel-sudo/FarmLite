@@ -357,7 +357,7 @@ export default function CompanyDetailsPage() {
             )}
 
             {premium ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--fx-tint-blue)', border: '1px solid var(--fx-bd-blue)', borderRadius: '12px', padding: '12px' }}>
                 <PremiumTick size={22} />
                 <div>
                   <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text }}>Company Premium active</p>

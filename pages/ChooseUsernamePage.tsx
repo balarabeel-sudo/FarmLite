@@ -219,7 +219,7 @@ export default function ChooseUsernamePage() {
                           key={s}
                           type="button"
                           onClick={() => setDraft(s)}
-                          style={{ border: `1.5px solid ${AUTH.fieldBorder}`, background: '#F3F9F2', color: AUTH.greenDark, fontWeight: 700, fontSize: '13.5px', padding: '8px 14px', borderRadius: '999px', cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ border: `1.5px solid ${AUTH.fieldBorder}`, background: 'var(--fx-tint-green3)', color: AUTH.greenDark, fontWeight: 700, fontSize: '13.5px', padding: '8px 14px', borderRadius: '999px', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           @{s}
                         </button>
@@ -249,7 +249,7 @@ export default function ChooseUsernamePage() {
                   onClick={() => setRole(r.value)}
                   style={{
                     flex: 1, textAlign: 'center', padding: '14px 4px 12px', borderRadius: '16px', cursor: 'pointer',
-                    background: on ? '#ECFDF3' : '#FFFFFF', border: `1.5px solid ${on ? AUTH.green : AUTH.fieldBorder}`,
+                    background: on ? 'var(--fx-tint-green3)' : 'var(--fx-card)', border: `1.5px solid ${on ? AUTH.green : AUTH.fieldBorder}`,
                   }}
                 >
                   <span style={{ display: 'inline-flex' }}><Icon name={r.icon} size={24} color={on ? AUTH.green : AUTH.textMuted} /></span>

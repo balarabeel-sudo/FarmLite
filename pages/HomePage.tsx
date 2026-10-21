@@ -301,7 +301,7 @@ export default function HomePage() {
                 onClick={() => selectTab(c.key)}
                 style={{
                   flex: '1 1 auto', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', padding: '8px 4px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700, cursor: 'pointer',
-                  background: active ? COLORS.greenDark : '#EAEFEA', color: active ? 'white' : COLORS.textMuted,
+                  background: active ? '#166534' : 'var(--fx-grey2)', color: active ? 'white' : COLORS.textMuted,
                 }}>
                 {c.label}
               </div>

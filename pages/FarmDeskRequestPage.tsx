@@ -388,8 +388,8 @@ function PaymentStrip({ payment: p, onPay }: { payment: Payment; onPay: () => vo
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px',
-      background: paid ? 'var(--fx-tint-green3)' : refunded ? '#EFF6FF' : 'var(--fx-tint-amber2)',
-      border: `1px solid ${paid ? 'var(--fx-bd-green)' : refunded ? '#BFDBFE' : 'var(--fx-bd-amber)'}`,
+      background: paid ? 'var(--fx-tint-green3)' : refunded ? 'var(--fx-tint-blue)' : 'var(--fx-tint-amber2)',
+      border: `1px solid ${paid ? 'var(--fx-bd-green)' : refunded ? 'var(--fx-bd-blue)' : 'var(--fx-bd-amber)'}`,
     }}>
       <Icon name={paid ? 'checkCircle' : 'wallet'} size={18} color={paid ? FD.green : refunded ? 'var(--fx-blue-text2)' : 'var(--fx-amber-text2)'} />
       <div style={{ flex: 1, minWidth: 0 }}>

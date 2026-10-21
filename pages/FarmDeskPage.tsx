@@ -74,7 +74,7 @@ export default function FarmDeskPage() {
       <div style={{ padding: '4px 16px 0' }}>
         <p style={{ fontSize: '15px', fontWeight: 800, color: FD.text, marginBottom: '10px' }}>My Requests</p>
 
-        <div style={{ display: 'flex', gap: '6px', background: '#E7F8EC', borderRadius: '12px', padding: '4px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', gap: '6px', background: 'var(--fx-tint-green3)', borderRadius: '12px', padding: '4px', marginBottom: '14px' }}>
           {(['active', 'completed', 'cancelled'] as Tab[]).map((t) => (
             <div
               key={t}

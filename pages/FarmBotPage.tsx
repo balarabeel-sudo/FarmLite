@@ -585,7 +585,7 @@ export default function FarmBotPage() {
             <Icon name="camera" size={18} color={canPhotos ? COLORS.green : COLORS.textMuted} />
             {!canPhotos && (
               <span style={{ position: 'absolute', top: '-3px', right: '-3px', width: '16px', height: '16px', borderRadius: '8px', background: '#F5D060', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="crown" size={10} color="#7A5B00" />
+                <Icon name="crown" size={10} color="var(--fx-amber-text)" />
               </span>
             )}
           </div>
