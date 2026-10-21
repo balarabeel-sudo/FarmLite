@@ -3,7 +3,7 @@ import Icon from '../Icons'
 import { ctr, displayStatus, fmtDate, money, placementLabel } from './adShared'
 import type { AdRow } from './adShared'
 
-const COLORS = { bg: '#F8FAF6', card: '#FFFFFF', border: '#E5EFE5', green: '#16A34A', greenSoft: '#DCFCE7', text: '#1A2E1A', textMuted: '#5B6B5B' }
+const COLORS = { bg: 'var(--fx-bg)', card: 'var(--fx-card)', border: 'var(--fx-border)', green: '#16A34A', greenSoft: 'var(--fx-tint-green)', text: 'var(--fx-text)', textMuted: 'var(--fx-muted)' }
 
 // A list of campaigns; each row opens the campaign page.
 export default function AdCampaignList({ ads }: { ads: AdRow[] }) {

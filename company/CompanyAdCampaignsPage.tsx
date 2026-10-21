@@ -7,7 +7,7 @@ import AdCampaignList from './AdCampaignList'
 import { displayStatus } from './adShared'
 import type { AdRow } from './adShared'
 
-const COLORS = { card: '#FFFFFF', border: '#E5EFE5', green: '#16A34A', text: '#1A2E1A', textMuted: '#5B6B5B', red: '#B91C1C' }
+const COLORS = { card: 'var(--fx-card)', border: 'var(--fx-border)', green: '#16A34A', text: 'var(--fx-text)', textMuted: 'var(--fx-muted)', red: 'var(--fx-red-text)' }
 
 const FILTERS: { key: string; label: string }[] = [
   { key: 'all', label: 'All' },

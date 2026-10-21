@@ -11,15 +11,15 @@ import { PLACEMENTS, adError, money } from './adShared'
 import type { Placement } from './adShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 type Listing = { id: string; title: string; category: string | null; status: string; price: number; currency: string; unit: string | null; images: string[] | null; location: string | null; contact_for_price: boolean }
@@ -268,7 +268,7 @@ export default function CompanyAdNewPage() {
         <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, marginTop: 8 }}>Step {step} of 8 · <span style={{ color: COLORS.text }}>{STEPS[step - 1]}</span></p>
       </div>
 
-      {error && <div role="alert" style={{ background: '#FEE2E2', color: COLORS.red, borderRadius: 10, padding: '11px 14px', fontSize: '13px', fontWeight: 600, marginBottom: 14 }}>{error}</div>}
+      {error && <div role="alert" style={{ background: 'var(--fx-tint-red)', color: COLORS.red, borderRadius: 10, padding: '11px 14px', fontSize: '13px', fontWeight: 600, marginBottom: 14 }}>{error}</div>}
 
       {step === 1 && (
         <Section title="What do you want to promote?">

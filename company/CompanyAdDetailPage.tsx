@@ -11,14 +11,14 @@ import { HISTORY_LABELS, PLACEMENTS, adError, ctr, displayStatus, fmtDate, fmtDa
 import type { AdRow } from './adShared'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 type Stats = { impressions: number; clicks: number; reach: number; series: { day: string; impressions: number; clicks: number }[] }
@@ -128,7 +128,7 @@ export default function CompanyAdDetailPage() {
       </div>
 
       {message && (
-        <div style={{ background: message.kind === 'ok' ? COLORS.greenSoft : '#FEE2E2', color: message.kind === 'ok' ? COLORS.greenDark : COLORS.red, borderRadius: 12, padding: '12px 16px', fontSize: '13px', fontWeight: 600, marginBottom: 14 }}>{message.text}</div>
+        <div style={{ background: message.kind === 'ok' ? COLORS.greenSoft : 'var(--fx-tint-red)', color: message.kind === 'ok' ? COLORS.greenDark : COLORS.red, borderRadius: 12, padding: '12px 16px', fontSize: '13px', fontWeight: 600, marginBottom: 14 }}>{message.text}</div>
       )}
 
       {ad.status === 'approved' && (
@@ -140,7 +140,7 @@ export default function CompanyAdDetailPage() {
           <div role="button" onClick={pay} style={primary}>{busy ? 'Please wait…' : `Pay ${money(ad.amount, ad.currency)}`}</div>
         </Banner>
       )}
-      {ad.status === 'pending_review' && <Banner tone="amber"><p style={{ fontSize: '12.5px', fontWeight: 600, color: '#92400E' }}>Farmxie is reviewing your ad. You will be notified when the review is complete, and you pay only after it is approved.</p></Banner>}
+      {ad.status === 'pending_review' && <Banner tone="amber"><p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--fx-amber-text)' }}>Farmxie is reviewing your ad. You will be notified when the review is complete, and you pay only after it is approved.</p></Banner>}
       {ad.status === 'rejected' && (
         <Banner tone="red">
           <div style={{ flex: 1, minWidth: 220 }}>
@@ -159,7 +159,7 @@ export default function CompanyAdDetailPage() {
       )}
       {ad.status === 'paused' && (
         <Banner tone="amber">
-          <p style={{ flex: 1, minWidth: 220, fontSize: '12.5px', fontWeight: 600, color: '#92400E' }}>This ad is paused and is not being shown. When you resume, the time it was paused is added back to the end date.</p>
+          <p style={{ flex: 1, minWidth: 220, fontSize: '12.5px', fontWeight: 600, color: 'var(--fx-amber-text)' }}>This ad is paused and is not being shown. When you resume, the time it was paused is added back to the end date.</p>
           <div role="button" onClick={() => act('ad_resume')} style={primary}>Resume</div>
         </Banner>
       )}
@@ -245,7 +245,7 @@ export default function CompanyAdDetailPage() {
 }
 
 function Banner({ tone, children }: { tone: 'blue' | 'amber' | 'red' | 'green'; children: ReactNode }) {
-  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['#FEF3C7', '#FDE68A'], red: ['#FEE2E2', '#FECACA'], green: ['#F0FDF4', '#BBF7D0'] }[tone]
+  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'], green: ['var(--fx-tint-green3)', 'var(--fx-bd-green)'] }[tone]
   return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: map[0], border: `1px solid ${map[1]}`, borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>{children}</div>
 }
 

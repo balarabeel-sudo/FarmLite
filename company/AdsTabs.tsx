@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 
-const COLORS = { green: '#16A34A', greenDark: '#166534', border: '#E5EFE5', text: '#1A2E1A', textMuted: '#5B6B5B', card: '#FFFFFF' }
+const COLORS = { green: '#16A34A', greenDark: 'var(--fx-green-dark)', border: 'var(--fx-border)', text: 'var(--fx-text)', textMuted: 'var(--fx-muted)', card: 'var(--fx-card)' }
 
 const TABS: { key: string; label: string; to: string }[] = [
   { key: 'overview', label: 'Overview', to: '/company/ads' },

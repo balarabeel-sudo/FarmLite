@@ -6,7 +6,7 @@ import AdsTabs from './AdsTabs'
 import { displayStatus, fmtDateTime, money } from './adShared'
 import type { AdStatus } from './adShared'
 
-const COLORS = { card: '#FFFFFF', border: '#E5EFE5', green: '#16A34A', text: '#1A2E1A', textMuted: '#5B6B5B', red: '#B91C1C' }
+const COLORS = { card: 'var(--fx-card)', border: 'var(--fx-border)', green: '#16A34A', text: 'var(--fx-text)', textMuted: 'var(--fx-muted)', red: 'var(--fx-red-text)' }
 
 type Row = {
   id: string
@@ -23,10 +23,10 @@ type Row = {
 }
 
 const PAY: Record<Row['payment_status'], { label: string; bg: string; color: string }> = {
-  success: { label: 'Paid', bg: '#DCFCE7', color: '#166534' },
-  initiated: { label: 'Pending', bg: '#FEF3C7', color: '#92400E' },
-  failed: { label: 'Failed', bg: '#FEE2E2', color: '#B91C1C' },
-  cancelled: { label: 'Cancelled', bg: '#E5E7EB', color: '#4B5563' },
+  success: { label: 'Paid', bg: 'var(--fx-tint-green)', color: 'var(--fx-green-dark)' },
+  initiated: { label: 'Pending', bg: 'var(--fx-tint-amber)', color: 'var(--fx-amber-text)' },
+  failed: { label: 'Failed', bg: 'var(--fx-tint-red)', color: 'var(--fx-red-text)' },
+  cancelled: { label: 'Cancelled', bg: 'var(--fx-border3)', color: 'var(--fx-muted3)' },
 }
 
 // Route: /company/ads/billing  (every payment attempt for this company's ads)

@@ -9,12 +9,12 @@ import { ctr, money } from './adShared'
 import type { AdRow } from './adShared'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 type Summary = {
@@ -65,7 +65,7 @@ export default function CompanyAdsPage() {
       <AdsTabs active="overview" />
 
       {!verified && (
-        <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 600, color: '#92400E' }}>
+        <div style={{ background: 'var(--fx-tint-amber)', border: '1px solid var(--fx-bd-amber)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 600, color: 'var(--fx-amber-text)' }}>
           Your company must be verified before you can run ads.
         </div>
       )}
@@ -82,12 +82,12 @@ export default function CompanyAdsPage() {
       ) : !error && summary && (
         <>
           {summary.waiting_payment > 0 && (
-            <div onClick={() => navigate('/company/ads/campaigns')} style={{ cursor: 'pointer', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: '#1D4ED8' }}>
+            <div onClick={() => navigate('/company/ads/campaigns')} style={{ cursor: 'pointer', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-blue-text2)' }}>
               {summary.waiting_payment === 1 ? '1 ad is' : `${summary.waiting_payment} ads are`} approved and waiting for payment.
             </div>
           )}
           {summary.in_review > 0 && (
-            <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: '#92400E' }}>
+            <div style={{ background: 'var(--fx-tint-amber)', border: '1px solid var(--fx-bd-amber)', borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-amber-text)' }}>
               {summary.in_review === 1 ? '1 ad is' : `${summary.in_review} ads are`} being reviewed by Farmxie.
             </div>
           )}

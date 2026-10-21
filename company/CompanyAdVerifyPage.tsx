@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
-const COLORS = { green: '#16A34A', greenDark: '#166534', text: '#1A2E1A', textMuted: '#5B6B5B', red: '#B91C1C' }
+const COLORS = { green: '#16A34A', greenDark: 'var(--fx-green-dark)', text: 'var(--fx-text)', textMuted: 'var(--fx-muted)', red: 'var(--fx-red-text)' }
 
 // Route: /company/ads/verify?reference=AD_...  (Paystack sends the owner back here after paying)
 // The server confirms the payment with Paystack; only then does the ad start.
