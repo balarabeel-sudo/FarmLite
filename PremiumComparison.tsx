@@ -6,16 +6,16 @@ import { formatMoney, savingPercent } from './premiumShared'
 // and a slider to pick how long the plan lasts.
 
 const C = {
-  card: '#FFFFFF',
+  card: 'var(--fx-card)',
   border: '#E3E8E3',
   track: '#E3E8E3',
-  text: '#1A2E1A',
+  text: 'var(--fx-text)',
   muted: '#667066',
   free: '#8C938C',
   pro: '#1877F2',
   green: '#16A34A',
   gold: '#B8860B',
-  goldSoft: '#FEF3C7',
+  goldSoft: 'var(--fx-tint-amber)',
 }
 
 const COLS = 'minmax(0, 1fr) 56px 56px'
@@ -36,9 +36,19 @@ function Dash() {
   )
 }
 
+function SoonPill({ label }: { label: string }) {
+  return (
+    <span style={{ display: 'inline-block', marginLeft: 6, verticalAlign: 'middle', fontSize: '9px', fontWeight: 800, color: C.gold, background: C.goldSoft, borderRadius: 6, padding: '2px 6px', letterSpacing: '0.3px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+      {label}
+    </span>
+  )
+}
+
+const isNumber = (v: string) => /^\d+$/.test(v)
+
 // Features | Free | Pro
 // grey check = included in Free, dash = not in Free, blue check = included in Pro.
-// Limits (numbers) are never shown here; they are enforced in the database only.
+// A feature that is not live yet carries a small "Soon" tag, so nothing is promised that does not work today.
 export function PlanTable({ features, proLabel }: { features: Feature[]; proLabel: string }) {
   const head: CSSProperties = { fontSize: '15px', fontWeight: 700, color: C.text }
   return (
@@ -51,21 +61,25 @@ export function PlanTable({ features, proLabel }: { features: Feature[]; proLabe
 
       {features.map((f) => {
         const freeNo = f.free === 'No' || f.free === '0'
+        const showNumbers = !!f.limitKey && !f.hideNumbers
         return (
           <div key={f.title} style={{ display: 'grid', gridTemplateColumns: COLS, columnGap: 6, alignItems: 'center', padding: '14px 0' }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: '15.5px', fontWeight: 500, color: C.text, lineHeight: 1.3 }}>
                 {f.title}
+                {!f.live && <SoonPill label={f.soonLabel || 'Soon'} />}
               </p>
               <p style={{ margin: '3px 0 0', fontSize: '12px', color: C.muted, lineHeight: 1.35 }}>{f.sub}</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               {freeNo ? <Dash /> : <Check color={C.free} label="Included in Free" />}
+              {showNumbers && !freeNo && isNumber(f.free) && <span style={{ fontSize: '11px', color: C.muted, fontWeight: 600 }}>{f.free}</span>}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               <Check color={C.pro} label={`Included in ${proLabel}`} />
+              {showNumbers && isNumber(f.premium) && <span style={{ fontSize: '11px', color: C.pro, fontWeight: 700 }}>{f.premium}</span>}
             </div>
           </div>
         )
@@ -77,10 +91,10 @@ export function PlanTable({ features, proLabel }: { features: Feature[]; proLabe
 const RANGE_CSS = `
 .fx-range { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; margin: 0; background: transparent; cursor: pointer; }
 .fx-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, ${C.green} 0, ${C.green} var(--fx-pct), ${C.track} var(--fx-pct), ${C.track} 100%); }
-.fx-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: #fff; border: 2px solid ${C.green}; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.fx-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: var(--fx-card); border: 2px solid ${C.green}; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
 .fx-range::-moz-range-track { height: 6px; border-radius: 3px; background: ${C.track}; }
 .fx-range::-moz-range-progress { height: 6px; border-radius: 3px; background: ${C.green}; }
-.fx-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid ${C.green}; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.fx-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--fx-card); border: 2px solid ${C.green}; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
 .fx-range:focus-visible { outline: 2px solid ${C.green}; outline-offset: 4px; border-radius: 6px; }
 `
 

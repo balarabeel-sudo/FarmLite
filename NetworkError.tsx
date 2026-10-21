@@ -1,10 +1,10 @@
 import Icon from './Icons'
 
 const COLORS = {
-  card: '#FFFFFF',
+  card: 'var(--fx-card)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -22,7 +22,7 @@ export default function NetworkError({
   return (
     <div style={{ padding: '48px 24px', textAlign: 'center' }}>
       <div style={{
-        width: '56px', height: '56px', borderRadius: '16px', background: '#FEF2F2',
+        width: '56px', height: '56px', borderRadius: '16px', background: 'var(--fx-tint-red2)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
       }}>
         <Icon name="alertTriangle" size={26} color={COLORS.red} />
