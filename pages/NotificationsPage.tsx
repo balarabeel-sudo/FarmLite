@@ -9,12 +9,12 @@ import { enablePush, getPushState } from '../pushShared'
 import type { PushState } from '../pushShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   orange: '#F59E0B',
 }
 
@@ -114,7 +114,7 @@ export default function NotificationsPage() {
 
       <div style={{ padding: '16px' }}>
         {(pushState === 'off' || pushState === 'ios-install') && (
-          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '14px', padding: '13px', marginBottom: '12px' }}>
+          <div style={{ background: 'var(--fx-tint-green3)', border: '1px solid var(--fx-bd-green)', borderRadius: '14px', padding: '13px', marginBottom: '12px' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>Get alerts even when Farmxie is closed</p>
             <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '3px', lineHeight: 1.4 }}>
               {pushState === 'off'
@@ -143,11 +143,11 @@ export default function NotificationsPage() {
               key={n.id}
               onClick={() => openNotification(n)}
               style={{
-                background: n.is_read ? COLORS.card : '#F0FDF4', borderRadius: '14px', padding: '13px', marginBottom: '10px',
+                background: n.is_read ? COLORS.card : 'var(--fx-tint-green3)', borderRadius: '14px', padding: '13px', marginBottom: '10px',
                 display: 'flex', gap: '12px', cursor: n.is_read && !n.link ? 'default' : 'pointer',
-                border: n.is_read ? 'none' : `1px solid #BBF7D0`,
+                border: n.is_read ? 'none' : `1px solid var(--fx-bd-green)`,
               }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={CATEGORY_ICON[n.category] || 'bell'} size={17} color={COLORS.green} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

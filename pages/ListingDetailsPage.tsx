@@ -14,14 +14,14 @@ import { cleanPhone } from '../phoneUtils'
 import { categoryShort, detailRows, unitText } from '../listingConfig'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
   orange: '#F59E0B',
 }
@@ -62,7 +62,7 @@ const COLUMNS =
 
 const STATUS_CHIP: Record<string, { label: string; bg: string; color: string }> = {
   available: { label: 'Available', bg: COLORS.greenSoft, color: COLORS.greenDark },
-  sold: { label: 'Sold', bg: '#FEE2E2', color: COLORS.red },
+  sold: { label: 'Sold', bg: 'var(--fx-tint-red)', color: COLORS.red },
   inactive: { label: 'Hidden', bg: '#EEF2EE', color: COLORS.textMuted },
 }
 
@@ -175,10 +175,10 @@ export default function ListingDetailsPage() {
           <div onClick={() => { setMenuOpen(false); setInboxOpen(true) }} style={{ padding: '12px 18px', fontSize: 13, fontWeight: 600, color: COLORS.text, cursor: 'pointer' }}>Marketplace messages</div>
         </div>
       )}
-      {copied && <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', background: COLORS.text, color: 'white', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 700, zIndex: 50 }}>Link copied</div>}
+      {copied && <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', background: '#1F2F21', color: 'white', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 700, zIndex: 50 }}>Link copied</div>}
 
       {/* Images */}
-      <div style={{ position: 'relative', background: '#E5EFE5' }}>
+      <div style={{ position: 'relative', background: 'var(--fx-border)' }}>
         {images.length > 0 ? (
           <div
             onScroll={(e) => {
@@ -284,7 +284,7 @@ export default function ListingDetailsPage() {
           </div>
         ) : canContact ? (
           <>
-            <div onClick={() => setBuyOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: COLORS.greenDark, color: 'white', padding: 12, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: 'pointer', marginBottom: 10 }}>
+            <div onClick={() => setBuyOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#166534', color: 'white', padding: 12, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: 'pointer', marginBottom: 10 }}>
               <Icon name="shield" size={16} color="white" /> Buy with Escrow
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -331,7 +331,7 @@ function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
 function Shell({ children, onBack, onShare, onMenu }: { children: React.ReactNode; onBack: () => void; onShare?: () => void; onMenu?: () => void }) {
   return (
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: 480, margin: '0 auto', position: 'relative' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: COLORS.greenDark, color: 'white' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: '#166534', color: 'white' }}>
         <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}><Icon name="arrowLeft" size={22} color="white" /></div>
         <p style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 800 }}>Product Details</p>
         <div onClick={onShare} style={{ cursor: onShare ? 'pointer' : 'default', display: 'flex', opacity: onShare ? 1 : 0.4 }}>

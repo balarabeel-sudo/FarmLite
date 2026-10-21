@@ -17,14 +17,14 @@ import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
+  greenDark: 'var(--fx-green-dark)',
   orange: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 type Profile = {
@@ -235,7 +235,7 @@ export default function HomePage() {
                 key={a.labelKey}
                 onClick={() => navigate(a.path)}
                 style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 8px', textAlign: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                   <Icon name={a.icon} size={20} color={COLORS.green} />
                 </div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.text, marginTop: '8px', whiteSpace: 'nowrap' }}>{t(a.labelKey)}</p>
@@ -248,7 +248,7 @@ export default function HomePage() {
         {!loading && (
           <div
             onClick={() => navigate('/farm-desk')}
-            style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+            style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid var(--fx-tint-green)' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="leaf" size={19} color="white" />
             </div>
@@ -273,7 +273,7 @@ export default function HomePage() {
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '22px', paddingBottom: '4px' }}>
             {listings.map((l) => (
               <div key={l.id} onClick={() => navigate(`/marketplace?listing=${l.id}`)} style={{ minWidth: '140px', background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                <div style={{ width: '100%', height: '90px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '100%', height: '90px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
                 </div>
                 <div style={{ padding: '10px' }}>
@@ -314,7 +314,7 @@ export default function HomePage() {
             <>
               <div
                 onClick={() => navigate('/videos/new')}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '12px 14px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #DCFCE7' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '12px 14px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid var(--fx-tint-green)' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <PlayIcon size={20} color="white" />
                 </div>
@@ -394,7 +394,7 @@ export default function HomePage() {
                     key={it.id}
                     onClick={() => navigate(feedTab === 'products' ? `/marketplace?listing=${it.id}` : `/equipment/${it.id}`)}
                     style={{ display: 'flex', gap: '12px', background: COLORS.card, borderRadius: '14px', padding: '10px', marginBottom: '10px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                    <div style={{ width: '72px', height: '72px', borderRadius: '10px', background: '#E5EFE5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: '72px', height: '72px', borderRadius: '10px', background: 'var(--fx-border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {it.images?.[0] ? <img src={it.images[0]} alt={it.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={feedTab === 'products' ? 'leaf' : 'tractor'} size={26} color={COLORS.green} />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -437,7 +437,7 @@ function Header({ unreadNotifications, profileImage }: { unreadNotifications: nu
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <IconBadge icon="search" onClick={() => navigate('/search')} />
         <IconBadge icon="bell" count={unreadNotifications} onClick={() => navigate('/notifications')} />
-        <div onClick={() => navigate('/profile')} style={{ width: '26px', height: '26px', borderRadius: '13px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <div onClick={() => navigate('/profile')} style={{ width: '26px', height: '26px', borderRadius: '13px', background: 'var(--fx-tint-green)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           {profileImage ? <img src={profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={14} color={COLORS.green} />}
         </div>
       </div>

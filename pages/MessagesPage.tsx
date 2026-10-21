@@ -8,12 +8,12 @@ import NetworkError from '../NetworkError'
 import { isActiveNow, lastSeenLabel, messageTime } from '../presenceShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   orange: '#F59E0B',
 }
 
@@ -422,7 +422,7 @@ export default function MessagesPage() {
 function Avatar({ url, dot, size = 44 }: { url: string | null; dot: boolean; size?: number }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <div style={{ width: size, height: size, borderRadius: size / 2, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <div style={{ width: size, height: size, borderRadius: size / 2, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {url ? <img src={url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={Math.round(size * 0.4)} color={COLORS.green} />}
       </div>
       {dot && <span style={{ position: 'absolute', right: 0, bottom: 0, width: 12, height: 12, borderRadius: 6, background: '#22C55E', border: '2px solid white' }} />}

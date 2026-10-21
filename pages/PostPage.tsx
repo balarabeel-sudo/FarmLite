@@ -9,11 +9,11 @@ import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/

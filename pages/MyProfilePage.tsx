@@ -82,7 +82,7 @@ export default function MyProfilePage() {
             {/* Summary */}
             <div style={{ background: COLORS.card, borderRadius: '14px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '30px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={26} color={COLORS.green} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -107,7 +107,7 @@ export default function MyProfilePage() {
                 </div>
                 <div
                   onClick={() => navigate('/profile/edit')}
-                  style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', background: '#DCFCE7', color: '#166534', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>
+                  style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', background: 'var(--fx-tint-green)', color: 'var(--fx-green-dark)', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>
                   Edit Profile
                 </div>
               </div>

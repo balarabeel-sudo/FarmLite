@@ -12,6 +12,8 @@ import type { Currency } from '../LocaleContext'
 import { isPremiumActive, formatDate } from '../premiumShared'
 import PremiumTick from '../PremiumTick'
 import { AnalyticsIcon } from '../AnalyticsCharts'
+import { setThemeMode, useThemeMode } from '../theme'
+import type { ThemeMode } from '../theme'
 
 type Profile = {
   full_name: string | null
@@ -96,7 +98,7 @@ export default function AccountPage() {
               <div
                 onClick={() => navigate('/my-profile')}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', cursor: 'pointer' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '20px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -134,6 +136,7 @@ export default function AccountPage() {
 
             <Section title="Settings">
               <Row icon="bell" label="Notifications" onClick={() => navigate('/notifications')} />
+              <ThemeRow />
               <Row icon="shield" label="Privacy & Security" comingSoon />
               <SelectRow icon="currency" label="Currency" value={currency} onChange={(v) => setCurrency(v as Currency)}>
                 {currencies.map((c: { code: string; flag?: string }) => (
@@ -170,7 +173,7 @@ export default function AccountPage() {
                   <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
                     <div
                       onClick={() => navigate('/premium')}
-                      style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'white', color: '#166534', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+                      style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'var(--fx-card)', color: 'var(--fx-green-dark)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
                       {active ? 'Extend Premium' : expired ? 'Renew Premium' : 'Upgrade to Premium'}
                     </div>
                     {active && (
@@ -189,8 +192,8 @@ export default function AccountPage() {
             {myCompany && (
               <div
                 onClick={() => navigate('/company', { replace: true })}
-                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid #E5EFE5' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid var(--fx-border)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="building" size={19} color={COLORS.green} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -205,8 +208,8 @@ export default function AccountPage() {
             {staffRole && (
               <div
                 onClick={() => navigate('/admin')}
-                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid #E5EFE5' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', border: '1px solid var(--fx-border)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="shield" size={19} color={COLORS.green} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -254,6 +257,39 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
       {comingSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: COLORS.textMuted }}>Coming soon</span>}
       {!comingSoon && rightText && <span style={{ fontSize: '11px', color: COLORS.textMuted }}>{rightText}</span>}
       {!comingSoon && !rightText && onClick && <Icon name="chevronRight" size={15} color={COLORS.textMuted} />}
+    </div>
+  )
+}
+
+// Appearance: Light, Dark or follow the phone. The choice is remembered on this device.
+function ThemeRow() {
+  const mode = useThemeMode()
+  const options: { key: ThemeMode; label: string }[] = [
+    { key: 'light', label: 'Light' },
+    { key: 'dark', label: 'Dark' },
+    { key: 'system', label: 'System' },
+  ]
+  return (
+    <div style={{ padding: '13px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+        <Icon name="moon" size={17} color={COLORS.textMuted} />
+        <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Appearance</p>
+      </div>
+      <div role="radiogroup" aria-label="Appearance" style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px' }}>
+        {options.map((o) => {
+          const on = mode === o.key
+          return (
+            <div
+              key={o.key}
+              role="radio"
+              aria-checked={on}
+              onClick={() => setThemeMode(o.key)}
+              style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.textMuted }}>
+              {o.label}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -9,12 +9,12 @@ import {
 import type { PushState } from '../pushShared'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -29,7 +29,7 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean
         background: on ? COLORS.green : '#CBD5CB', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
         display: 'flex', justifyContent: on ? 'flex-end' : 'flex-start', transition: 'background 0.15s',
       }}>
-      <div style={{ width: '20px', height: '20px', borderRadius: '10px', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+      <div style={{ width: '20px', height: '20px', borderRadius: '10px', background: 'var(--fx-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
     </div>
   )
 }
@@ -99,7 +99,7 @@ export default function NotificationSettingsPage() {
       <div style={{ padding: '16px' }}>
         {message && (
           <div style={{
-            background: message.type === 'ok' ? '#F0FDF4' : '#FEF2F2', border: `1px solid ${message.type === 'ok' ? '#BBF7D0' : '#FECACA'}`,
+            background: message.type === 'ok' ? 'var(--fx-tint-green3)' : 'var(--fx-tint-red2)', border: `1px solid ${message.type === 'ok' ? 'var(--fx-bd-green)' : 'var(--fx-bd-red)'}`,
             color: message.type === 'ok' ? COLORS.green : COLORS.red, fontSize: '12px', fontWeight: 600,
             borderRadius: '12px', padding: '10px 12px', marginBottom: '12px',
           }}>
@@ -109,7 +109,7 @@ export default function NotificationSettingsPage() {
 
         <div style={{ background: COLORS.card, borderRadius: '14px', padding: '16px', marginBottom: '16px', border: `1px solid ${COLORS.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '19px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="bell" size={17} color={COLORS.green} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>

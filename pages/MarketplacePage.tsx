@@ -14,14 +14,14 @@ import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
+  greenDark: 'var(--fx-green-dark)',
   orange: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -203,7 +203,7 @@ export default function MarketplacePage() {
 
   const card = (l: Listing) => (
               <div key={l.id} onClick={() => navigate(`/listing/${l.id}`)} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                <div style={{ width: '100%', height: '100px', background: '#E5EFE5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <div style={{ width: '100%', height: '100px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {l.images?.[0] ? <img src={l.images[0]} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="leaf" size={26} color={COLORS.green} />}
 
                   <div
@@ -274,7 +274,7 @@ export default function MarketplacePage() {
 
       <div style={{ padding: '16px' }}>
         {mineOnly && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#DCFCE7', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--fx-tint-green)', borderRadius: '10px', padding: '9px 12px', marginBottom: '12px' }}>
             <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: COLORS.greenDark }}>Showing your listings</p>
             <span onClick={() => setMineOnly(false)} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.greenDark, cursor: 'pointer' }}>Show all</span>
           </div>
@@ -315,7 +315,7 @@ export default function MarketplacePage() {
                 <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
                   {featuredCompanies.map((c) => (
                     <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} style={{ minWidth: '132px', width: '132px', flexShrink: 0, background: COLORS.card, borderRadius: '14px', padding: '12px 10px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}>
-                      <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#DCFCE7', margin: '0 auto', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: 'var(--fx-tint-green)', margin: '0 auto', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {c.logo_url ? <img src={c.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={20} color={COLORS.green} />}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '8px' }}>
@@ -409,10 +409,10 @@ function Header({ onBack, onAdd, unread, onInbox }: { onBack: () => void; onAdd:
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {/* Marketplace messages: the unread marker lives here, not in the DM inbox */}
-        <div onClick={onInbox} style={{ position: 'relative', width: '36px', height: '36px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <div onClick={onInbox} style={{ position: 'relative', width: '36px', height: '36px', borderRadius: '10px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <Icon name="message" size={18} color={COLORS.greenDark} />
           {unread > 0 && (
-            <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '17px', height: '17px', borderRadius: '9px', background: COLORS.red, color: 'white', fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{unread > 9 ? '9+' : unread}</span>
+            <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '17px', height: '17px', borderRadius: '9px', background: '#DC2626', color: 'white', fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{unread > 9 ? '9+' : unread}</span>
           )}
         </div>
         <div onClick={onAdd} style={{ width: '36px', height: '36px', borderRadius: '10px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>

@@ -169,7 +169,7 @@ export default function OrderPage() {
         {message && (
           <div onClick={() => setMessage(null)} style={{
             padding: '11px 13px', borderRadius: '10px', marginBottom: '12px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-            background: message.type === 'ok' ? '#DCFCE7' : '#FEE2E2', color: message.type === 'ok' ? '#166534' : '#B91C1C',
+            background: message.type === 'ok' ? 'var(--fx-tint-green)' : 'var(--fx-tint-red)', color: message.type === 'ok' ? 'var(--fx-green-dark)' : 'var(--fx-red-text)',
           }}>{message.text}</div>
         )}
 
@@ -197,7 +197,7 @@ export default function OrderPage() {
 
         {/* Buyer: the release code */}
         {isBuyer && order.status === 'escrow_held' && (
-          <div style={{ background: '#F0FDF4', border: `1px solid ${COLORS.green}`, borderRadius: '16px', padding: '16px', marginTop: '14px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--fx-tint-green3)', border: `1px solid ${COLORS.green}`, borderRadius: '16px', padding: '16px', marginTop: '14px', textAlign: 'center' }}>
             <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.textMuted }}>Your release code</p>
             <p style={{ fontSize: '26px', fontWeight: 800, color: COLORS.text, letterSpacing: '1.5px', marginTop: '6px' }}>{order.code}</p>
             <div onClick={copyCode} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '12px', fontWeight: 700, color: COLORS.green, cursor: 'pointer' }}>
@@ -217,7 +217,7 @@ export default function OrderPage() {
             <div style={{ background: COLORS.card, borderRadius: '16px', padding: '16px', marginTop: '14px', border: passed ? '1px solid #FCA5A5' : 'none' }}>
               {passed ? (
                 <>
-                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#B91C1C' }}>Delivery time has passed</p>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--fx-red-text)' }}>Delivery time has passed</p>
                   <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '4px 0 10px', lineHeight: 1.5 }}>
                     If you did not receive your goods, you can cancel this order. Your money returns to your wallet.
                   </p>
@@ -258,8 +258,8 @@ export default function OrderPage() {
         )}
 
         {order.status === 'disputed' && (
-          <div style={{ background: '#FEF2F2', borderRadius: '16px', padding: '16px', marginTop: '14px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: '#B91C1C' }}>Under review</p>
+          <div style={{ background: 'var(--fx-tint-red2)', borderRadius: '16px', padding: '16px', marginTop: '14px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--fx-red-text)' }}>Under review</p>
             <p style={{ fontSize: '12px', color: COLORS.text, marginTop: '6px', lineHeight: 1.5 }}>{order.dispute_reason}</p>
             <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '8px' }}>The money stays held until Farmxie staff decide.</p>
           </div>
@@ -327,7 +327,7 @@ export default function OrderPage() {
         {order.status === 'escrow_held' && (
           <div style={{ marginTop: '14px' }}>
             {!showDispute ? (
-              <div onClick={() => setShowDispute(true)} style={{ textAlign: 'center', padding: '12px', borderRadius: '10px', border: '1px solid #FCA5A5', color: '#B91C1C', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: COLORS.card }}>
+              <div onClick={() => setShowDispute(true)} style={{ textAlign: 'center', padding: '12px', borderRadius: '10px', border: '1px solid #FCA5A5', color: 'var(--fx-red-text)', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: COLORS.card }}>
                 Report a problem
               </div>
             ) : (

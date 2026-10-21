@@ -94,7 +94,7 @@ export default function MyEquipmentPage() {
   const actions = (it: EquipmentRow) => {
     const b = (label: string, onClick: () => void, danger?: boolean) => (
       <button key={label} type="button" onClick={onClick}
-        style={{ minHeight: '34px', padding: '0 12px', borderRadius: '9px', border: `1px solid ${danger ? '#FECACA' : COLORS.border}`, background: COLORS.card, color: danger ? COLORS.red : COLORS.greenDark, fontSize: '12px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+        style={{ minHeight: '34px', padding: '0 12px', borderRadius: '9px', border: `1px solid ${danger ? 'var(--fx-bd-red)' : COLORS.border}`, background: COLORS.card, color: danger ? COLORS.red : COLORS.greenDark, fontSize: '12px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
         {label}
       </button>
     )
@@ -121,7 +121,7 @@ export default function MyEquipmentPage() {
         </div>
 
         {message && (
-          <div role="status" style={{ background: message.ok ? '#DCFCE7' : '#FEF2F2', border: `1px solid ${message.ok ? '#BBF7D0' : '#FECACA'}`, borderRadius: '12px', padding: '10px 12px', marginBottom: '12px' }}>
+          <div role="status" style={{ background: message.ok ? 'var(--fx-tint-green)' : 'var(--fx-tint-red2)', border: `1px solid ${message.ok ? 'var(--fx-bd-green)' : 'var(--fx-bd-red)'}`, borderRadius: '12px', padding: '10px 12px', marginBottom: '12px' }}>
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: message.ok ? COLORS.greenDark : COLORS.red }}>{message.text}</p>
           </div>
         )}
