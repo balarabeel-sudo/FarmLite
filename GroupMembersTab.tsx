@@ -224,7 +224,7 @@ export default function GroupMembersTab({ group, myRole, userId, onChanged }: {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</p>
                       {!!p && isPremiumActive(p.is_premium, p.premium_until) && <PremiumTick size={13} />}
-                      {badge && <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 7px', borderRadius: '8px', background: badge === 'Moderator' ? '#E0F2FE' : 'var(--fx-tint-green)', color: badge === 'Moderator' ? '#075985' : 'var(--fx-green-dark)', flexShrink: 0 }}>{badge}</span>}
+                      {badge && <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 7px', borderRadius: '8px', background: badge === 'Moderator' ? 'var(--fx-tint-blue)' : 'var(--fx-tint-green)', color: badge === 'Moderator' ? 'var(--fx-blue-text)' : 'var(--fx-green-dark)', flexShrink: 0 }}>{badge}</span>}
                     </div>
                     <p style={{ fontSize: '10.5px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {p?.username ? `@${p.username} · ` : ''}{p?.role ? `${p.role} · ` : ''}Joined {formatDate(m.joined_at)}

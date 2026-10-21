@@ -72,7 +72,7 @@ export default function FollowNotifySheet({ open, onClose, kind, targetId, name 
   }
 
   const Switch = ({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) => (
-    <div role="switch" aria-checked={on} onClick={() => loaded && !busy && onChange(!on)} style={{ width: '44px', height: '26px', borderRadius: '13px', background: on ? COLORS.green : '#D1D9D1', position: 'relative', cursor: loaded ? 'pointer' : 'default', flexShrink: 0, transition: 'background 0.15s', opacity: loaded ? 1 : 0.5 }}>
+    <div role="switch" aria-checked={on} onClick={() => loaded && !busy && onChange(!on)} style={{ width: '44px', height: '26px', borderRadius: '13px', background: on ? COLORS.green : 'var(--fx-border2)', position: 'relative', cursor: loaded ? 'pointer' : 'default', flexShrink: 0, transition: 'background 0.15s', opacity: loaded ? 1 : 0.5 }}>
       <div style={{ position: 'absolute', top: '3px', left: on ? '21px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'var(--fx-card)', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
     </div>
   )
@@ -109,7 +109,7 @@ export default function FollowNotifySheet({ open, onClose, kind, targetId, name 
         </div>
 
         {error && <p style={{ fontSize: '12px', color: '#DC2626', marginTop: '4px' }}>{error}</p>}
-        <div role="button" onClick={onClose} style={{ marginTop: '10px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#F1F5F1', fontSize: '13px', fontWeight: 700, color: COLORS.text, cursor: 'pointer' }}>Done</div>
+        <div role="button" onClick={onClose} style={{ marginTop: '10px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: 'var(--fx-grey1)', fontSize: '13px', fontWeight: 700, color: COLORS.text, cursor: 'pointer' }}>Done</div>
       </div>
     </div>
   )

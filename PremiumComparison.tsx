@@ -7,8 +7,8 @@ import { formatMoney, savingPercent } from './premiumShared'
 
 const C = {
   card: 'var(--fx-card)',
-  border: '#E3E8E3',
-  track: '#E3E8E3',
+  border: 'var(--fx-grey2)',
+  track: 'var(--fx-grey2)',
   text: 'var(--fx-text)',
   muted: '#667066',
   free: '#8C938C',

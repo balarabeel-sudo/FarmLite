@@ -239,7 +239,7 @@ function Empty({ text }: { text: string }) {
 }
 
 function Skeleton() {
-  const block = (h: number): CSSProperties => ({ height: h, borderRadius: 14, background: '#E9F0E9' })
+  const block = (h: number): CSSProperties => ({ height: h, borderRadius: 14, background: 'var(--fx-grey2)' })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>

@@ -26,7 +26,7 @@ export default function EquipmentCard({ item: it, onOpen, saved, onToggleSave, f
   return (
     <div style={{ background: COLORS.card, borderRadius: '16px', marginBottom: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       <div onClick={onOpen} role="link" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpen() }} style={{ display: 'flex', gap: '12px', padding: '12px', cursor: 'pointer' }}>
-        <div style={{ width: '104px', height: '104px', borderRadius: '12px', flexShrink: 0, background: '#E8F3E8', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: '104px', height: '104px', borderRadius: '12px', flexShrink: 0, background: 'var(--fx-grey2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
           {it.images?.[0]
             ? <img src={it.images[0]} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <Icon name={it.listing_type === 'service' ? 'wrench' : 'tractor'} size={30} color={COLORS.green} />}

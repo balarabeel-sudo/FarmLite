@@ -121,7 +121,7 @@ export function Pill({ text, tone = 'green' }: { text: string; tone?: 'green' | 
     green: { bg: 'var(--fx-tint-green)', fg: COLORS.greenDark },
     orange: { bg: 'var(--fx-tint-amber)', fg: 'var(--fx-amber-text)' },
     red: { bg: 'var(--fx-tint-red)', fg: 'var(--fx-red-text2)' },
-    gray: { bg: '#EEF2EE', fg: COLORS.textMuted },
+    gray: { bg: 'var(--fx-grey2)', fg: COLORS.textMuted },
     blue: { bg: 'var(--fx-tint-blue)', fg: 'var(--fx-blue-text)' },
   }[tone]
   return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '999px', background: map.bg, color: map.fg, fontSize: '10.5px', fontWeight: 800, whiteSpace: 'nowrap' }}>{text}</span>

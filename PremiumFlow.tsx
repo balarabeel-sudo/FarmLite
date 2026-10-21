@@ -233,7 +233,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
 
           <div style={{
             position: wide ? 'static' : 'sticky', bottom: 0, zIndex: 5, marginTop: '10px',
-            background: wide ? 'transparent' : 'linear-gradient(to top, #FFFFFF 78%, rgba(255,255,255,0))',
+            background: wide ? 'transparent' : 'linear-gradient(to top, var(--fx-card) 78%, rgba(255,255,255,0))',
             padding: '18px 0 calc(12px + env(safe-area-inset-bottom, 0px))',
           }}>
             <PrimaryButton label={ctaLabel} onClick={() => setStep('order')} disabled={!price} />

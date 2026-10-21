@@ -151,7 +151,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
                     {DELIVERY_UNITS.map((u) => (
                       <div key={u.value} onClick={() => setDurUnit(u.value)} style={{
                         flex: 1, textAlign: 'center', padding: '11px 2px', borderRadius: '10px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer',
-                        background: durUnit === u.value ? '#ECFDF3' : COLORS.bg, color: durUnit === u.value ? COLORS.green : COLORS.textMuted,
+                        background: durUnit === u.value ? 'var(--fx-tint-green3)' : COLORS.bg, color: durUnit === u.value ? COLORS.green : COLORS.textMuted,
                         border: `1px solid ${durUnit === u.value ? COLORS.green : COLORS.border}`,
                       }}>{u.label}</div>
                     ))}
@@ -159,7 +159,7 @@ export default function BuyEscrowSheet({ listing, onClose }: { listing: BuyListi
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                   {presets.map((pr) => (
-                    <span key={pr.label} onClick={() => { setDurAmount(String(pr.amount)); setDurUnit(pr.unit) }} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, background: '#ECFDF3', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer' }}>{pr.label}</span>
+                    <span key={pr.label} onClick={() => { setDurAmount(String(pr.amount)); setDurUnit(pr.unit) }} style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, background: 'var(--fx-tint-green3)', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer' }}>{pr.label}</span>
                   ))}
                 </div>
               </>

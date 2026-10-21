@@ -78,7 +78,7 @@ export default function GroupAboutTab({ group, myRole, onChanged }: { group: Gro
           <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text }}>{p?.full_name || p?.username || 'Farmxie user'}</p>
           {p?.username && <p style={{ fontSize: '10.5px', color: COLORS.textMuted }}>@{p.username}</p>}
         </div>
-        <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '8px', background: badge === 'Moderator' ? '#E0F2FE' : 'var(--fx-tint-green)', color: badge === 'Moderator' ? '#075985' : 'var(--fx-green-dark)' }}>{badge}</span>
+        <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '8px', background: badge === 'Moderator' ? 'var(--fx-tint-blue)' : 'var(--fx-tint-green)', color: badge === 'Moderator' ? 'var(--fx-blue-text)' : 'var(--fx-green-dark)' }}>{badge}</span>
       </div>
     )
   }

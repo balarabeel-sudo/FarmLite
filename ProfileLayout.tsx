@@ -141,7 +141,7 @@ export function NameRow({ name, verified, verifiedLabel, premium, premiumLabel, 
       {verified && <span title={verifiedLabel || 'Verified'} style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={PCOLORS.green} /></span>}
       {premium && <PremiumTick size={18} label={premiumLabel} />}
       {!premium && onUpgrade && (
-        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: 'var(--fx-blue-text2)', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
+        <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: 'var(--fx-tint-blue)', border: '1px solid var(--fx-bd-blue)', color: 'var(--fx-blue-text2)', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>
           <PremiumTick size={14} /> Upgrade
         </div>
       )}
@@ -344,7 +344,7 @@ export function useCopyLink() {
     } catch { /* clipboard blocked */ }
   }
   const toast = copied ? (
-    <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', background: PCOLORS.text, color: 'white', fontSize: '12px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', zIndex: 30 }}>
+    <div style={{ position: 'fixed', bottom: '28px', left: '50%', transform: 'translateX(-50%)', background: '#1F2F21', color: 'white', fontSize: '12px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', zIndex: 30 }}>
       Link copied
     </div>
   ) : null

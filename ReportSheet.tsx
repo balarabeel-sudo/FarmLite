@@ -81,7 +81,7 @@ export default function ReportSheet({ open, onClose, type, contentId, userId, co
                 return (
                   <div key={r.key} role="radio" aria-checked={on} tabIndex={0} onClick={() => setReason(r.key)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setReason(r.key) } }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', borderRadius: '10px', border: `1.5px solid ${on ? G.green : G.border}`, background: on ? '#F3FAF5' : 'white', cursor: 'pointer', fontSize: '14px', color: G.text, fontWeight: on ? 700 : 500 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 12px', borderRadius: '10px', border: `1.5px solid ${on ? G.green : G.border}`, background: on ? 'var(--fx-grey1)' : 'white', cursor: 'pointer', fontSize: '14px', color: G.text, fontWeight: on ? 700 : 500 }}>
                     <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${on ? G.green : '#C5CCC6'}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {on && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: G.green }} />}
                     </span>

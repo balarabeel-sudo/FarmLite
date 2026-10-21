@@ -6,7 +6,7 @@ const shimmerStyle = `
 `
 
 const shimmerBg = {
-  backgroundImage: 'linear-gradient(90deg, #E7EFE7 0px, #F3F7F3 40px, #E7EFE7 80px)',
+  backgroundImage: 'linear-gradient(90deg, var(--fx-grey2) 0px, var(--fx-grey1) 40px, var(--fx-grey2) 80px)',
   backgroundSize: '600px 100%',
   animation: 'farmlite-shimmer 1.4s infinite linear',
 }

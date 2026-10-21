@@ -7,15 +7,15 @@ import Icon from './Icons'
 // Shared look and pieces for Sign In, Sign Up, Choose Username and password pages.
 
 export const AUTH = {
-  bg: '#F3F9F2',
+  bg: 'var(--fx-tint-green3)',
   card: 'var(--fx-card)',
-  fieldBorder: '#D8E2D8',
+  fieldBorder: 'var(--fx-border2)',
   green: '#1B8035',
   greenBright: '#16A34A',
   greenDark: '#0F5132',
-  text: '#16281C',
-  textMuted: '#5F7062',
-  placeholder: '#7C8A7E',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  placeholder: 'var(--fx-muted5)',
   red: '#DC2626',
 }
 
@@ -36,7 +36,7 @@ function Leaf({ style, rotate = 0 }: { style: CSSProperties; rotate?: number }) 
 
 export function AuthPage({ children }: { children: ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${AUTH.bg} 0%, var(--fx-card) 55%, #F3F9F2 100%)`, display: 'flex', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${AUTH.bg} 0%, var(--fx-card) 55%, var(--fx-tint-green3) 100%)`, display: 'flex', justifyContent: 'center' }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: '480px', minHeight: '100vh', overflow: 'hidden', padding: '0 24px 32px', fontFamily: AUTH_FONT }}>
         <Leaf style={{ top: '30px', left: '-34px', width: '110px', height: '110px' }} rotate={-35} />
         <Leaf style={{ top: '60px', right: '-30px', width: '100px', height: '100px' }} rotate={35} />
@@ -100,7 +100,7 @@ type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'style'> & { icon:
 export function AuthField({ icon, right, marginBottom, ...input }: FieldProps) {
   return (
     <div style={{ ...fieldWrap, ...(marginBottom !== undefined ? { marginBottom } : {}) }}>
-      <span style={{ marginRight: '14px', display: 'flex' }}><Icon name={icon} size={20} color="#3F4A42" strokeWidth={1.7} /></span>
+      <span style={{ marginRight: '14px', display: 'flex' }}><Icon name={icon} size={20} color="var(--fx-muted3)" strokeWidth={1.7} /></span>
       <input {...input} style={fieldInput} />
       {right}
     </div>
@@ -115,7 +115,7 @@ export function PasswordField({ show, onToggle, ...input }: Omit<FieldProps, 'ic
       type={show ? 'text' : 'password'}
       right={(
         <button type="button" onClick={onToggle} aria-label={show ? 'Hide password' : 'Show password'} style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: '6px', marginRight: '-6px' }}>
-          <Icon name={show ? 'eye' : 'eyeOff'} size={20} color="#3F4A42" strokeWidth={1.7} />
+          <Icon name={show ? 'eye' : 'eyeOff'} size={20} color="var(--fx-muted3)" strokeWidth={1.7} />
         </button>
       )}
     />
