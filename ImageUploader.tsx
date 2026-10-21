@@ -3,12 +3,12 @@ import Icon from './Icons'
 import { uploadMedia, type MediaFolder } from './imageUpload'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -100,7 +100,7 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
         {value.length + busy < max && (
           <div
             onClick={() => inputRef.current?.click()}
-            style={{ ...tile, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', border: `1.5px dashed ${COLORS.green}`, background: '#F0FDF4', color: COLORS.green, fontSize: '10.5px', fontWeight: 700 }}>
+            style={{ ...tile, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', border: `1.5px dashed ${COLORS.green}`, background: 'var(--fx-tint-green3)', color: COLORS.green, fontSize: '10.5px', fontWeight: 700 }}>
             <Icon name="camera" size={20} color={COLORS.green} />
             Add photo
           </div>
