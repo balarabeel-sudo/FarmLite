@@ -2,10 +2,10 @@ import { useLocale, Language, Currency } from './LocaleContext'
 import Icon from './Icons'
 
 const COLORS = {
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  text: '#1A2E1A',
+  text: 'var(--fx-text)',
 }
 
 const LANGUAGES: { code: Language; label: string }[] = [
