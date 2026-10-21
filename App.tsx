@@ -95,6 +95,7 @@ import AdminExchangeRatesPage from './admin/pages/ExchangeRatesPage'
 import AdminFinanceCheckPage from './admin/pages/FinanceCheckPage'
 import MaintenanceGate from './MaintenanceGate'
 import PresenceTracker from './PresenceTracker'
+import DesktopSidebar from './DesktopSidebar'
 
 // The logo animation is for opening the app, not for every reload: it plays once per visit.
 function splashAlreadySeen(): boolean {
@@ -109,6 +110,7 @@ function App() {
       <LocaleProvider>
         <AuthProvider>
           <PresenceTracker />
+          <DesktopSidebar />
           {showSplash && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
               <SplashScreen onFinish={() => { try { sessionStorage.setItem('farmxie_splash_seen', '1') } catch { /* ignore */ } setShowSplash(false) }} />
