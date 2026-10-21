@@ -228,8 +228,8 @@ export default function FarmDeskRequestPage() {
         )}
 
         {notice && (
-          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '10px 14px' }}>
-            <p style={{ fontSize: '12px', color: '#92400E' }}>{notice}</p>
+          <div style={{ background: 'var(--fx-tint-amber2)', border: '1px solid var(--fx-bd-amber)', borderRadius: '12px', padding: '10px 14px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--fx-amber-text)' }}>{notice}</p>
           </div>
         )}
 
@@ -238,7 +238,7 @@ export default function FarmDeskRequestPage() {
           <Card title="Sourcing options">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {options.map((o) => (
-                <div key={o.id} style={{ border: `1.5px solid ${o.status === 'accepted' ? FD.green : FD.border}`, borderRadius: '14px', padding: '14px', background: o.status === 'accepted' ? '#F0FDF4' : FD.card, opacity: o.status === 'declined' || o.status === 'not_selected' ? 0.65 : 1 }}>
+                <div key={o.id} style={{ border: `1.5px solid ${o.status === 'accepted' ? FD.green : FD.border}`, borderRadius: '14px', padding: '14px', background: o.status === 'accepted' ? 'var(--fx-tint-green3)' : FD.card, opacity: o.status === 'declined' || o.status === 'not_selected' ? 0.65 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '11px', fontWeight: 800, color: FD.green, letterSpacing: '0.4px' }}>{o.label.toUpperCase()}</span>
                     {o.status !== 'offered' && (
@@ -268,7 +268,7 @@ export default function FarmDeskRequestPage() {
                         <div onClick={() => askQuestion(o)} style={{ flex: 1, border: `1px solid ${FD.border}`, borderRadius: '10px', padding: '10px', textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: FD.text, cursor: 'pointer' }}>
                           Ask a Question
                         </div>
-                        <div onClick={() => decline(o)} style={{ flex: 1, border: '1px solid #FECACA', borderRadius: '10px', padding: '10px', textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: '#B91C1C', cursor: 'pointer' }}>
+                        <div onClick={() => decline(o)} style={{ flex: 1, border: '1px solid var(--fx-bd-red)', borderRadius: '10px', padding: '10px', textAlign: 'center', fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-red-text)', cursor: 'pointer' }}>
                           Decline
                         </div>
                       </div>
@@ -342,7 +342,7 @@ export default function FarmDeskRequestPage() {
                   placeholder="Write a message..."
                   style={{ flex: 1, resize: 'none', padding: '10px 14px', borderRadius: '18px', border: `1px solid ${FD.border}`, background: FD.bg, fontSize: '13px', color: FD.text, outline: 'none', fontFamily: 'inherit', maxHeight: '100px' }}
                 />
-                <div onClick={send} style={{ width: '40px', height: '40px', borderRadius: '20px', background: (draft.trim() || photos.length > 0) && !sending ? FD.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (draft.trim() || photos.length > 0) && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
+                <div onClick={send} style={{ width: '40px', height: '40px', borderRadius: '20px', background: (draft.trim() || photos.length > 0) && !sending ? FD.green : 'var(--fx-bd-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (draft.trim() || photos.length > 0) && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
                   <Icon name="send" size={16} color="white" />
                 </div>
                 </div>
@@ -370,7 +370,7 @@ export default function FarmDeskRequestPage() {
         </Card>
 
         {!closed && (
-          <div onClick={cancel} style={{ textAlign: 'center', padding: '12px', fontSize: '12.5px', fontWeight: 700, color: '#B91C1C', cursor: 'pointer' }}>
+          <div onClick={cancel} style={{ textAlign: 'center', padding: '12px', fontSize: '12.5px', fontWeight: 700, color: 'var(--fx-red-text)', cursor: 'pointer' }}>
             Cancel this request
           </div>
         )}
@@ -388,10 +388,10 @@ function PaymentStrip({ payment: p, onPay }: { payment: Payment; onPay: () => vo
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', marginBottom: '12px',
-      background: paid ? '#F0FDF4' : refunded ? '#EFF6FF' : '#FFFBEB',
-      border: `1px solid ${paid ? '#BBF7D0' : refunded ? '#BFDBFE' : '#FDE68A'}`,
+      background: paid ? 'var(--fx-tint-green3)' : refunded ? '#EFF6FF' : 'var(--fx-tint-amber2)',
+      border: `1px solid ${paid ? 'var(--fx-bd-green)' : refunded ? '#BFDBFE' : 'var(--fx-bd-amber)'}`,
     }}>
-      <Icon name={paid ? 'checkCircle' : 'wallet'} size={18} color={paid ? FD.green : refunded ? '#1D4ED8' : '#B45309'} />
+      <Icon name={paid ? 'checkCircle' : 'wallet'} size={18} color={paid ? FD.green : refunded ? 'var(--fx-blue-text2)' : 'var(--fx-amber-text2)'} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: '12.5px', fontWeight: 800, color: FD.text }}>
           {paid ? 'You have paid' : refunded ? 'Payment refunded' : p.status === 'partially_paid' ? 'Part payment received' : 'Payment due'}

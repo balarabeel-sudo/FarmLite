@@ -15,20 +15,20 @@ import { supabase } from '../supabaseClient'
 // ---------------------------------------------------------------------------
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#F0FDF4',
-  text: '#1A2E1A',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green3)',
+  text: 'var(--fx-text)',
   textMuted: '#4B5B4B',
-  red: '#B91C1C',
-  redBg: '#FEF2F2',
-  redBorder: '#FECACA',
-  amberBg: '#FFFBEB',
-  amberBorder: '#FDE68A',
-  amberText: '#92400E',
+  red: 'var(--fx-red-text)',
+  redBg: 'var(--fx-tint-red2)',
+  redBorder: 'var(--fx-bd-red)',
+  amberBg: 'var(--fx-tint-amber2)',
+  amberBorder: 'var(--fx-bd-amber)',
+  amberText: 'var(--fx-amber-text)',
 }
 
 type Article = { id: string; cat: string; title: string; body: string[]; keywords?: string }
@@ -412,7 +412,7 @@ export default function HelpPage() {
 
   const body: CSSProperties = { fontSize: '14px', lineHeight: 1.65, color: COLORS.text }
   const card: CSSProperties = { background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px' }
-  const fieldBase: CSSProperties = { width: '100%', boxSizing: 'border-box', border: `1px solid ${COLORS.border}`, borderRadius: '10px', padding: '11px 12px', fontSize: '14px', fontFamily: 'inherit', color: COLORS.text, background: '#fff', outline: 'none' }
+  const fieldBase: CSSProperties = { width: '100%', boxSizing: 'border-box', border: `1px solid ${COLORS.border}`, borderRadius: '10px', padding: '11px 12px', fontSize: '14px', fontFamily: 'inherit', color: COLORS.text, background: 'var(--fx-card)', outline: 'none' }
   const linkStyle: CSSProperties = { color: COLORS.greenDark, fontWeight: 700 }
   const catLabel = (id: string) => CATEGORIES.find((c) => c.id === id)?.label ?? ''
 
@@ -590,7 +590,7 @@ export default function HelpPage() {
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onMouseDown={(e) => { if (e.target === e.currentTarget) closeForm() }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="support-form-h" style={{ background: '#fff', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', padding: '18px 16px 24px' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="support-form-h" style={{ background: 'var(--fx-card)', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '18px 18px 0 0', padding: '18px 16px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 id="support-form-h" style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text }}>Contact Support</h2>
               <button type="button" onClick={closeForm} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '4px' }}>

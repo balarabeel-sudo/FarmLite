@@ -16,7 +16,7 @@ import {
 } from '../equipmentConfig'
 import type { EquipmentRow } from '../equipmentConfig'
 
-const TONE = { good: COLORS.green, warn: '#B45309', bad: COLORS.red } as const
+const TONE = { good: COLORS.green, warn: 'var(--fx-amber-text2)', bad: COLORS.red } as const
 
 export default function EquipmentDetailsPage() {
   const { id } = useParams()
@@ -123,8 +123,8 @@ export default function EquipmentDetailsPage() {
         {user && <IconBtn label={saved ? 'Remove from saved' : 'Save'} icon="bookmark" color={saved ? COLORS.orange : COLORS.textMuted} onClick={toggleSave} />}
       </div>}>
       {(it.status !== 'available' || it.is_hidden_by_admin) && isMine && (
-        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '10px 12px', marginBottom: '12px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 700, color: '#92400E', lineHeight: 1.45 }}>
+        <div style={{ background: 'var(--fx-tint-amber2)', border: '1px solid var(--fx-bd-amber)', borderRadius: '12px', padding: '10px 12px', marginBottom: '12px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fx-amber-text)', lineHeight: 1.45 }}>
             {it.is_hidden_by_admin ? 'This listing was hidden by Farmxie and buyers cannot see it.' : `Only you can see this listing right now (${STATUS_LABEL[it.status]}).`}
           </p>
         </div>
@@ -268,7 +268,7 @@ export default function EquipmentDetailsPage() {
       {/* seller */}
       <SectionCard title={isSale ? 'Seller' : 'Provider'}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '24px', background: '#DCFCE7', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '24px', background: 'var(--fx-tint-green)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {it.seller?.profile_image ? <img src={it.seller.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={22} color={COLORS.green} />}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>

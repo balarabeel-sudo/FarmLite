@@ -175,7 +175,7 @@ export default function EditProfilePage() {
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: '-32px', paddingLeft: '4px' }}>
               <div style={{ position: 'relative', width: '72px', height: '72px', flexShrink: 0 }}>
-                <div style={{ width: '72px', height: '72px', borderRadius: '36px', border: `3px solid ${COLORS.bg}`, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box' }}>
+                <div style={{ width: '72px', height: '72px', borderRadius: '36px', border: `3px solid ${COLORS.bg}`, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box' }}>
                   {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={30} color={COLORS.green} />}
                 </div>
                 <div

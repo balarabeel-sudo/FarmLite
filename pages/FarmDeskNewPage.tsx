@@ -354,7 +354,7 @@ export default function FarmDeskNewPage() {
         )}
 
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', marginTop: '16px' }}>
+          <div style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: '10px', padding: '10px 12px', marginTop: '16px' }}>
             <p style={{ fontSize: '12px', color: '#DC2626' }}>{error}</p>
           </div>
         )}
@@ -413,7 +413,7 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <div onClick={onClick} style={{ padding: '10px 16px', borderRadius: '22px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${active ? FD.green : FD.border}`, background: active ? '#DCFCE7' : FD.card, color: active ? FD.greenDark : FD.text }}>
+    <div onClick={onClick} style={{ padding: '10px 16px', borderRadius: '22px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${active ? FD.green : FD.border}`, background: active ? 'var(--fx-tint-green)' : FD.card, color: active ? FD.greenDark : FD.text }}>
       {children}
     </div>
   )
@@ -421,8 +421,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 
 function Radio({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1.5px solid ${active ? FD.green : FD.border}`, background: active ? '#F0FDF4' : FD.card }}>
-      <div style={{ width: '20px', height: '20px', borderRadius: '10px', border: `2px solid ${active ? FD.green : '#BBF7D0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1.5px solid ${active ? FD.green : FD.border}`, background: active ? 'var(--fx-tint-green3)' : FD.card }}>
+      <div style={{ width: '20px', height: '20px', borderRadius: '10px', border: `2px solid ${active ? FD.green : 'var(--fx-bd-green)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {active && <div style={{ width: '10px', height: '10px', borderRadius: '5px', background: FD.green }} />}
       </div>
       <span style={{ fontSize: '13.5px', fontWeight: 600, color: FD.text }}>{children}</span>

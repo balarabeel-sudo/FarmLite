@@ -65,7 +65,7 @@ export default function FarmDeskPage() {
         </p>
         <div
           onClick={() => navigate('/farm-desk/new')}
-          style={{ marginTop: '16px', background: 'white', color: FD.greenDark, borderRadius: '12px', padding: '12px', textAlign: 'center', fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>
+          style={{ marginTop: '16px', background: 'var(--fx-card)', color: FD.greenDark, borderRadius: '12px', padding: '12px', textAlign: 'center', fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>
           Create a Request
         </div>
       </div>

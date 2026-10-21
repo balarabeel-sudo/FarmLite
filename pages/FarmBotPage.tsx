@@ -12,14 +12,14 @@ import {
 } from '../farmbotPhotos'
 
 const COLORS = {
-  bg: '#F0FDF4',
-  card: '#FFFFFF',
-  border: '#DCFCE7',
+  bg: 'var(--fx-tint-green3)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-tint-green)',
   green: '#16A34A',
-  greenDark: '#14532D',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-deep)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 // Search results FarmBot found in Farmxie, and the Farm Desk button, shown under an answer
@@ -520,11 +520,11 @@ export default function FarmBotPage() {
 
         {notice && (
           <div style={{
-            background: notice.kind === 'limit' ? '#F0FDF4' : '#FFFBEB',
-            border: `1px solid ${notice.kind === 'limit' ? COLORS.border : '#FDE68A'}`,
+            background: notice.kind === 'limit' ? 'var(--fx-tint-green3)' : 'var(--fx-tint-amber2)',
+            border: `1px solid ${notice.kind === 'limit' ? COLORS.border : 'var(--fx-bd-amber)'}`,
             borderRadius: '12px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px',
           }}>
-            <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: notice.kind === 'limit' ? COLORS.greenDark : '#92400E' }}>{notice.text}</p>
+            <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: notice.kind === 'limit' ? COLORS.greenDark : 'var(--fx-amber-text)' }}>{notice.text}</p>
             {notice.retry && (
               <div
                 onClick={() => send(notice.retry, true)}
@@ -545,7 +545,7 @@ export default function FarmBotPage() {
 
       {/* Limit reached: the box is locked for now. No numbers are shown. */}
       {limitReached && usage && (
-        <div style={{ background: '#F0FDF4', borderTop: `1px solid ${COLORS.border}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ background: 'var(--fx-tint-green3)', borderTop: `1px solid ${COLORS.border}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <p style={{ flex: 1, fontSize: '12px', lineHeight: 1.45, color: COLORS.greenDark }}>
             {usage.premium ? FARMBOT_BUSY_TEXT : FARMBOT_FREE_LIMIT_TEXT}
           </p>
@@ -568,7 +568,7 @@ export default function FarmBotPage() {
                   role="button"
                   aria-label="Remove photo"
                   onClick={() => removeAttachment(a.id)}
-                  style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '10px', background: COLORS.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '10px', background: '#1F2F21', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                 </div>
               </div>
@@ -603,7 +603,7 @@ export default function FarmBotPage() {
             role="button"
             aria-label="Send"
             onClick={() => send()}
-            style={{ width: '40px', height: '40px', borderRadius: '20px', background: canSend ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canSend ? 'pointer' : 'default', flexShrink: 0 }}>
+            style={{ width: '40px', height: '40px', borderRadius: '20px', background: canSend ? COLORS.green : 'var(--fx-bd-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canSend ? 'pointer' : 'default', flexShrink: 0 }}>
             <Icon name="send" size={16} color="white" />
           </div>
         </div>
@@ -849,7 +849,7 @@ function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string
         <div
           role="button"
           onClick={() => onOpen(deskPath)}
-          style={{ marginTop: items.length > 0 ? '8px' : 0, display: 'flex', alignItems: 'center', gap: '10px', background: COLORS.greenDark, color: 'white', borderRadius: '14px', padding: '12px 14px', cursor: 'pointer' }}>
+          style={{ marginTop: items.length > 0 ? '8px' : 0, display: 'flex', alignItems: 'center', gap: '10px', background: '#166534', color: 'white', borderRadius: '14px', padding: '12px 14px', cursor: 'pointer' }}>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: '13px', fontWeight: 800 }}>Send a Farm Desk request</p>
             <p style={{ fontSize: '11.5px', opacity: 0.85, marginTop: '2px', lineHeight: 1.35 }}>Our team helps find suppliers and sends you options.</p>

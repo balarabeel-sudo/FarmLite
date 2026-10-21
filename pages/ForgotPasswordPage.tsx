@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       <BrandHeader compact />
       {sent ? (
         <div style={{ textAlign: 'center', paddingTop: '40px' }}>
-          <div style={{ width: '88px', height: '88px', borderRadius: '50%', background: '#DCFCE7', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '88px', height: '88px', borderRadius: '50%', background: 'var(--fx-tint-green)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="mail" size={40} color={AUTH.green} />
           </div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, color: AUTH.greenDark, marginTop: '22px' }}>Check your email</h1>

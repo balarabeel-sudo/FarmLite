@@ -223,7 +223,7 @@ function EquipmentBrowse() {
               style={{ width: '100%', padding: '12px 14px 12px 36px', borderRadius: '12px', border: `1px solid ${COLORS.border}`, fontSize: '13.5px', boxSizing: 'border-box', background: COLORS.card }} />
           </div>
           <button type="button" aria-label="Filters" onClick={openSheet}
-            style={{ position: 'relative', width: '46px', borderRadius: '12px', border: `1px solid ${nActive ? COLORS.green : COLORS.border}`, background: nActive ? '#F0FDF4' : COLORS.card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ position: 'relative', width: '46px', borderRadius: '12px', border: `1px solid ${nActive ? COLORS.green : COLORS.border}`, background: nActive ? 'var(--fx-tint-green3)' : COLORS.card, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="filter" size={18} color={nActive ? COLORS.green : COLORS.textMuted} />
             {nActive > 0 && <span style={{ position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px', borderRadius: '9px', background: COLORS.green, color: 'white', fontSize: '10.5px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{nActive}</span>}
           </button>

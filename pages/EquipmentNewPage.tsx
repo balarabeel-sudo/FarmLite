@@ -41,7 +41,7 @@ export default function EquipmentNewPage() {
         {KINDS.map((k) => (
           <button key={k.kind} type="button" onClick={() => navigate(`/equipment/new/${k.kind}`)}
             style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px', padding: '16px', marginBottom: '12px', cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', fontFamily: 'inherit' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name={k.icon} size={24} color={COLORS.green} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -238,7 +238,7 @@ function Wizard({ kind: kindProp, editId }: { kind?: Kind; editId?: string }) {
       <Shell title={pageTitleFor(kind)} onBack={() => navigate('/equipment/mine')}>
         <SectionCard>
           <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '28px', background: '#DCFCE7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '28px', background: 'var(--fx-tint-green)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="check" size={28} color={COLORS.green} strokeWidth={3} />
             </div>
             <p style={{ fontSize: '17px', fontWeight: 800, color: COLORS.text, marginTop: '12px' }}>
@@ -268,7 +268,7 @@ function Wizard({ kind: kindProp, editId }: { kind?: Kind; editId?: string }) {
       <Stepper titles={titles} current={step} reached={reached} onJump={jump} />
 
       {submitError && (
-        <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '12px', marginBottom: '14px' }}>
+        <div role="alert" style={{ background: 'var(--fx-tint-red2)', border: '1px solid var(--fx-bd-red)', borderRadius: '12px', padding: '12px', marginBottom: '14px' }}>
           <p style={{ fontSize: '12.5px', color: COLORS.red, fontWeight: 700, lineHeight: 1.45 }}>{submitError}</p>
         </div>
       )}
@@ -459,10 +459,10 @@ function Wizard({ kind: kindProp, editId }: { kind?: Kind; editId?: string }) {
       {isReview && (
         <>
           {reviewProblems.length > 0 && (
-            <div role="alert" style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '12px', marginBottom: '14px' }}>
-              <p style={{ fontSize: '12.5px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Before you can submit:</p>
+            <div role="alert" style={{ background: 'var(--fx-tint-amber2)', border: '1px solid var(--fx-bd-amber)', borderRadius: '12px', padding: '12px', marginBottom: '14px' }}>
+              <p style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--fx-amber-text)', marginBottom: '6px' }}>Before you can submit:</p>
               {reviewProblems.map((k) => (
-                <button key={k} type="button" onClick={() => jump(stepOfField(kind, k))} style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: '3px 0', fontSize: '12px', color: '#92400E', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                <button key={k} type="button" onClick={() => jump(stepOfField(kind, k))} style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: '3px 0', fontSize: '12px', color: 'var(--fx-amber-text)', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
                   {publishErrors[k]}
                 </button>
               ))}
