@@ -4,13 +4,13 @@ import Icon from './Icons'
 import ListingChat from './ListingChat'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 type Thread = {

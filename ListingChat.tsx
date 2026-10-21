@@ -3,14 +3,14 @@ import { supabase } from './supabaseClient'
 import Icon from './Icons'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
   red: '#DC2626',
 }
 
@@ -129,7 +129,7 @@ export default function ListingChat({ listingId, listingTitle, buyerId, isSeller
           />
           <div
             onClick={() => send(text)}
-            style={{ width: 42, height: 42, borderRadius: 21, background: text.trim() && !sending ? COLORS.green : '#BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: text.trim() && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
+            style={{ width: 42, height: 42, borderRadius: 21, background: text.trim() && !sending ? COLORS.green : 'var(--fx-bd-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: text.trim() && !sending ? 'pointer' : 'default', flexShrink: 0 }}>
             <Icon name="send" size={18} color="white" />
           </div>
         </div>
