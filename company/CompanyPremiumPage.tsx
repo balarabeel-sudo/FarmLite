@@ -18,7 +18,7 @@ export default function CompanyPremiumPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#1A2E1A', marginBottom: '16px' }}>Premium</h1>
+      <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--fx-text)', marginBottom: '16px' }}>Premium</h1>
       <PremiumFlow
         audience="company"
         companyId={company.id}

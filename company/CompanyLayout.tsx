@@ -7,14 +7,14 @@ import { isPremiumActive } from '../premiumShared'
 import PremiumTick from '../PremiumTick'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenDeep: '#14532D',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenDeep: 'var(--fx-green-deep)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 export type DashCompany = {

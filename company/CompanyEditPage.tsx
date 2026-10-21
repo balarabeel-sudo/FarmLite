@@ -7,15 +7,15 @@ import { isPremiumActive } from '../premiumShared'
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 const CATEGORY_SUGGESTIONS = [
@@ -358,7 +358,7 @@ function Hint({ children }: { children: ReactNode }) {
 
 function Banner({ kind, children }: { kind: 'error' | 'ok'; children: ReactNode }) {
   return (
-    <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: kind === 'error' ? '#FEE2E2' : COLORS.greenSoft, color: kind === 'error' ? COLORS.red : COLORS.greenDark }}>
+    <div style={{ marginBottom: '16px', padding: '11px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: kind === 'error' ? 'var(--fx-tint-red)' : COLORS.greenSoft, color: kind === 'error' ? COLORS.red : COLORS.greenDark }}>
       {children}
     </div>
   )

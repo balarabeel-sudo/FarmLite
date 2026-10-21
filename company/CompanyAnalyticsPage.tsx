@@ -27,7 +27,7 @@ export default function CompanyAnalyticsPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#1A2E1A', marginBottom: '16px' }}>Analytics</h1>
+      <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--fx-text)', marginBottom: '16px' }}>Analytics</h1>
       <AnalyticsView
         audience="company"
         data={data}

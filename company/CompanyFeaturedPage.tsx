@@ -8,16 +8,16 @@ import { isPremiumActive } from '../premiumShared'
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
   gold: '#F59E0B',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 type Listing = {
@@ -119,8 +119,8 @@ export default function CompanyFeaturedPage() {
           <div onClick={() => navigate('/company/premium')} style={{ padding: '10px 18px', borderRadius: 12, background: '#1877F2', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>Upgrade to Company Premium</div>
         </Banner>
       )}
-      {paused && <Banner tone="amber"><p style={{ fontSize: '12.5px', color: '#92400E', fontWeight: 600 }}>Your featured items are paused. They will show again as soon as Company Premium is active.</p></Banner>}
-      {premium && !verified && <Banner tone="amber"><p style={{ fontSize: '12.5px', color: '#92400E', fontWeight: 600 }}>Your company must be verified before anything can be featured.</p></Banner>}
+      {paused && <Banner tone="amber"><p style={{ fontSize: '12.5px', color: 'var(--fx-amber-text)', fontWeight: 600 }}>Your featured items are paused. They will show again as soon as Company Premium is active.</p></Banner>}
+      {premium && !verified && <Banner tone="amber"><p style={{ fontSize: '12.5px', color: 'var(--fx-amber-text)', fontWeight: 600 }}>Your company must be verified before anything can be featured.</p></Banner>}
       {message && <Banner tone={message.kind === 'ok' ? 'green' : 'red'}><p style={{ fontSize: '12.5px', fontWeight: 700, color: message.kind === 'ok' ? COLORS.greenDark : COLORS.red }}>{message.text}</p></Banner>}
 
       <Card title="How it works">
@@ -196,7 +196,7 @@ function Action({ label, on, disabled, locked, busy, onClick }: { label: string;
   return (
     <div role="button" aria-disabled={inactive} onClick={inactive ? undefined : onClick} style={{
       padding: '9px 18px', borderRadius: 10, fontSize: '12.5px', fontWeight: 800, cursor: inactive ? 'default' : 'pointer', whiteSpace: 'nowrap',
-      background: on ? COLORS.card : inactive ? '#E5EFE5' : COLORS.green,
+      background: on ? COLORS.card : inactive ? 'var(--fx-border)' : COLORS.green,
       color: on ? COLORS.text : inactive ? COLORS.textMuted : 'white',
       border: on ? `1px solid ${COLORS.border}` : 'none', opacity: busy ? 0.6 : 1,
     }}>
@@ -218,7 +218,7 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
 }
 
 function Banner({ tone, children }: { tone: 'blue' | 'amber' | 'green' | 'red'; children: ReactNode }) {
-  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['#FEF3C7', '#FDE68A'], green: [COLORS.greenSoft, '#BBF7D0'], red: ['#FEE2E2', '#FECACA'] }[tone]
+  const map = { blue: ['#EFF6FF', '#BFDBFE'], amber: ['var(--fx-tint-amber)', 'var(--fx-bd-amber)'], green: [COLORS.greenSoft, 'var(--fx-bd-green)'], red: ['var(--fx-tint-red)', 'var(--fx-bd-red)'] }[tone]
   return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: map[0], border: `1px solid ${map[1]}`, borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>{children}</div>
 }
 

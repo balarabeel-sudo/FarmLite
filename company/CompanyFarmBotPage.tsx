@@ -11,15 +11,15 @@ import {
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
-  red: '#B91C1C',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
+  red: 'var(--fx-red-text)',
 }
 
 const COMPANY_FREE_LIMIT_TEXT = "Your company has reached today's free FarmBot limit. Upgrade to Company Premium to keep chatting."
@@ -471,7 +471,7 @@ export default function CompanyFarmBotPage() {
           <div style={{ borderTop: `1px solid ${COLORS.border}`, padding: desktop ? '14px 28px' : '10px 12px', background: COLORS.card }}>
             <div style={{ maxWidth: 820, margin: '0 auto' }}>
               {notice && (
-                <div style={{ marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', background: notice.kind === 'limit' ? '#FEF3C7' : '#FEE2E2', color: notice.kind === 'limit' ? '#92400E' : '#B91C1C', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', background: notice.kind === 'limit' ? 'var(--fx-tint-amber)' : 'var(--fx-tint-red)', color: notice.kind === 'limit' ? 'var(--fx-amber-text)' : 'var(--fx-red-text)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span style={{ flex: 1, minWidth: 180 }}>{notice.text}</span>
                   {notice.upgrade && !premium && (
                     <span onClick={() => navigate('/company/premium')} style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Upgrade to Company Premium</span>
@@ -481,7 +481,7 @@ export default function CompanyFarmBotPage() {
               )}
 
               {limitReached && usage && (
-                <div style={{ marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FEF3C7', color: '#92400E', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', background: 'var(--fx-tint-amber)', color: 'var(--fx-amber-text)', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span style={{ flex: 1, minWidth: 180 }}>{usage.premium ? FARMBOT_BUSY_TEXT : COMPANY_FREE_LIMIT_TEXT}</span>
                   {!usage.premium && !premium && (
                     <span onClick={() => navigate('/company/premium')} style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Upgrade to Company Premium</span>
@@ -498,7 +498,7 @@ export default function CompanyFarmBotPage() {
                         role="button"
                         aria-label="Remove photo"
                         onClick={() => removeAttachment(a.id)}
-                        style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '10px', background: COLORS.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '10px', background: '#1F2F21', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                       </div>
                     </div>

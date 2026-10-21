@@ -7,14 +7,14 @@ import { NameWithTick } from '../PremiumTick'
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
-  bg: '#F8FAF6',
-  card: '#FFFFFF',
-  border: '#E5EFE5',
+  bg: 'var(--fx-bg)',
+  card: 'var(--fx-card)',
+  border: 'var(--fx-border)',
   green: '#16A34A',
-  greenDark: '#166534',
-  greenSoft: '#DCFCE7',
-  text: '#1A2E1A',
-  textMuted: '#5B6B5B',
+  greenDark: 'var(--fx-green-dark)',
+  greenSoft: 'var(--fx-tint-green)',
+  text: 'var(--fx-text)',
+  textMuted: 'var(--fx-muted)',
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -102,7 +102,7 @@ export default function CompanyHomePage() {
           </div>
         </div>
       ) : (
-        <div style={{ background: COLORS.greenDark, border: '1px solid #B8860B', borderRadius: '16px', padding: '20px', color: 'white', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <div style={{ background: '#166534', border: '1px solid #B8860B', borderRadius: '16px', padding: '20px', color: 'white', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div style={{ width: '46px', height: '46px', borderRadius: '23px', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="crown" size={22} color="#F5D060" />
           </div>
@@ -112,7 +112,7 @@ export default function CompanyHomePage() {
               {expired ? `Ended on ${formatDate(company.premium_until)}. Your company data is safe.` : 'Grow your company presence, visibility and insights on Farmxie.'}
             </p>
           </div>
-          <div onClick={() => navigate('/company/premium')} style={{ padding: '11px 18px', borderRadius: '12px', background: 'white', color: COLORS.greenDark, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+          <div onClick={() => navigate('/company/premium')} style={{ padding: '11px 18px', borderRadius: '12px', background: 'var(--fx-card)', color: COLORS.greenDark, fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
             {expired ? 'Renew Premium' : 'Upgrade to Company Premium'}
           </div>
         </div>
@@ -131,7 +131,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 function Chip({ label, tone }: { label: string; tone: 'good' | 'premium' | 'neutral' }) {
-  const bg = tone === 'good' ? COLORS.greenSoft : tone === 'premium' ? '#FEF3C7' : '#EEF2EE'
-  const color = tone === 'good' ? COLORS.greenDark : tone === 'premium' ? '#92400E' : COLORS.textMuted
+  const bg = tone === 'good' ? COLORS.greenSoft : tone === 'premium' ? 'var(--fx-tint-amber)' : '#EEF2EE'
+  const color = tone === 'good' ? COLORS.greenDark : tone === 'premium' ? 'var(--fx-amber-text)' : COLORS.textMuted
   return <span style={{ fontSize: '11px', fontWeight: 800, color, background: bg, borderRadius: '10px', padding: '4px 10px' }}>{label}</span>
 }
