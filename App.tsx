@@ -91,6 +91,7 @@ import AdminSettingsPage from './admin/pages/SettingsPage'
 import AdminGroupsPage from './admin/pages/GroupsPage'
 import AdminAdsPage from './admin/pages/AdsPage'
 import AdminAdPricingPage from './admin/pages/AdPricingPage'
+import AdminPremiumPricingPage from './admin/pages/PremiumPricingPage'
 import AdminExchangeRatesPage from './admin/pages/ExchangeRatesPage'
 import AdminFinanceCheckPage from './admin/pages/FinanceCheckPage'
 import MaintenanceGate from './MaintenanceGate'
@@ -606,6 +607,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="ads.manage_pricing">
                     <AdminAdPricingPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/premium-pricing"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="premium.manage_pricing">
+                    <AdminPremiumPricingPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
