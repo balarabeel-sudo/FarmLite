@@ -6,6 +6,10 @@ export type PriceInfo = {
   country: string
   currency: string
   prices: PriceRow[]
+  // true while the profile (or company) has no country yet; the price then cannot be trusted
+  country_missing?: boolean
+  country_code?: string | null
+  country_name?: string | null
   status: { is_premium?: boolean; premium_until?: string | null }
 }
 export type VerifyResult = {
@@ -119,6 +123,32 @@ export async function fetchPrices(audience: Audience, companyId?: string | null)
   })
   if (error) return { error: error.message }
   return { info: data as PriceInfo }
+}
+
+// Saves the country that decides the Premium price. The database refuses a change while Premium is active
+// and a second change within 30 days, so the price cannot be gamed by switching countries.
+export async function saveCountry(
+  audience: Audience,
+  companyId: string | null | undefined,
+  country: { name: string; code: string },
+): Promise<string | null> {
+  const patch = { country: country.name, country_code: country.code }
+  let res
+  if (audience === 'company') {
+    if (!companyId) return 'Company not found'
+    res = await supabase.from('companies').update(patch).eq('id', companyId)
+  } else {
+    const { data: u } = await supabase.auth.getUser()
+    if (!u?.user) return 'Please sign in again'
+    res = await supabase.from('profiles').update(patch).eq('user_id', u.user.id)
+  }
+  if (res.error) {
+    const m = res.error.message || ''
+    if (m.includes('country_locked_premium')) return 'You cannot change the country while Premium is active.'
+    if (m.includes('country_change_too_soon')) return 'The country was changed recently. You can change it again after 30 days.'
+    return 'Could not save your country. Please try again.'
+  }
+  return null
 }
 
 export type Limits = Record<string, { free: number; premium: number }>

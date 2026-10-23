@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Icon from './Icons'
 import { PlanTable, DurationSlider } from './PremiumComparison'
+import { CountryField } from './CountryPicker'
+import type { Country } from './countryData'
 import {
   USER_FEATURES,
   COMPANY_FEATURES,
   fetchPrices,
   fetchLimits,
+  saveCountry,
   startCheckout,
   verifyPayment,
   findPendingReference,
@@ -77,6 +80,26 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
   const expired = !!info && !isActive && !!info.status?.premium_until
   const ctaVerb = isActive ? 'Extend' : expired ? 'Renew' : 'Upgrade'
   const ctaLabel = price && info ? `${ctaVerb} for ${formatMoney(price.amount, info.currency)}` : `${ctaVerb} Premium`
+
+  // The price depends on the country, so a missing country is chosen here before anything is paid
+  const chooseCountry = async (c: Country) => {
+    setBusy(true)
+    setError(null)
+    const err = await saveCountry(audience, companyId, { name: c.name, code: c.code })
+    if (err) {
+      setError(err)
+      setBusy(false)
+      return
+    }
+    const { info: loaded, error: e } = await fetchPrices(audience, companyId)
+    if (e || !loaded) {
+      setError(e || 'Could not load Premium prices')
+    } else {
+      setInfo(loaded)
+      setMonths((m) => (loaded.prices.some((x) => x.months === m) ? m : loaded.prices.length ? loaded.prices[loaded.prices.length - 1].months : m))
+    }
+    setBusy(false)
+  }
 
   const runVerify = async (reference: string) => {
     setStep('verifying')
@@ -221,7 +244,18 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
             </div>
           )}
 
-          {info && info.prices.length > 0 && (
+          {info?.country_missing && (
+            <div style={{ background: 'var(--fx-tint-amber)', borderRadius: '16px', padding: '14px', marginBottom: '14px' }}>
+              <p style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--fx-amber-text)' }}>Choose your country</p>
+              <p style={{ fontSize: '12px', color: 'var(--fx-amber-text)', margin: '4px 0 10px', lineHeight: 1.45 }}>
+                Premium prices depend on your country. Pick it once to see your price.
+                {isCompany ? ' This is the country of your company.' : ''}
+              </p>
+              <CountryField value={null} onChange={chooseCountry} disabled={busy} placeholder="Select country" title="Select your country" style={{ marginBottom: 0 }} />
+            </div>
+          )}
+
+          {info && info.prices.length > 0 && !info.country_missing && (
             <DurationSlider prices={info.prices} currency={info.currency} months={months} onChange={setMonths} />
           )}
           {info && info.prices.length === 0 && (
@@ -236,7 +270,7 @@ export default function PremiumFlow({ audience, companyId, companyName, initialR
             background: wide ? 'transparent' : 'linear-gradient(to top, var(--fx-card) 78%, rgba(255,255,255,0))',
             padding: '18px 0 calc(12px + env(safe-area-inset-bottom, 0px))',
           }}>
-            <PrimaryButton label={ctaLabel} onClick={() => setStep('order')} disabled={!price} />
+            <PrimaryButton label={ctaLabel} onClick={() => setStep('order')} disabled={!price || !!info?.country_missing} />
             <p style={{ fontSize: '12.5px', color: COLORS.textMuted, textAlign: 'center', margin: '10px 0 0', lineHeight: 1.4 }}>
               {price ? `One-time payment for ${planLabel(price.months).toLowerCase()}. Does not renew automatically.` : 'Choose a plan length to continue.'}
             </p>
