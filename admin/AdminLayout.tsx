@@ -69,6 +69,7 @@ const NAV: NavGroup[] = [
   {
     title: 'System',
     items: [
+      { label: 'Health Center', path: '/admin/health', permission: 'system.view_health' },
       { label: 'Notifications', path: '/admin/notifications' },
       { label: 'Settings', path: '/admin/settings', permission: 'settings.view' },
     ],
