@@ -5,7 +5,9 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
-import { PAGE_SIZE, LoadMoreButton, CompanyBadges } from '../shared'
+import { PAGE_SIZE, LoadMoreButton } from '../shared'
+import PremiumTick from '../PremiumTick'
+import { isPremiumActive } from '../premiumShared'
 import SponsoredCard from '../SponsoredCard'
 import type { AdData } from '../SponsoredCard'
 
@@ -33,6 +35,7 @@ type Company = {
   status: string
   rating: number
   followers_count: number
+  premium_until: string | null
   products: string[] | null
   services: string[] | null
 }
@@ -56,7 +59,7 @@ function shuffle<T>(items: T[]): T[] {
 const tagsOf = (c: Company) => [...(c.products || []), ...(c.services || [])].filter(Boolean).slice(0, 4)
 
 const COMPANY_COLUMNS =
-  'id, owner_id, name, category, description, location, logo_url, is_premium, trusted_partner, status, rating, followers_count, products, services'
+  'id, owner_id, name, category, description, location, logo_url, is_premium, trusted_partner, status, rating, followers_count, premium_until, products, services'
 
 export default function CompaniesPage() {
   const navigate = useNavigate()
@@ -107,7 +110,7 @@ export default function CompaniesPage() {
     const page = (companiesRes.data || []) as any as Company[]
     setCompanies(page)
     setHasMore(page.length === PAGE_SIZE)
-    setFeatured(shuffle((featuredRes.data || []) as any as Company[]).slice(0, FEATURED_COUNT))
+    setFeatured(shuffle(((featuredRes.data || []) as any as Company[]).filter((c) => isPremiumActive(c.is_premium, c.premium_until))).slice(0, FEATURED_COUNT))
     setAds((adsRes.data || []) as any as AdData[])
     setLoading(false)
   }
@@ -174,7 +177,7 @@ export default function CompaniesPage() {
                   <Logo company={c} size={56} />
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '10px', maxWidth: '100%' }}>
                     <p style={{ fontSize: '12.5px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
-                    <CompanyBadges verified={c.status === 'verified'} premium={c.is_premium} trustedPartner={c.trusted_partner} size={12} />
+                    {isPremiumActive(c.is_premium, c.premium_until) && <PremiumTick size={13} />}
                   </div>
                   <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{c.category}</p>
                   {c.location && <p style={{ fontSize: '10.5px', color: COLORS.textMuted, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{c.location}</p>}
@@ -203,23 +206,23 @@ export default function CompaniesPage() {
                   <div style={{ marginBottom: '10px' }}><SponsoredCard ad={ads[idx === 1 ? 0 : 1]} layout="wide" placement="companies" /></div>
                 )}
                 {/* Every card has the same height, whatever the company has filled in */}
-                <div onClick={() => navigate(`/companies/${c.id}`)} style={{ height: '148px', boxSizing: 'border-box', background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', overflow: 'hidden' }}>
+                <div onClick={() => navigate(`/companies/${c.id}`)} style={{ height: '164px', boxSizing: 'border-box', background: COLORS.card, borderRadius: '14px', padding: '12px', marginBottom: '10px', display: 'flex', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', overflow: 'hidden' }}>
                   <Logo company={c} size={64} />
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
-                      <CompanyBadges verified={c.status === 'verified'} premium={c.is_premium} trustedPartner={c.trusted_partner} size={14} />
+                      {isPremiumActive(c.is_premium, c.premium_until) && <PremiumTick size={16} />}
                     </div>
-                    <p style={{ fontSize: '11.5px', fontWeight: 600, color: COLORS.green, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.category}</p>
+                    <p style={{ fontSize: '11.5px', fontWeight: 600, color: COLORS.green, marginTop: '2px', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.category}</p>
                     {own ? (
-                      <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.orange, marginTop: '4px' }}>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.orange, marginTop: '4px', flexShrink: 0 }}>
                         {c.status === 'pending' && 'Verification pending'}
                         {c.status === 'needs_review' && 'Needs more information'}
                         {c.status === 'rejected' && 'Rejected'}
                         {c.status === 'suspended' && 'Suspended'}
                       </p>
                     ) : (
-                      <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '4px', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.description || ''}</p>
+                      <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '4px', lineHeight: '16px', height: '32px', flexShrink: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.description || ''}</p>
                     )}
                     <div style={{ display: 'flex', gap: '6px', marginTop: '6px', overflow: 'hidden', height: '20px', flexShrink: 0 }}>
                       {tags.map((t) => (
