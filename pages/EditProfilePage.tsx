@@ -7,6 +7,9 @@ import { ProfileHeaderSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import { uploadMedia } from '../imageUpload'
 import { validatePhone, cleanPhone } from '../phoneUtils'
+import { CountryField } from '../CountryPicker'
+import PhoneField from '../PhoneField'
+import { findCountryByName, getCountry } from '../countryData'
 import { COLORS, inputStyle, labelStyle, ErrorBanner } from '../shared'
 
 const ROLES: { value: string; label: string }[] = [
@@ -22,6 +25,8 @@ type Profile = {
   cover_image: string | null
   bio: string | null
   location: string | null
+  country: string | null
+  country_code: string | null
   role: string
   farm_type: string | null
   phone: string | null
@@ -48,6 +53,7 @@ export default function EditProfilePage() {
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [location, setLocation] = useState('')
+  const [countryCode, setCountryCode] = useState('')
   const [role, setRole] = useState('farmer')
   const [farmType, setFarmType] = useState('')
   const [phone, setPhone] = useState('')
@@ -61,7 +67,7 @@ export default function EditProfilePage() {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('full_name, username, profile_image, cover_image, bio, location, role, farm_type, phone, whatsapp, website')
+      .select('full_name, username, profile_image, cover_image, bio, location, country, country_code, role, farm_type, phone, whatsapp, website')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -76,6 +82,7 @@ export default function EditProfilePage() {
     setFullName(p?.full_name || '')
     setBio(p?.bio || '')
     setLocation(p?.location || '')
+    setCountryCode(p?.country_code || findCountryByName(p?.country)?.code || '')
     setRole(p?.role || 'farmer')
     setFarmType(p?.farm_type || '')
     setPhone(p?.phone || '')
@@ -121,11 +128,15 @@ export default function EditProfilePage() {
     let site = website.trim()
     if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`
 
+    const selectedCountry = getCountry(countryCode)
+
     setSaving(true)
     const { error } = await supabase.from('profiles').update({
       full_name: fullName.trim(),
       bio: bio.trim() || null,
       location: location.trim() || null,
+      // The country is only sent once one is chosen, so an older free-text country is never wiped by accident
+      ...(selectedCountry ? { country: selectedCountry.name, country_code: selectedCountry.code } : {}),
       role,
       farm_type: farmType.trim() || null,
       phone: cleanPhone(phone) || null,
@@ -135,7 +146,10 @@ export default function EditProfilePage() {
     setSaving(false)
 
     if (error) {
-      setFormError('Could not save your changes. Try again.')
+      const m = error.message || ''
+      if (m.includes('country_locked_premium')) setFormError('You cannot change your country while Premium is active. Contact support if you moved.')
+      else if (m.includes('country_change_too_soon')) setFormError('You changed your country recently. You can change it again after 30 days.')
+      else setFormError('Could not save your changes. Try again.')
       return
     }
     navigate('/profile')
@@ -214,9 +228,14 @@ export default function EditProfilePage() {
               </div>
 
               <input value={farmType} onChange={(e) => setFarmType(e.target.value)} placeholder="What you farm or trade, e.g. Maize, poultry" maxLength={80} style={inputStyle} />
+              <p style={labelStyle}>Country</p>
+              <CountryField value={countryCode} onChange={(c) => setCountryCode(c.code)} title="Select your country" />
+              <p style={{ fontSize: '10.5px', color: COLORS.textMuted, margin: '-4px 0 10px' }}>
+                Used for your Premium price. You can change it once, then again after 30 days. It is locked while Premium is active.
+              </p>
               <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location, e.g. Kano, Nigeria" maxLength={80} style={inputStyle} />
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
-              <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="WhatsApp, e.g. +2348012345678" inputMode="tel" style={inputStyle} />
+              <PhoneField value={phone} onChange={setPhone} defaultCountry={countryCode || 'NG'} placeholder="Phone number" />
+              <PhoneField value={whatsapp} onChange={setWhatsapp} defaultCountry={countryCode || 'NG'} placeholder="WhatsApp number" />
               <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website (optional)" inputMode="url" style={{ ...inputStyle, marginBottom: '12px' }} />
 
               <div style={{ display: 'flex', gap: '10px' }}>

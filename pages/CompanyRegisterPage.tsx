@@ -6,6 +6,8 @@ import Icon from '../Icons'
 import ImageUploader from '../ImageUploader'
 import { uploadDocument } from '../imageUpload'
 import { validatePhone, cleanPhone } from '../phoneUtils'
+import { CountryField } from '../CountryPicker'
+import PhoneField from '../PhoneField'
 import { COLORS, inputStyle, labelStyle, ErrorBanner } from '../shared'
 
 const AG_CATEGORIES = [
@@ -27,6 +29,7 @@ type Form = {
   category: string
   description: string
   country: string
+  countryCode: string
   state: string
   city: string
   address: string
@@ -50,7 +53,7 @@ type Form = {
 }
 
 const EMPTY: Form = {
-  name: '', businessType: '', category: '', description: '', country: '', state: '', city: '', address: '',
+  name: '', businessType: '', category: '', description: '', country: '', countryCode: '', state: '', city: '', address: '',
   regCountry: '', regAuthority: '', regNumber: '', regBusinessName: '', regDocument: [],
   repName: '', repRole: 'founder', repEmail: '', repPhone: '',
   logo: [], cover: [], website: '', phone: '', whatsapp: '',
@@ -79,7 +82,7 @@ export default function CompanyRegisterPage() {
       if (!form.name.trim()) return 'Enter the business or company name.'
       if (!form.businessType.trim()) return 'Enter the business type.'
       if (!form.category) return 'Choose an agriculture category.'
-      if (!form.country.trim()) return 'Enter the country.'
+      if (!form.countryCode) return 'Choose the country.'
       if (!form.city.trim()) return 'Enter the city.'
       return ''
     }
@@ -147,6 +150,7 @@ export default function CompanyRegisterPage() {
       category: form.category,
       description: form.description.trim() || null,
       country: form.country.trim(),
+      country_code: form.countryCode || null,
       state: form.state.trim() || null,
       city: form.city.trim(),
       address: form.address.trim() || null,
@@ -215,7 +219,7 @@ export default function CompanyRegisterPage() {
 
             <textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Short business description (optional)" rows={3} maxLength={1000} style={{ ...inputStyle, resize: 'none' }} />
 
-            <input value={form.country} onChange={(e) => set('country', e.target.value)} placeholder="Country" maxLength={60} style={inputStyle} />
+            <CountryField value={form.countryCode} onChange={(c) => setForm((f) => ({ ...f, country: c.name, countryCode: c.code }))} placeholder="Country" title="Business country" />
             <input value={form.state} onChange={(e) => set('state', e.target.value)} placeholder="State / Region (optional)" maxLength={60} style={inputStyle} />
             <input value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="City" maxLength={60} style={inputStyle} />
             <input value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Business address (optional)" maxLength={150} style={{ ...inputStyle, marginBottom: 0 }} />
@@ -270,7 +274,7 @@ export default function CompanyRegisterPage() {
             </div>
 
             <input value={form.repEmail} onChange={(e) => set('repEmail', e.target.value)} placeholder="Email address" inputMode="email" style={inputStyle} />
-            <input value={form.repPhone} onChange={(e) => set('repPhone', e.target.value)} placeholder="Phone, e.g. +2348012345678" inputMode="tel" style={{ ...inputStyle, marginBottom: 0 }} />
+            <PhoneField value={form.repPhone} onChange={(v) => set('repPhone', v)} defaultCountry={form.countryCode || 'NG'} placeholder="Phone number" style={{ marginBottom: 0 }} />
           </div>
         )}
 
@@ -286,8 +290,8 @@ export default function CompanyRegisterPage() {
             <div style={{ marginBottom: '12px' }}><ImageUploader value={form.cover} onChange={(v) => set('cover', v)} folder="companies" max={1} onBusyChange={setCoverUploading} /></div>
 
             <input value={form.website} onChange={(e) => set('website', e.target.value)} placeholder="Website (optional)" inputMode="url" style={inputStyle} />
-            <input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="Business phone" inputMode="tel" style={inputStyle} />
-            <input value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="Business WhatsApp" inputMode="tel" style={{ ...inputStyle, marginBottom: 0 }} />
+            <PhoneField value={form.phone} onChange={(v) => set('phone', v)} defaultCountry={form.countryCode || 'NG'} placeholder="Business phone" />
+            <PhoneField value={form.whatsapp} onChange={(v) => set('whatsapp', v)} defaultCountry={form.countryCode || 'NG'} placeholder="Business WhatsApp" style={{ marginBottom: 0 }} />
 
             <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '14px' }}>
               You can add products and services from your company page after it is created.
