@@ -54,6 +54,7 @@ const NAV: NavGroup[] = [
     items: [
       { label: 'Ads', path: '/admin/ads', permission: 'ads.review' },
       { label: 'Ad Pricing', path: '/admin/ads/pricing', permission: 'ads.manage_pricing' },
+      { label: 'Premium Pricing', path: '/admin/premium-pricing', permission: 'premium.manage_pricing' },
     ],
   },
   {
