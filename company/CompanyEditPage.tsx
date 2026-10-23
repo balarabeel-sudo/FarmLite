@@ -4,6 +4,9 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import ImageUploader from '../ImageUploader'
 import { isPremiumActive } from '../premiumShared'
+import { CountryField } from '../CountryPicker'
+import PhoneField from '../PhoneField'
+import { findCountryByName } from '../countryData'
 import type { CompanyCtx } from './CompanyLayout'
 
 const COLORS = {
@@ -37,6 +40,7 @@ type Form = {
   business_type: string
   description: string
   country: string
+  country_code: string
   state: string
   city: string
   address: string
@@ -76,7 +80,7 @@ export default function CompanyEditPage() {
     setLoadError(false)
     const { data, error: e } = await supabase
       .from('companies')
-      .select('name, category, business_type, description, country, state, city, address, phone, whatsapp, website, logo_url, cover_url, gallery, products, services, social_links')
+      .select('name, category, business_type, description, country, country_code, state, city, address, phone, whatsapp, website, logo_url, cover_url, gallery, products, services, social_links')
       .eq('id', company.id)
       .maybeSingle()
     if (e || !data) {
@@ -91,6 +95,7 @@ export default function CompanyEditPage() {
       business_type: d.business_type || '',
       description: d.description || '',
       country: d.country || '',
+      country_code: d.country_code || findCountryByName(d.country)?.code || '',
       state: d.state || '',
       city: d.city || '',
       address: d.address || '',
@@ -146,6 +151,7 @@ export default function CompanyEditPage() {
       business_type: form.business_type.trim() || null,
       description: form.description.trim() || null,
       country: form.country.trim() || null,
+      ...(form.country_code ? { country_code: form.country_code } : {}),
       state: form.state.trim() || null,
       city: form.city.trim() || null,
       address: form.address.trim() || null,
@@ -167,7 +173,10 @@ export default function CompanyEditPage() {
     setSaving(false)
 
     if (e) {
-      setError(e.message || 'Could not save. Please try again.')
+      const m = e.message || ''
+      if (m.includes('country_locked_premium')) setError('You cannot change the company country while Company Premium is active.')
+      else if (m.includes('country_change_too_soon')) setError('The company country was changed recently. You can change it again after 30 days.')
+      else setError(m || 'Could not save. Please try again.')
       return
     }
     setSaved(true)
@@ -239,7 +248,9 @@ export default function CompanyEditPage() {
 
       <Card title="Location">
         <Grid>
-          <Field label="Country"><input value={form.country} maxLength={60} onChange={(e) => set('country', e.target.value)} style={input} /></Field>
+          <Field label="Country" note="Used for your Premium price. Locked while Premium is active, and can be changed once every 30 days.">
+            <CountryField value={form.country_code} title="Company country" style={{ marginBottom: 0 }} onChange={(c) => { set('country', c.name); set('country_code', c.code) }} />
+          </Field>
           <Field label="State / Region"><input value={form.state} maxLength={60} onChange={(e) => set('state', e.target.value)} style={input} /></Field>
           <Field label="City / Town"><input value={form.city} maxLength={60} onChange={(e) => set('city', e.target.value)} style={input} /></Field>
         </Grid>
@@ -252,8 +263,8 @@ export default function CompanyEditPage() {
 
       <Card title="Public contact" hint="Only what you enter here is shown publicly.">
         <Grid>
-          <Field label="Phone"><input value={form.phone} inputMode="tel" maxLength={25} onChange={(e) => set('phone', e.target.value)} placeholder="+234 …" style={input} /></Field>
-          <Field label="WhatsApp"><input value={form.whatsapp} inputMode="tel" maxLength={25} onChange={(e) => set('whatsapp', e.target.value)} placeholder="+234 …" style={input} /></Field>
+          <Field label="Phone"><PhoneField value={form.phone} onChange={(v) => set('phone', v)} defaultCountry={form.country_code || 'NG'} placeholder="Phone number" style={{ marginBottom: 0 }} /></Field>
+          <Field label="WhatsApp"><PhoneField value={form.whatsapp} onChange={(v) => set('whatsapp', v)} defaultCountry={form.country_code || 'NG'} placeholder="WhatsApp number" style={{ marginBottom: 0 }} /></Field>
           <Field label="Website"><input value={form.website} maxLength={120} onChange={(e) => set('website', e.target.value)} placeholder="yourcompany.com" style={input} /></Field>
         </Grid>
         <div style={{ marginTop: '14px' }}>
