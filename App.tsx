@@ -82,6 +82,7 @@ import AdminWalletOrdersPage from './admin/pages/WalletOrdersPage'
 import AdminWalletOrderPage from './admin/pages/WalletOrderPage'
 import AdminWithdrawalsPage from './admin/pages/WithdrawalsPage'
 import AdminAuditLogsPage from './admin/pages/AuditLogsPage'
+import AdminHealthPage from './admin/pages/HealthPage'
 import AdminCommunityPage from './admin/pages/CommunityPage'
 import AdminReportsPage from './admin/pages/ReportsPage'
 import AdminFarmBotAnalyticsPage from './admin/pages/FarmBotAnalyticsPage'
@@ -751,6 +752,16 @@ function App() {
                 <ProtectedRoute>
                   <AdminProtectedRoute requirePermission="groups.view">
                     <AdminGroupsPage />
+                  </AdminProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/health"
+              element={
+                <ProtectedRoute>
+                  <AdminProtectedRoute requirePermission="system.view_health">
+                    <AdminHealthPage />
                   </AdminProtectedRoute>
                 </ProtectedRoute>
               }
