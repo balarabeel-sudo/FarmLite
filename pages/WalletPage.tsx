@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
@@ -11,9 +11,10 @@ import FarmLiteLogo from '../FarmLiteLogo'
 import {
   getMyWallet, startTopup, verifyTopup, verifyOrderCode, verifyErrorMessage, useMoney, payFarmDeskFromWallet,
   fetchBanks, resolveAccount, requestWithdrawal, cancelWithdrawal, WITHDRAWAL_STATUS, WITHDRAWAL_COLUMNS,
+  fetchSavedBanks, sendWalletOtp, verifyWalletOtp, otpErrorMessage, addSavedBank, removeSavedBank,
   TX_LABELS,
 } from '../walletShared'
-import type { Wallet, WalletTx, Withdrawal, Bank } from '../walletShared'
+import type { Wallet, WalletTx, Withdrawal, Bank, SavedBank, OtpRequest } from '../walletShared'
 
 // Dark green look for the wallet only.
 const COLORS = {
@@ -420,18 +421,145 @@ function PayFarmDeskSheet({ paymentId, available, onClose, onTopUp }: {
   )
 }
 
+// A protected action (withdraw, add bank, remove bank). It only runs after the emailed code is verified.
+type OtpJob = { req: OtpRequest; title: string; confirmLabel: string; run: () => Promise<void> }
+
 function WithdrawSheet({ available, onClose, onDone }: { available: number; onClose: () => void; onDone: () => void }) {
   const money = useMoney()
+  const [saved, setSaved] = useState<SavedBank[] | null>(null)
+  const [step, setStep] = useState<'form' | 'add' | 'otp'>('form')
+  const [selectedId, setSelectedId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [error, setError] = useState('')
+  const [job, setJob] = useState<OtpJob | null>(null)
+
+  const reload = async (selectId?: string) => {
+    try {
+      const list = await fetchSavedBanks()
+      setSaved(list)
+      setSelectedId((cur) => (selectId && list.some((b) => b.id === selectId) ? selectId : list.some((b) => b.id === cur) ? cur : list[0]?.id || ''))
+    } catch (e) {
+      setError((e as Error).message)
+      setSaved([])
+    }
+  }
+
+  useEffect(() => { reload() }, [])
+
+  const startWithdraw = () => {
+    const n = Number(amount)
+    if (!Number.isFinite(n) || n < 1000) { setError('Minimum withdrawal is NGN 1,000.'); return }
+    if (n > available) { setError('This is more than your available balance.'); return }
+    if (!selectedId) { setError('Choose a bank account.'); return }
+    setError('')
+    setJob({
+      req: { purpose: 'withdraw', amount: n, bankId: selectedId },
+      title: 'Confirm withdrawal',
+      confirmLabel: `Confirm ${money.formatNgn(n)} withdrawal`,
+      run: async () => { await requestWithdrawal(n, selectedId); onDone() },
+    })
+    setStep('otp')
+  }
+
+  const startRemove = (b: SavedBank) => {
+    setError('')
+    setJob({
+      req: { purpose: 'remove_bank', bankId: b.id },
+      title: 'Remove bank account',
+      confirmLabel: 'Confirm and remove',
+      run: async () => { await removeSavedBank(b.id); await reload(); setStep('form') },
+    })
+    setStep('otp')
+  }
+
+  if (step === 'otp' && job) return <OtpStep job={job} onBack={() => setStep('form')} onClose={onClose} />
+
+  if (step === 'add') {
+    return (
+      <AddBankStep
+        onClose={onClose}
+        onCancel={() => setStep('form')}
+        onReady={(bank, accountNumber, accountName) => {
+          setJob({
+            req: { purpose: 'add_bank', bankCode: bank.code, bankName: bank.name, accountNumber },
+            title: 'Confirm new bank account',
+            confirmLabel: 'Confirm and save account',
+            run: async () => { const id = await addSavedBank(bank, accountNumber, accountName); await reload(id); setStep('form') },
+          })
+          setStep('otp')
+        }}
+      />
+    )
+  }
+
+  return (
+    <Sheet title="Withdraw to bank" onClose={onClose}>
+      <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>
+        Available: {money.formatNgn(available)}. The amount leaves your wallet now and is sent to your bank after Farmxie approves it.
+        For your safety, we email you a code to confirm every withdrawal.
+      </p>
+
+      {saved === null ? (
+        <p style={{ fontSize: '12.5px', color: COLORS.textMuted }}>Loading...</p>
+      ) : saved.length === 0 ? (
+        <>
+          <p style={{ fontSize: '12.5px', color: COLORS.text, marginBottom: '12px' }}>
+            Add the bank account you want to withdraw to. We will email you a code to confirm it.
+          </p>
+          {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
+          <PrimaryButton label="Add bank account" onClick={() => { setError(''); setStep('add') }} />
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, margin: '2px 0 6px' }}>Send to</p>
+          {saved.map((b) => {
+            const on = b.id === selectedId
+            return (
+              <div key={b.id} onClick={() => setSelectedId(b.id)} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '12px', marginBottom: '8px', cursor: 'pointer',
+                border: `1px solid ${on ? COLORS.green : COLORS.border}`, background: on ? 'rgba(34,197,94,0.12)' : COLORS.bg,
+              }}>
+                <span style={{
+                  width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                  border: `2px solid ${on ? COLORS.greenLight : COLORS.textMuted}`, background: on ? COLORS.greenLight : 'transparent',
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.text }}>{b.bank_name} ••••{b.account_number.slice(-4)}</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.account_name}</p>
+                </div>
+                <span onClick={(e) => { e.stopPropagation(); startRemove(b) }} style={{ fontSize: '11px', fontWeight: 700, color: COLORS.red, cursor: 'pointer', padding: '4px' }}>
+                  Remove
+                </span>
+              </div>
+            )
+          })}
+          {saved.length < 5 && (
+            <p onClick={() => { setError(''); setStep('add') }} style={{ fontSize: '12px', fontWeight: 700, color: COLORS.greenLight, cursor: 'pointer', margin: '2px 0 12px' }}>
+              + Add another bank account
+            </p>
+          )}
+          <input type="number" inputMode="numeric" placeholder="Amount (NGN, minimum 1,000)" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} />
+          {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
+          <PrimaryButton label="Continue" onClick={startWithdraw} disabled={!selectedId || !amount} />
+        </>
+      )}
+    </Sheet>
+  )
+}
+
+function AddBankStep({ onClose, onCancel, onReady }: {
+  onClose: () => void
+  onCancel: () => void
+  onReady: (bank: Bank, accountNumber: string, accountName: string) => void
+}) {
   const [banks, setBanks] = useState<Bank[]>([])
   const [banksError, setBanksError] = useState('')
-  const [amount, setAmount] = useState('')
   const [bankCode, setBankCode] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
   const [accountName, setAccountName] = useState('')
   const [verified, setVerified] = useState(false)
   const [manualName, setManualName] = useState(false)
   const [resolving, setResolving] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -458,32 +586,19 @@ function WithdrawSheet({ available, onClose, onDone }: { available: number; onCl
     return () => { cancelled = true }
   }, [accountNumber, bankCode])
 
-  const submit = async () => {
-    const n = Number(amount)
+  const next = () => {
     const bank = banks.find((b) => b.code === bankCode)
-    if (!Number.isFinite(n) || n < 1000) { setError('Minimum withdrawal is NGN 1,000.'); return }
-    if (n > available) { setError('This is more than your available balance.'); return }
     if (!bank) { setError('Choose your bank.'); return }
     if (!/^\d{10}$/.test(accountNumber)) { setError('Account number must be 10 digits.'); return }
     if (!accountName.trim()) { setError('Account name is required.'); return }
-    setBusy(true)
-    setError('')
-    try {
-      await requestWithdrawal(n, bank, accountNumber, accountName.trim())
-      onDone()
-    } catch (e) {
-      setError((e as Error).message)
-      setBusy(false)
-    }
+    onReady(bank, accountNumber, accountName.trim())
   }
 
   return (
-    <Sheet title="Withdraw to bank" onClose={onClose}>
+    <Sheet title="Add bank account" onClose={onClose}>
       <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>
-        Available: {money.formatNgn(available)}. The amount leaves your wallet now and is sent to your bank after Farmxie approves it.
+        You can save up to 5 accounts. We email you a code to confirm a new account before it is saved.
       </p>
-      <input type="number" inputMode="numeric" placeholder="Amount (NGN, minimum 1,000)" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} />
-
       {banksError ? (
         <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{banksError}</p>
       ) : (
@@ -492,23 +607,110 @@ function WithdrawSheet({ available, onClose, onDone }: { available: number; onCl
           {banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}
         </select>
       )}
-
       <input inputMode="numeric" maxLength={10} placeholder="Account number (10 digits)" value={accountNumber}
         onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))} style={inputStyle} />
-
       {resolving && <p style={{ fontSize: '12px', color: COLORS.textMuted, marginBottom: '10px' }}>Checking account...</p>}
-      {verified && (
-        <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.greenLight, marginBottom: '10px' }}>{accountName}</p>
-      )}
+      {verified && <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.greenLight, marginBottom: '10px' }}>{accountName}</p>}
       {manualName && (
         <>
           <p style={{ fontSize: '11px', color: COLORS.amber, marginBottom: '6px' }}>Test mode cannot verify accounts. Type the account name.</p>
           <input placeholder="Account name" value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inputStyle} />
         </>
       )}
-
       {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
-      <PrimaryButton label={busy ? 'Sending request...' : 'Request withdrawal'} onClick={submit} disabled={busy || resolving || !accountName} />
+      <PrimaryButton label="Send code to my email" onClick={next} disabled={resolving || !accountName} />
+      <p onClick={onCancel} style={{ textAlign: 'center', fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, cursor: 'pointer', marginTop: '12px' }}>Back</p>
+    </Sheet>
+  )
+}
+
+function OtpStep({ job, onBack, onClose }: { job: OtpJob; onBack: () => void; onClose: () => void }) {
+  const [code, setCode] = useState('')
+  const [maskedEmail, setMaskedEmail] = useState('')
+  const [sending, setSending] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [verified, setVerified] = useState(false)
+  const [error, setError] = useState('')
+  const started = useRef(false)
+
+  const send = async () => {
+    setSending(true)
+    setError('')
+    try {
+      const r = await sendWalletOtp(job.req)
+      setMaskedEmail(r.email)
+      setSeconds(r.cooldownSeconds)
+      setCode('')
+    } catch (e) {
+      setError((e as Error).message)
+    }
+    setSending(false)
+  }
+
+  // Send the first code once when this screen opens
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    send()
+  }, [])
+
+  useEffect(() => {
+    if (seconds <= 0) return
+    const t = setTimeout(() => setSeconds((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [seconds])
+
+  const confirm = async () => {
+    setError('')
+    if (!verified && !/^\d{6}$/.test(code)) { setError('Enter the 6-digit code from your email.'); return }
+    setBusy(true)
+    try {
+      if (!verified) {
+        const r = await verifyWalletOtp(job.req.purpose, code)
+        if (!r.ok) { setError(otpErrorMessage(r.error, r.attemptsLeft)); setBusy(false); return }
+        setVerified(true)
+      }
+      await job.run()
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Sheet title={job.title} onClose={onClose}>
+      <p style={{ fontSize: '12.5px', color: COLORS.text, marginBottom: '4px', fontWeight: 700 }}>
+        {sending && !maskedEmail ? 'Sending your code...' : maskedEmail ? `We sent a 6-digit code to ${maskedEmail}` : 'Enter your code'}
+      </p>
+      <p style={{ fontSize: '11px', color: COLORS.textMuted, marginBottom: '12px' }}>
+        The code expires in 10 minutes. Never share it with anyone. Farmxie staff will never ask for it.
+      </p>
+      {!verified && (
+        <input
+          inputMode="numeric" maxLength={6} placeholder="000000" value={code} autoComplete="one-time-code"
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          style={{ ...inputStyle, textAlign: 'center', letterSpacing: '10px', fontSize: '20px', fontWeight: 800 }}
+        />
+      )}
+      {error && <p style={{ fontSize: '12px', color: COLORS.red, marginBottom: '10px' }}>{error}</p>}
+      <PrimaryButton
+        label={busy ? 'Please wait...' : verified ? 'Try again' : job.confirmLabel}
+        onClick={confirm}
+        disabled={busy || sending || (!verified && code.length !== 6)}
+      />
+      {!verified && (
+        <p
+          onClick={seconds > 0 || sending || busy ? undefined : send}
+          style={{
+            textAlign: 'center', fontSize: '12px', fontWeight: 700, marginTop: '12px',
+            color: seconds > 0 || sending ? COLORS.textMuted : COLORS.greenLight, cursor: seconds > 0 || sending ? 'default' : 'pointer',
+          }}
+        >
+          {seconds > 0 ? `Resend code in ${seconds}s` : 'Resend code'}
+        </p>
+      )}
+      <p onClick={busy ? undefined : onBack} style={{ textAlign: 'center', fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, cursor: 'pointer', marginTop: '10px' }}>Back</p>
     </Sheet>
   )
 }
