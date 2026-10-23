@@ -295,10 +295,73 @@ export async function resolveAccount(accountNumber: string, bankCode: string): P
   throw new Error(data?.error || error?.message || 'Could not verify this account')
 }
 
-export async function requestWithdrawal(amount: number, bank: Bank, accountNumber: string, accountName: string) {
-  const { error } = await supabase.rpc('request_withdrawal', {
-    p_amount: amount, p_bank_code: bank.code, p_bank_name: bank.name, p_account_number: accountNumber, p_account_name: accountName,
+// ---- Saved bank accounts and email security codes ----
+
+export type SavedBank = { id: string; bank_code: string; bank_name: string; account_number: string; account_name: string }
+export type OtpPurpose = 'withdraw' | 'add_bank' | 'remove_bank'
+export type OtpRequest = {
+  purpose: OtpPurpose
+  amount?: number
+  bankId?: string
+  bankCode?: string
+  bankName?: string
+  accountNumber?: string
+}
+
+export async function fetchSavedBanks(): Promise<SavedBank[]> {
+  const { data, error } = await supabase
+    .from('saved_bank_accounts').select('id, bank_code, bank_name, account_number, account_name').order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data || []) as SavedBank[]
+}
+
+// Emails a 6-digit code to the account email. Returns the masked address the code went to.
+export async function sendWalletOtp(req: OtpRequest): Promise<{ email: string; cooldownSeconds: number }> {
+  const { data, error } = await supabase.functions.invoke('wallet-otp', {
+    body: {
+      action: 'send', purpose: req.purpose, amount: req.amount, bank_id: req.bankId,
+      bank_code: req.bankCode, bank_name: req.bankName, account_number: req.accountNumber,
+    },
   })
+  if (data?.error) throw new Error(data.error)
+  if (error || !data?.sent) throw new Error('Could not send the code. Please try again.')
+  return { email: String(data.email), cooldownSeconds: Number(data.cooldown_seconds || 30) }
+}
+
+export function otpErrorMessage(code?: string, attemptsLeft?: number): string {
+  switch (code) {
+    case 'wrong_code': return `That code is not correct. ${attemptsLeft ?? 0} ${attemptsLeft === 1 ? 'try' : 'tries'} left.`
+    case 'locked': return 'Too many wrong tries. Request a new code.'
+    case 'expired': return 'This code has expired. Request a new code.'
+    case 'invalid_format': return 'Enter the 6-digit code from your email.'
+    default: return 'Could not check the code. Request a new code.'
+  }
+}
+
+// Checks the code. The action (withdraw / add / remove) must follow right after, or the check expires.
+export async function verifyWalletOtp(purpose: OtpPurpose, code: string): Promise<{ ok: boolean; error?: string; attemptsLeft?: number }> {
+  const { data, error } = await supabase.rpc('wallet_otp_verify', { p_purpose: purpose, p_code: code })
+  if (error) throw new Error(error.message)
+  const r = data as { ok: boolean; error?: string; attempts_left?: number }
+  return { ok: !!r.ok, error: r.error, attemptsLeft: r.attempts_left }
+}
+
+export async function addSavedBank(bank: Bank, accountNumber: string, accountName: string): Promise<string> {
+  const { data, error } = await supabase.rpc('add_saved_bank', {
+    p_bank_code: bank.code, p_bank_name: bank.name, p_account_number: accountNumber, p_account_name: accountName,
+  })
+  if (error) throw new Error(error.message)
+  return data as string
+}
+
+export async function removeSavedBank(id: string) {
+  const { error } = await supabase.rpc('remove_saved_bank', { p_id: id })
+  if (error) throw new Error(error.message)
+}
+
+// Needs a verified code for this exact amount and bank. The bank details come from the saved account on the server.
+export async function requestWithdrawal(amount: number, bankId: string) {
+  const { error } = await supabase.rpc('request_withdrawal', { p_amount: amount, p_bank_id: bankId })
   if (error) throw new Error(error.message)
 }
 
