@@ -13,6 +13,7 @@ import ChooseUsernamePage from './pages/ChooseUsernamePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
+import UnsubscribePage from './pages/UnsubscribePage'
 import PrivacyPage from './pages/PrivacyPage'
 import HelpPage from './pages/HelpPage'
 import MarketplacePage from './pages/MarketplacePage'
@@ -138,6 +139,8 @@ function App() {
             {/* Legal pages are public so they can be read before signing up */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            {/* Email unsubscribe link lands here; no sign-in needed */}
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
             {/* Protected routes: redirect to /login if there is no session */}
             <Route
