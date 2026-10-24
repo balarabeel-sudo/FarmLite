@@ -224,7 +224,7 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '90px' }}>
       <Header unreadNotifications={unreadNotifications} profileImage={profile?.profile_image || null} />
 
-      <div style={{ padding: '14px 16px 16px' }}>
+      <div style={{ padding: '14px 12px 16px' }}>
         <SectionTitle title={t('quickActions')} />
         {loading ? (
           <QuickActionsSkeleton />
