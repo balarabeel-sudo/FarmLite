@@ -695,7 +695,7 @@ export default function NotificationsPage() {
                     <>
                       <span className="nt-label">Email delivery</span>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10, marginBottom: 8 }}>
-                        {([['Sent', delivery?.email_sent], ['Waiting', delivery?.email_pending], ['Failed', delivery?.email_failed], ['No email', delivery?.email_skipped]] as [string, number | null | undefined][]).map(([l, v]) => (
+                        {([['Sent', delivery?.email_sent], ['Waiting', delivery?.email_pending], ['Failed', delivery?.email_failed], ['Skipped', delivery?.email_skipped]] as [string, number | null | undefined][]).map(([l, v]) => (
                           <div key={l} style={{ border: `1px solid ${A.border}`, borderRadius: 8, padding: '10px 12px' }}>
                             <p style={{ fontSize: 12, color: A.textMuted, fontWeight: 600 }}>{l}</p>
                             <p style={{ fontSize: 20, fontWeight: 800, color: A.text, marginTop: 2 }}>{v === undefined || v === null ? '-' : v.toLocaleString()}</p>
