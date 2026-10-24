@@ -17,11 +17,14 @@ type Row = {
   audience_params: { user_ids?: string[]; community_id?: string }; audience_label: string | null
   status: NStatus; scheduled_at: string | null; sent_at: string | null
   targeted_count: number | null; delivered_count: number | null; failed_count: number | null; failure_reason: string | null
-  created_by_name: string | null; created_at: string
+  created_by_name: string | null; created_at: string; send_email?: boolean
 }
-type Delivery = { targeted: number | null; delivered: number | null; failed: number | null; read: number }
+type Delivery = {
+  targeted: number | null; delivered: number | null; failed: number | null; read: number
+  email?: boolean; email_sent?: number; email_failed?: number; email_pending?: number; email_skipped?: number
+}
 type Picked = { user_id: string; name: string; username: string | null }
-type Form = { title: string; message: string; type: string; audience: string; users: Picked[]; communityId: string; delivery: 'now' | 'draft' | 'schedule'; scheduleAt: string }
+type Form = { title: string; message: string; type: string; audience: string; users: Picked[]; communityId: string; delivery: 'now' | 'draft' | 'schedule'; scheduleAt: string; sendEmail: boolean }
 type Menu = { id: string; x: number; y: number; up: boolean } | null
 type Confirm = { kind: 'send' | 'delete' | 'unschedule'; row: Row; count?: number | null } | null
 
@@ -42,7 +45,7 @@ const STATUS_STYLE: Record<NStatus, { bg: string; color: string; dot: string }> 
 }
 const ROWS = [10, 25, 50]
 const typeLabel = (k: string) => TYPES.find((t) => t.key === k)?.label || k
-const EMPTY_FORM: Form = { title: '', message: '', type: 'system', audience: 'all', users: [], communityId: '', delivery: 'now', scheduleAt: '' }
+const EMPTY_FORM: Form = { title: '', message: '', type: 'system', audience: 'all', users: [], communityId: '', delivery: 'now', scheduleAt: '', sendEmail: false }
 
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -362,7 +365,7 @@ export default function NotificationsPage() {
     }
     setForm({
       title: r.title, message: r.message, type: r.type, audience: r.audience, users, communityId: r.audience_params.community_id || '',
-      delivery: r.status === 'scheduled' ? 'schedule' : 'draft', scheduleAt: r.scheduled_at ? toLocalInput(new Date(r.scheduled_at)) : '',
+      delivery: r.status === 'scheduled' ? 'schedule' : 'draft', scheduleAt: r.scheduled_at ? toLocalInput(new Date(r.scheduled_at)) : '', sendEmail: !!r.send_email,
     })
     setFormError(''); setUserQuery(''); setUserHits([]); setAudCount(null)
     setEditor({ id: r.id })
@@ -385,7 +388,7 @@ export default function NotificationsPage() {
   const saveForm = async (as: 'draft' | 'scheduled') => {
     return rpc(() => supabase.rpc('admin_notification_save', {
       p_id: editor?.id ?? null, p_title: form.title, p_message: form.message, p_type: form.type, p_audience: form.audience,
-      p_params: paramsFromForm(form), p_status: as, p_scheduled_at: as === 'scheduled' ? new Date(form.scheduleAt).toISOString() : null,
+      p_params: paramsFromForm(form), p_status: as, p_scheduled_at: as === 'scheduled' ? new Date(form.scheduleAt).toISOString() : null, p_send_email: form.sendEmail,
     }), as === 'scheduled' ? 'Notification scheduled' : 'Draft saved')
   }
 
@@ -394,7 +397,7 @@ export default function NotificationsPage() {
     setFormError(err)
     if (err) return
     if (form.delivery === 'now') {
-      setConfirm({ kind: 'send', row: { id: editor?.id || '', code: '', title: form.title.trim(), message: form.message.trim(), type: form.type, audience: form.audience, audience_params: paramsFromForm(form), audience_label: audienceLabel(form, groups), status: 'draft', scheduled_at: null, sent_at: null, targeted_count: null, delivered_count: null, failed_count: null, failure_reason: null, created_by_name: null, created_at: new Date().toISOString() }, count: audCount })
+      setConfirm({ kind: 'send', row: { id: editor?.id || '', code: '', title: form.title.trim(), message: form.message.trim(), type: form.type, audience: form.audience, audience_params: paramsFromForm(form), audience_label: audienceLabel(form, groups), status: 'draft', scheduled_at: null, sent_at: null, targeted_count: null, delivered_count: null, failed_count: null, failure_reason: null, created_by_name: null, created_at: new Date().toISOString(), send_email: form.sendEmail }, count: audCount })
       return
     }
     const res = await saveForm(form.delivery === 'schedule' ? 'scheduled' : 'draft')
@@ -659,7 +662,7 @@ export default function NotificationsPage() {
               <div className="nt-box">
                 <div className="nt-kv"><span>Type</span><span>{typeLabel(sel.type)}</span></div>
                 <div className="nt-kv"><span>Audience</span><span>{sel.audience_label || '-'}</span></div>
-                <div className="nt-kv"><span>Channel</span><span>In-App</span></div>
+                <div className="nt-kv"><span>Channel</span><span>{sel.send_email ? 'In-App + Email' : 'In-App'}</span></div>
                 <div className="nt-kv"><span>Status</span><span><StatusBadge status={sel.status} /></span></div>
                 <div className="nt-kv"><span>Created by</span><span>{sel.created_by_name || '-'}</span></div>
                 <div className="nt-kv"><span>Created</span><span>{fmtFull(sel.created_at)}</span></div>
@@ -678,6 +681,20 @@ export default function NotificationsPage() {
                       </div>
                     ))}
                   </div>
+                  {sel.send_email && (
+                    <>
+                      <span className="nt-label">Email delivery</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10, marginBottom: 8 }}>
+                        {([['Sent', delivery?.email_sent], ['Waiting', delivery?.email_pending], ['Failed', delivery?.email_failed], ['No email', delivery?.email_skipped]] as [string, number | null | undefined][]).map(([l, v]) => (
+                          <div key={l} style={{ border: `1px solid ${A.border}`, borderRadius: 8, padding: '10px 12px' }}>
+                            <p style={{ fontSize: 12, color: A.textMuted, fontWeight: 600 }}>{l}</p>
+                            <p style={{ fontSize: 20, fontWeight: 800, color: A.text, marginTop: 2 }}>{v === undefined || v === null ? '-' : v.toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p style={{ fontSize: 11.5, color: A.textSoft, marginBottom: 20 }}>Emails are sent in the background, so these numbers can take a minute to catch up.</p>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -785,8 +802,16 @@ export default function NotificationsPage() {
 
               <div>
                 <span className="nt-label">Channel</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, padding: '5px 10px', borderRadius: 8, background: A.greenTint, color: A.greenDark }}><Icon name="bell" size={13} /> In-App</span>
-                <p style={{ fontSize: 11.5, color: A.textSoft, marginTop: 4 }}>Notifications appear in the Farmxie notification list. Push notifications are not set up yet.</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, padding: '5px 10px', borderRadius: 8, background: A.greenTint, color: A.greenDark }}><Icon name="bell" size={13} /> In-App</span>
+                  <label className={`nt-radio${form.sendEmail ? ' on' : ''}`}>
+                    <input type="checkbox" checked={form.sendEmail} onChange={(e) => setForm({ ...form, sendEmail: e.target.checked })} style={{ accentColor: A.green }} />Also send by Email
+                  </label>
+                </div>
+                <p style={{ fontSize: 11.5, color: A.textSoft, marginTop: 4 }}>
+                  In-App is always on: it appears in the Farmxie notification list (and as a push notification for users who turned push on).
+                  {form.sendEmail ? ' Email goes to the confirmed email of each user.' : ''}
+                </p>
               </div>
 
               <div>
@@ -825,6 +850,7 @@ export default function NotificationsPage() {
                 <div style={{ border: `1px solid ${A.border}`, borderRadius: 8, padding: '4px 12px', marginBottom: 12 }}>
                   <div className="nt-kv"><span>Title</span><span>{confirm.row.title}</span></div>
                   <div className="nt-kv"><span>Audience</span><span>{confirm.row.audience_label || '-'}</span></div>
+                  <div className="nt-kv"><span>Channels</span><span>{confirm.row.send_email ? 'In-App + Email' : 'In-App'}</span></div>
                   <div className="nt-kv"><span>Targeted users</span><span>{confirm.count === null || confirm.count === undefined ? 'Not available' : confirm.count.toLocaleString()}</span></div>
                 </div>
                 <p style={{ fontSize: 12.5, color: A.textMuted, lineHeight: 1.5, marginBottom: 16 }}>It will be sent right away and cannot be unsent.</p>
