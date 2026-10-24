@@ -13,6 +13,7 @@ import { cleanPhone, whatsappLink } from '../phoneUtils'
 import { setFollowCache } from '../followShared'
 import FollowNotifySheet from '../FollowNotifySheet'
 import ReportSheet from '../ReportSheet'
+import { formatDuration } from '../videoShared'
 import {
   PCOLORS as COLORS, ProfileShell, ProfileHeader, ProfileCover, ProfileTop, RoundIconButton, PillButton, DotsMenu, NameRow,
   BioText, CalendarIcon, MetaRow, MetaItem, CountsRow, ProfileTabs, ProfileSearchBar, SectionLabel, EmptyCard, AboutRow, PhotoGrid, ListingGrid,
@@ -46,7 +47,9 @@ type Profile = {
 
 type Listing = ListingCardData
 
-type Tab = 'posts' | 'media' | 'about'
+type Tab = 'posts' | 'media' | 'videos' | 'about'
+
+type ProfileVideo = { id: string; thumbnail_url: string | null; video_url: string; duration_seconds: number; views_count: number }
 
 // Route: /u/:username  (public profile; also shows your own profile with Edit profile)
 // X-style layout: cover, full photo circle, action buttons, name + ticks, bio, meta row, counts, tabs.
@@ -75,6 +78,28 @@ export default function UserProfilePage() {
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('posts')
+  // Videos are fetched the first time the Videos tab is opened
+  const [videos, setVideos] = useState<ProfileVideo[] | null>(null)
+  const [videosError, setVideosError] = useState(false)
+
+  useEffect(() => {
+    if (tab !== 'videos' || !profile || videos !== null) return
+    let cancelled = false
+    supabase
+      .from('short_videos')
+      .select('id, thumbnail_url, video_url, duration_seconds, views_count')
+      .eq('user_id', profile.user_id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(60)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) { setVideosError(true); setVideos([]); return }
+        setVideosError(false)
+        setVideos((data || []) as ProfileVideo[])
+      })
+    return () => { cancelled = true }
+  }, [tab, profile, videos])
 
   // Search inside this profile (posts + listings)
   const [searching, setSearching] = useState(false)
@@ -326,10 +351,10 @@ export default function UserProfilePage() {
           premiumLabel="Premium member"
           onUpgrade={isSelf ? () => navigate('/premium') : undefined}
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
           <p style={{ fontSize: '13px', color: COLORS.textMuted }}>@{profile.username}</p>
-          {!isSelf && followsMe && (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, background: 'var(--fx-grey2)', borderRadius: '6px', padding: '2px 7px' }}>{isFollowing ? 'Mutual' : 'Follows you'}</span>
+          {!isSelf && followsMe && !isFollowing && (
+            <span style={{ fontSize: '11px', fontWeight: 700, color: COLORS.textMuted, background: 'var(--fx-grey2)', borderRadius: '6px', padding: '2px 7px' }}>Follows you</span>
           )}
         </div>
 
@@ -385,7 +410,7 @@ export default function UserProfilePage() {
         )}
 
         <ProfileTabs<Tab>
-          tabs={[{ key: 'posts', label: 'Posts' }, { key: 'media', label: 'Media' }, { key: 'about', label: 'About' }]}
+          tabs={[{ key: 'posts', label: 'Posts' }, { key: 'media', label: 'Media' }, { key: 'videos', label: 'Videos' }, { key: 'about', label: 'About' }]}
           active={tab}
           onChange={setTab}
         />
@@ -398,6 +423,33 @@ export default function UserProfilePage() {
           )}
 
           {tab === 'media' && <PhotoGrid images={mediaImages} empty="No photos shared yet." />}
+
+          {tab === 'videos' && (
+            videos === null
+              ? <FeedPostSkeleton count={1} />
+              : videosError
+                ? <EmptyCard icon="refresh" text="Could not load videos. Please try again later." />
+                : videos.length === 0
+                  ? <EmptyCard icon="camera" text={isSelf ? 'You have not posted any videos yet.' : 'No videos yet.'} />
+                  : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                      {videos.map((v) => (
+                        <div
+                          key={v.id}
+                          onClick={() => navigate(`/videos/${v.id}`)}
+                          style={{ position: 'relative', aspectRatio: '3 / 4', background: '#0F1A0F', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}>
+                          {v.thumbnail_url
+                            ? <img src={v.thumbnail_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            : <video src={`${v.video_url}#t=0.1`} preload="metadata" muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />}
+                          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 6px 5px', background: 'linear-gradient(transparent, rgba(0,0,0,0.65))', color: 'white', fontSize: '10.5px', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>{formatDuration(v.duration_seconds)}</span>
+                            <span>{compact(v.views_count || 0)} views</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+          )}
 
           {tab === 'about' && (
             <>
