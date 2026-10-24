@@ -37,6 +37,13 @@
       /* Browsers add an 8px margin around the page; removing it gives every page its full width. */
       html, body { margin: 0; background: var(--fx-bg); color: var(--fx-text); }
 
+      /* One clean sans-serif font for the whole app (each phone or computer uses its own system font, so nothing to download).
+         Without this, browsers fall back to a serif font. Buttons and inputs follow the same font. */
+      html, body, button, input, textarea, select {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+      }
+      html { -webkit-text-size-adjust: 100%; }
+
       /* Computers and tablets: the app is no longer a narrow phone strip. */
       .fx-side { display: none; position: fixed; top: 0; bottom: 0; width: 76px; right: calc(50% + 352px); overflow-y: auto; }
       .fx-side-label { display: none; }
