@@ -151,28 +151,30 @@ export default function CompaniesPage() {
   const shownFeatured = showAllFeatured ? featured : featured.slice(0, FEATURED_PREVIEW)
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
+    <div className="fx-companies" style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
+      {/* Browsers give every <p> a big default margin; here each text sets its own spacing, so it is switched off */}
+      <style>{'.fx-companies p { margin: 0; }'}</style>
       <Header onBack={() => navigate('/')} onAdd={() => navigate('/companies/new')} />
 
-      <div style={{ padding: '16px' }}>
-        <div style={{ position: 'relative', marginBottom: '14px' }}>
-          <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', display: 'flex', pointerEvents: 'none' }}>
+      <div style={{ padding: '14px' }}>
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <div style={{ position: 'absolute', left: '13px', top: '50%', transform: 'translateY(-50%)', display: 'flex', pointerEvents: 'none' }}>
             <Icon name="search" size={18} color={COLORS.textMuted} />
           </div>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search companies..."
-            style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '14px', border: `1px solid ${COLORS.border}`, fontSize: '13.5px', boxSizing: 'border-box', background: COLORS.card, color: COLORS.text, outline: 'none' }}
+            style={{ width: '100%', padding: '11px 14px 11px 40px', borderRadius: '14px', border: `1px solid ${COLORS.border}`, fontSize: '13px', boxSizing: 'border-box', background: COLORS.card, color: COLORS.text, outline: 'none' }}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px', paddingBottom: '2px' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '16px', paddingBottom: '2px' }}>
           {['', ...CATEGORIES].map((c) => {
             const on = category === c
             return (
               <div key={c || 'all'} onClick={() => setCategory(c)} style={{
-                flexShrink: 0, padding: '9px 17px', borderRadius: '20px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                flexShrink: 0, padding: '7px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
                 background: on ? COLORS.green : 'var(--fx-tint-green)', color: on ? 'white' : COLORS.text,
               }}>{c || 'All'}</div>
             )
@@ -180,7 +182,7 @@ export default function CompaniesPage() {
         </div>
 
         {!loading && !search.trim() && featured.length > 0 && (
-          <div style={{ marginBottom: '22px' }}>
+          <div style={{ marginBottom: '18px' }}>
             <SectionTitle
               title="Featured companies"
               action={featured.length > FEATURED_PREVIEW ? (showAllFeatured ? 'Show less' : 'View all') : undefined}
@@ -235,19 +237,19 @@ function CompanyCard({ company: c, featured, own, onOpen }: { company: Company; 
     <div
       onClick={onOpen}
       style={{
-        height: '156px', boxSizing: 'border-box', background: COLORS.card, borderRadius: '18px', padding: '14px', marginBottom: '12px',
-        display: 'flex', gap: '14px', cursor: 'pointer', overflow: 'hidden',
+        minHeight: '128px', boxSizing: 'border-box', background: COLORS.card, borderRadius: '16px', padding: '12px', marginBottom: '10px',
+        display: 'flex', gap: '12px', cursor: 'pointer', overflow: 'hidden',
         border: `1px solid ${trending ? 'var(--fx-bd-green)' : COLORS.border}`,
         boxShadow: trending ? '0 4px 14px rgba(22,163,74,0.10)' : '0 2px 8px rgba(0,0,0,0.04)',
       }}>
-      <Logo company={c} size={72} />
+      <Logo company={c} size={60} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <p style={{ fontSize: '15px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.name}</p>
+          <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{c.name}</p>
           {premium && <PremiumTick size={16} />}
           {trending && <TrendingBadge />}
         </div>
-        <p style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green, marginTop: '2px', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.category}</p>
+        <p style={{ fontSize: '11.5px', fontWeight: 600, color: COLORS.green, marginTop: '1px', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.category}</p>
         {own ? (
           <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.orange, marginTop: '5px', flexShrink: 0 }}>
             {c.status === 'pending' && 'Verification pending'}
@@ -256,14 +258,14 @@ function CompanyCard({ company: c, featured, own, onOpen }: { company: Company; 
             {c.status === 'suspended' && 'Suspended'}
           </p>
         ) : (
-          <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: '5px', lineHeight: '17px', height: '34px', flexShrink: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.description || ''}</p>
+          <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '4px', lineHeight: '16px', minHeight: '32px', flexShrink: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.description || ''}</p>
         )}
-        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-          <p style={{ fontSize: '11.5px', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <p style={{ fontSize: '11px', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.location && <><Icon name="mapPin" size={12} color={COLORS.green} /> {c.location}</>}
           </p>
-          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '11px', background: COLORS.green, color: 'white', fontSize: '12px', fontWeight: 700 }}>
-            View Company <Icon name="arrowRight" size={13} color="white" />
+          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 11px', borderRadius: '10px', background: COLORS.green, color: 'white', fontSize: '11.5px', fontWeight: 700 }}>
+            View Company <Icon name="arrowRight" size={12} color="white" />
           </span>
         </div>
       </div>
@@ -286,10 +288,10 @@ function TrendingBadge() {
 
 function SectionTitle({ title, action, onAction, expanded }: { title: string; action?: string; onAction?: () => void; expanded?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-      <p style={{ fontSize: '18px', fontWeight: 800, color: COLORS.text }}>{title}</p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>{title}</p>
       {action && (
-        <div onClick={onAction} style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', color: COLORS.green, fontSize: '13px', fontWeight: 700 }}>
+        <div onClick={onAction} style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer', color: COLORS.green, fontSize: '12.5px', fontWeight: 700 }}>
           {action}
           <span style={{ display: 'flex', transform: expanded ? 'rotate(-90deg)' : 'none' }}><Icon name="chevronRight" size={16} color={COLORS.green} /></span>
         </div>
@@ -300,7 +302,7 @@ function SectionTitle({ title, action, onAction, expanded }: { title: string; ac
 
 function Logo({ company, size }: { company: Company; size: number }) {
   return (
-    <div style={{ width: `${size}px`, height: `${size}px`, borderRadius: '20px', flexShrink: 0, background: 'var(--fx-tint-green)', border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+    <div style={{ width: `${size}px`, height: `${size}px`, borderRadius: '16px', flexShrink: 0, background: 'var(--fx-tint-green)', border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       {company.logo_url ? <img src={company.logo_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="building" size={Math.round(size * 0.42)} color={COLORS.green} />}
     </div>
   )
@@ -309,17 +311,17 @@ function Logo({ company, size }: { company: Company; size: number }) {
 function Header({ onBack, onAdd }: { onBack: () => void; onAdd: () => void }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px',
       background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
           <Icon name="arrowLeft" size={22} color={COLORS.text} />
         </div>
-        <p style={{ fontSize: '19px', fontWeight: 800, color: COLORS.text }}>Company Pages</p>
+        <p style={{ fontSize: '17px', fontWeight: 800, color: COLORS.text, margin: 0 }}>Company Pages</p>
       </div>
-      <div onClick={onAdd} style={{ width: '40px', height: '40px', borderRadius: '12px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 3px 10px rgba(22,163,74,0.35)' }}>
-        <Icon name="plus" size={20} color="white" />
+      <div onClick={onAdd} style={{ width: '38px', height: '38px', borderRadius: '12px', background: COLORS.green, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 3px 10px rgba(22,163,74,0.35)' }}>
+        <Icon name="plus" size={19} color="white" />
       </div>
     </div>
   )
