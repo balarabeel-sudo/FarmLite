@@ -167,6 +167,19 @@ export default function NotificationSettingsPage() {
         <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '10px 4px 0', lineHeight: 1.5 }}>
           Turning a type off only stops the push alerts. Those notifications still show up inside the app.
         </p>
+
+        <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.textMuted, margin: '20px 4px 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Email
+        </p>
+        <div style={{ background: COLORS.card, borderRadius: '14px', border: `1px solid ${COLORS.border}`, padding: '13px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: COLORS.text }}>Announcement emails</p>
+            <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px', lineHeight: 1.4 }}>
+              News and updates from Farmxie sent to your email. Account security emails and wallet codes are always sent.
+            </p>
+          </div>
+          <Toggle on={!muted.includes('email_broadcast')} disabled={!prefsLoaded} onChange={(v) => toggleCategory('email_broadcast', v)} />
+        </div>
       </div>
     </div>
   )
