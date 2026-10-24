@@ -232,7 +232,7 @@ export default function PostCard({
     <div ref={cardRef} style={{ padding: '12px 0 10px', borderBottom: `1px solid ${COLORS.border}`, scrollMarginTop: '72px' }}>
       {pinned && <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green, margin: '0 0 6px 56px' }}>📌 Pinned post</p>}
 
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         {/* Left: the profile picture, like X. Groups show the group picture with the poster's small picture on it. */}
         {group ? (
           <div onClick={() => navigate(`/communities/${group.id}`)} style={{ position: 'relative', width: `${AVATAR}px`, height: `${AVATAR}px`, flexShrink: 0, cursor: 'pointer' }}>
@@ -255,9 +255,9 @@ export default function PostCard({
           </div>
         )}
 
-        {/* Right: name line, text, photos, actions */}
+        {/* Right of the picture: name line only. The text, photos and actions use the full card width below. */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               {group ? (
                 <>
@@ -301,9 +301,12 @@ export default function PostCard({
               )}
             </div>
           </div>
+        </div>
+      </div>
 
+      <div style={{ marginTop: '8px' }}>
           {post.content.trim() !== '' && (
-            <div style={{ marginTop: '2px' }}>
+            <div style={{ marginTop: '0' }}>
               <ExpandableText
                 text={post.content}
                 cardRef={cardRef}
@@ -334,7 +337,6 @@ export default function PostCard({
               <Icon name="bookmark" size={18} color={saved ? COLORS.orange : COLORS.textMuted} />
             </span>
           </div>
-        </div>
       </div>
 
       <ShareSheet

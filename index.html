@@ -34,7 +34,8 @@
         --fx-bd-red: #7F1D1D; --fx-bd-green: #1F5A33; --fx-bd-amber: #6B5214; --fx-bd-amber2: #5C4814; --fx-bd-blue: #1E3A8A;
         --fx-amber-text: #FCD34D; --fx-amber-text2: #FBBF24; --fx-red-text: #FCA5A5; --fx-red-text2: #FCA5A5; --fx-blue-text: #93C5FD; --fx-blue-text2: #93C5FD;
       }
-      html, body { background: var(--fx-bg); color: var(--fx-text); }
+      /* Browsers add an 8px margin around the page; removing it gives every page its full width. */
+      html, body { margin: 0; background: var(--fx-bg); color: var(--fx-text); }
 
       /* Computers and tablets: the app is no longer a narrow phone strip. */
       .fx-side { display: none; position: fixed; top: 0; bottom: 0; width: 76px; right: calc(50% + 352px); overflow-y: auto; }
