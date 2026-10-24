@@ -324,7 +324,16 @@ export async function sendWalletOtp(req: OtpRequest): Promise<{ email: string; c
     },
   })
   if (data?.error) throw new Error(data.error)
-  if (error || !data?.sent) throw new Error('Could not send the code. Please try again.')
+  if (error) {
+    // supabase-js hides the server's message on non-2xx replies; read it from the response so the real reason is shown
+    let msg = ''
+    try {
+      const ctx = (error as { context?: { json?: () => Promise<{ error?: string }> } }).context
+      if (ctx && typeof ctx.json === 'function') msg = (await ctx.json())?.error || ''
+    } catch { /* keep the generic message */ }
+    throw new Error(msg || 'Could not send the code. Please try again.')
+  }
+  if (!data?.sent) throw new Error('Could not send the code. Please try again.')
   return { email: String(data.email), cooldownSeconds: Number(data.cooldown_seconds || 30) }
 }
 
