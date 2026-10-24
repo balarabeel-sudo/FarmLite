@@ -85,16 +85,18 @@ export default function AccountPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
+    <div className="fx-account" style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
+      {/* Browsers give every <p> a big default margin; here each text sets its own spacing, so it is switched off */}
+      <style>{'.fx-account p { margin: 0; }'}</style>
       <Header onBack={() => navigate(-1)} />
 
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '14px 12px 16px' }}>
         {loading || !profile ? (
           <ProfileHeaderSkeleton />
         ) : (
           <>
             {/* My Profile: its own page (/my-profile) with everything personal: farm, marketplace, community, FarmBot */}
-            <Section title="Profile" first>
+            <Section first>
               <div
                 onClick={() => navigate('/my-profile')}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', cursor: 'pointer' }}>
@@ -115,7 +117,7 @@ export default function AccountPage() {
               </div>
             </Section>
 
-            <Section title="Wallet">
+            <Section>
               <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
             </Section>
 
@@ -123,7 +125,7 @@ export default function AccountPage() {
               <Row icon="message" label="FarmBot History" onClick={() => navigate('/farmbot')} />
             </Section>
 
-            <Section title="Insights">
+            <Section>
               <div
                 onClick={() => navigate('/analytics')}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
@@ -226,11 +228,12 @@ export default function AccountPage() {
   )
 }
 
-function Section({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
+// A group of rows in one rounded card. The title is optional: single-item groups (Profile, Wallet, Analytics) need none.
+function Section({ title, children, first }: { title?: string; children: ReactNode; first?: boolean }) {
   return (
-    <div style={{ marginTop: first ? 0 : 20 }}>
-      <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>{title}</p>
-      <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden' }}>{children}</div>
+    <div style={{ marginTop: first ? 0 : title ? 22 : 12 }}>
+      {title && <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 8px 4px' }}>{title}</p>}
+      <div style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>{children}</div>
     </div>
   )
 }
@@ -261,35 +264,48 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
   )
 }
 
-// Appearance: Light, Dark or follow the phone. The choice is remembered on this device.
+// Appearance: Light, Dark or follow the phone. One row that shows the current choice; tap it to open the three options.
+// The choice is remembered on this device.
 function ThemeRow() {
   const mode = useThemeMode()
+  const [open, setOpen] = useState(false)
   const options: { key: ThemeMode; label: string }[] = [
     { key: 'light', label: 'Light' },
     { key: 'dark', label: 'Dark' },
     { key: 'system', label: 'System' },
   ]
+  const current = options.find((o) => o.key === mode)?.label || 'System'
   return (
-    <div style={{ padding: '13px 14px', borderBottom: `1px solid ${COLORS.bg}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+    <div style={{ borderBottom: `1px solid ${COLORS.bg}` }}>
+      <div
+        role="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
         <Icon name="moon" size={17} color={COLORS.textMuted} />
         <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Appearance</p>
+        <span style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green }}>{current}</span>
+        <span style={{ display: 'flex', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
+          <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+        </span>
       </div>
-      <div role="radiogroup" aria-label="Appearance" style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px' }}>
-        {options.map((o) => {
-          const on = mode === o.key
-          return (
-            <div
-              key={o.key}
-              role="radio"
-              aria-checked={on}
-              onClick={() => setThemeMode(o.key)}
-              style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.textMuted }}>
-              {o.label}
-            </div>
-          )
-        })}
-      </div>
+      {open && (
+        <div role="radiogroup" aria-label="Appearance" style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px', margin: '0 14px 13px' }}>
+          {options.map((o) => {
+            const on = mode === o.key
+            return (
+              <div
+                key={o.key}
+                role="radio"
+                aria-checked={on}
+                onClick={() => setThemeMode(o.key)}
+                style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.textMuted }}>
+                {o.label}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -321,7 +337,7 @@ function Header({ onBack }: { onBack: () => void }) {
       <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
         <Icon name="arrowLeft" size={22} color={COLORS.text} />
       </div>
-      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text }}>Account</p>
+      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, margin: 0 }}>Account</p>
     </div>
   )
 }
