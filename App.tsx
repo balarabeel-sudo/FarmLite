@@ -68,6 +68,10 @@ import CompanyAdVerifyPage from './company/CompanyAdVerifyPage'
 import CompanyAdCampaignsPage from './company/CompanyAdCampaignsPage'
 import CompanyAdPerformancePage from './company/CompanyAdPerformancePage'
 import CompanyAdBillingPage from './company/CompanyAdBillingPage'
+import MyAdsPage from './pages/MyAdsPage'
+import MyAdNewPage from './pages/MyAdNewPage'
+import MyAdDetailPage from './pages/MyAdDetailPage'
+import MyAdVerifyPage from './pages/MyAdVerifyPage'
 import AdminProtectedRoute from './admin/AdminProtectedRoute'
 import OverviewPage from './admin/pages/OverviewPage'
 import StaffPage from './admin/pages/StaffPage'
@@ -422,6 +426,12 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* My Ads: a person promotes their own post, listing, video or profile. "new" and "verify" come before ":id" */}
+            <Route path="/my-ads" element={<ProtectedRoute><MyAdsPage /></ProtectedRoute>} />
+            <Route path="/my-ads/new" element={<ProtectedRoute><MyAdNewPage /></ProtectedRoute>} />
+            <Route path="/my-ads/verify" element={<ProtectedRoute><MyAdVerifyPage /></ProtectedRoute>} />
+            <Route path="/my-ads/:id" element={<ProtectedRoute><MyAdDetailPage /></ProtectedRoute>} />
 
             {/* My Profile: the user's own profile hub (farm, marketplace, community, FarmBot) */}
             <Route
