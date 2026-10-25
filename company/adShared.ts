@@ -6,8 +6,10 @@ export type Placement = 'home' | 'marketplace' | 'companies' | 'search' | 'group
 export type AdRow = {
   id: string
   ref?: string
-  target_type: 'listing' | 'company'
+  target_type: 'listing' | 'company' | 'post' | 'video' | 'profile'
   listing_id: string | null
+  post_id?: string | null
+  video_id?: string | null
   headline: string
   body: string | null
   image_url: string | null
@@ -113,6 +115,12 @@ export const AD_ERRORS: Record<string, string> = {
   not_active: 'This ad is not running.',
   note_required: 'Please write a reason.',
   not_allowed: 'You do not have permission to do that.',
+  duplicate_ad: 'You already have an ad running or waiting for this item.',
+  target_not_available: 'That item is not available to advertise.',
+  links_not_allowed: 'Links are not allowed in ads. Remove the web address.',
+  account_not_allowed: 'Your account cannot create ads right now.',
+  email_not_confirmed: 'Please confirm your email before creating ads.',
+  too_many_today: 'You have created too many ads today. Please try again tomorrow.',
 }
 
 export const adError = (e: { message?: string } | null | undefined) => {
