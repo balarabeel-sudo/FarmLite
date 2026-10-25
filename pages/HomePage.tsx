@@ -14,6 +14,8 @@ import VideoCard from '../VideoCard'
 import { VIDEO_SELECT } from '../videoShared'
 import type { VideoRow } from '../videoShared'
 import SponsoredCard from '../SponsoredCard'
+import PeopleSuggestions from '../PeopleSuggestions'
+import VideoHook from '../VideoHook'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
@@ -359,8 +361,11 @@ export default function HomePage() {
                       initialLiked={likedPostIds.has(post.id)}
                       initialSaved={savedPostIds.has(post.id)}
                     />
+                    {i === 2 && <PeopleSuggestions />}
+                    {i === 14 && <VideoHook />}
                   </Fragment>
                 ))}
+                {feed.length > 0 && feed.length < 3 && <PeopleSuggestions />}
                 {/* With only a few posts the first ad still shows, at the end of the feed. */}
                 {feed.length <= homeEvery && homeAds[0] && (
                   <SponsoredCard ad={homeAds[0]} layout="wide" placement="home" />
