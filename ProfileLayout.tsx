@@ -22,7 +22,13 @@ const AVATAR = 72
 const BTN = 32
 
 export function ProfileShell({ children }: { children: ReactNode }) {
-  return <div style={{ minHeight: '100vh', background: PCOLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>{children}</div>
+  return (
+    <div className="fx-profile" style={{ minHeight: '100vh', background: PCOLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Browsers give every <p> a big default margin; here each text sets its own spacing, so it is switched off */}
+      <style>{'.fx-profile p { margin: 0; }'}</style>
+      {children}
+    </div>
+  )
 }
 
 // Back arrow + name + "N posts", like the X profile header.
