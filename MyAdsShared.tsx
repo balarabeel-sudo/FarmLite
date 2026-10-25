@@ -42,7 +42,7 @@ export const TARGET_LABEL: Record<string, string> = {
 // Where a user ad can appear. "Companies page" is for company ads only, so it is not offered here.
 export const USER_PLACEMENTS: { key: 'home' | 'marketplace' | 'search' | 'groups'; label: string; help: string }[] = [
   { key: 'home', label: 'Home Feed', help: 'Shown between posts on the Home feed.' },
-  { key: 'marketplace', label: 'Marketplace', help: 'Shown among listings in the Marketplace.' },
+  { key: 'marketplace', label: 'Marketplace', help: 'Shown among listings in the Marketplace. Listing ads only.' },
   { key: 'search', label: 'Search results', help: 'Shown when a search matches your ad.' },
   { key: 'groups', label: 'Groups', help: 'Shown inside the public groups you choose. Priced as an add-on.' },
 ]
