@@ -13,7 +13,13 @@ type AdminAd = {
   company_id: string
   company_name: string
   logo_url: string | null
-  target_type: 'listing' | 'company'
+  advertiser_type: 'company' | 'user'
+  advertiser_username: string | null
+  post_text: string | null
+  post_image: string | null
+  video_thumb: string | null
+  video_caption: string | null
+  target_type: 'listing' | 'company' | 'post' | 'video' | 'profile'
   listing_title: string | null
   headline: string
   body: string | null
@@ -66,6 +72,7 @@ export default function AdsPage() {
   const staff = useStaff()
   const canReview = staff.permissions.has('ads.review')
   const [filter, setFilter] = useState('pending_review')
+  const [who, setWho] = useState<'all' | 'company' | 'user'>('all')
   const [ads, setAds] = useState<AdminAd[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -84,13 +91,13 @@ export default function AdsPage() {
   const load = async () => {
     setError(false)
     setLoading(true)
-    const { data, error: e } = await supabase.rpc('ads_admin_list', { p_status: filter === 'all' ? null : filter })
+    const { data, error: e } = await supabase.rpc('ads_admin_list', { p_status: filter === 'all' ? null : filter, p_advertiser: who === 'all' ? null : who })
     if (e) setError(true)
     else setAds((data || []) as AdminAd[])
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [filter])
+  useEffect(() => { load() }, [filter, who])
 
   const stop = async (ad: AdminAd) => {
     const note = window.prompt('Why is this running ad being stopped? The company will see this message.')
@@ -111,13 +118,13 @@ export default function AdsPage() {
     if (!approve) {
       note = window.prompt('Why is this ad rejected? The company will see this message.')
       if (!note || note.trim().length < 3) return
-    } else if (!window.confirm(`Approve "${ad.headline}" from ${ad.company_name}? The company can then pay to run it.`)) return
+    } else if (!window.confirm(`Approve "${ad.headline}" from ${ad.company_name}? They can then pay to run it.`)) return
 
     setBusy(ad.id)
     const { error: e } = await supabase.rpc('ad_review', { p_ad: ad.id, p_approve: approve, p_note: note })
     setBusy('')
     if (e) {
-      window.alert(e.message.includes('not_pending') ? 'This ad was already reviewed.' : e.message.includes('listing_unavailable') ? 'The listing for this ad is no longer available, so the ad cannot be approved.' : e.message)
+      window.alert(e.message.includes('not_pending') ? 'This ad was already reviewed.' : e.message.includes('listing_unavailable') ? 'What this ad promotes is no longer available, so the ad cannot be approved.' : e.message)
       return load()
     }
     await logAdminAction(approve ? 'Approved company ad' : 'Rejected company ad', { type: 'ad', id: ad.id, label: `${ad.company_name}: ${ad.headline}` })
@@ -139,6 +146,15 @@ export default function AdsPage() {
         )}
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        {([['all', 'All advertisers'], ['company', 'Companies'], ['user', 'Users']] as const).map(([k, label]) => (
+          <div key={k} onClick={() => setWho(k)} style={{
+            padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+            background: who === k ? A.text : A.surface, color: who === k ? 'white' : A.textMuted, border: `1px solid ${who === k ? A.text : A.border}`,
+          }}>{label}</div>
+        ))}
+      </div>
+
       <div style={{ background: A.surface, border: `1px solid ${A.border}`, borderRadius: '10px' }}>
         {loading ? (
           <p style={{ padding: '20px', fontSize: '13px', color: A.textMuted }}>Loading ads...</p>
@@ -155,10 +171,15 @@ export default function AdsPage() {
             return (
               <div key={ad.id} style={{ display: 'flex', gap: '16px', padding: '16px 18px', borderTop: i === 0 ? 'none' : `1px solid ${A.border}`, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ width: 96, height: 96, borderRadius: 10, background: A.bg, overflow: 'hidden', flexShrink: 0 }}>
-                  {ad.image_url && <img src={ad.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  {(ad.image_url || ad.post_image || ad.video_thumb || ad.logo_url) && <img src={ad.image_url || ad.post_image || ad.video_thumb || ad.logo_url || ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 260 }}>
-                  <p style={{ fontSize: '11.5px', color: A.textMuted, fontWeight: 700 }}>{ad.company_name} · {ad.target_type === 'listing' ? `Listing${ad.listing_title ? `: ${ad.listing_title}` : ''}` : 'Company page'}</p>
+                  <p style={{ fontSize: '11.5px', color: A.textMuted, fontWeight: 700 }}>
+                    <span style={{ background: ad.advertiser_type === 'user' ? '#EDE9FE' : '#E0F2FE', color: ad.advertiser_type === 'user' ? '#5B21B6' : '#075985', fontSize: '10px', fontWeight: 800, padding: '1px 7px', borderRadius: '999px', marginRight: 6 }}>{ad.advertiser_type === 'user' ? 'USER' : 'COMPANY'}</span>
+                    {ad.company_name}{ad.advertiser_username ? ` (@${ad.advertiser_username})` : ''} · {ad.target_type === 'listing' ? `Listing${ad.listing_title ? `: ${ad.listing_title}` : ''}` : ad.target_type === 'post' ? 'Post' : ad.target_type === 'video' ? 'Video' : ad.target_type === 'profile' ? 'User profile' : 'Company page'}
+                  </p>
+                  {ad.target_type === 'post' && ad.post_text && <p style={{ fontSize: '12px', color: A.textMuted, marginTop: 4, fontStyle: 'italic' }}>Post: "{ad.post_text}"</p>}
+                  {ad.target_type === 'video' && ad.video_caption && <p style={{ fontSize: '12px', color: A.textMuted, marginTop: 4, fontStyle: 'italic' }}>Video: "{ad.video_caption}"</p>}
                   <p style={{ fontSize: '14.5px', fontWeight: 800, color: A.text, marginTop: 3 }}>{ad.headline}</p>
                   {ad.body && <p style={{ fontSize: '12.5px', color: A.text, marginTop: 3, lineHeight: 1.5 }}>{ad.body}</p>}
                   <p style={{ fontSize: '11.5px', color: A.textMuted, marginTop: 8 }}>
