@@ -69,6 +69,7 @@ import CompanyAdCampaignsPage from './company/CompanyAdCampaignsPage'
 import CompanyAdPerformancePage from './company/CompanyAdPerformancePage'
 import CompanyAdBillingPage from './company/CompanyAdBillingPage'
 import MyAdsPage from './pages/MyAdsPage'
+import PeoplePage from './pages/PeoplePage'
 import MyAdNewPage from './pages/MyAdNewPage'
 import MyAdDetailPage from './pages/MyAdDetailPage'
 import MyAdVerifyPage from './pages/MyAdVerifyPage'
@@ -428,6 +429,7 @@ function App() {
             />
 
             {/* My Ads: a person promotes their own post, listing, video or profile. "new" and "verify" come before ":id" */}
+            <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
             <Route path="/my-ads" element={<ProtectedRoute><MyAdsPage /></ProtectedRoute>} />
             <Route path="/my-ads/new" element={<ProtectedRoute><MyAdNewPage /></ProtectedRoute>} />
             <Route path="/my-ads/verify" element={<ProtectedRoute><MyAdVerifyPage /></ProtectedRoute>} />
