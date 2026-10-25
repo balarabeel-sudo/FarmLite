@@ -156,7 +156,8 @@ export default function CompanyAdNewPage() {
   const switchTarget = (t: 'listing' | 'company') => {
     setTargetType(t)
     if (t === 'company') {
-      // The Companies page placement is for company ads only; listing ads cannot keep it.
+      // The Marketplace placement is for listing ads only.
+      setPlacements((p) => p.filter((x) => x !== 'marketplace'))
       setImage(null)
       setCustomImage([])
     } else {
@@ -379,14 +380,14 @@ export default function CompanyAdNewPage() {
         <Section title="Where should your advertisement appear?">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {PLACEMENTS.map((p) => {
-              const blocked = !!p.companyOnly && targetType !== 'company'
+              const blocked = (!!p.companyOnly && targetType !== 'company') || (!!p.listingOnly && targetType !== 'listing')
               const on = placementOn(p.key)
               return (
                 <div key={p.key} onClick={blocked ? undefined : () => togglePlacement(p.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.55 : 1, background: on && !blocked ? COLORS.greenSoft : COLORS.card, border: `2px solid ${on && !blocked ? COLORS.green : COLORS.border}` }}>
                   <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${on && !blocked ? COLORS.green : '#B7C7B7'}`, background: on && !blocked ? COLORS.green : 'transparent', color: 'white', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && !blocked ? '✓' : ''}</span>
                   <div>
                     <p style={{ fontSize: '14px', fontWeight: 800, color: COLORS.text }}>{p.label}</p>
-                    <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: 2 }}>{blocked ? 'Only available when you promote your company profile.' : p.help}</p>
+                    <p style={{ fontSize: '12px', color: COLORS.textMuted, marginTop: 2 }}>{blocked ? (p.listingOnly ? 'Only available when you promote a Marketplace listing.' : 'Only available when you promote your company profile.') : p.help}</p>
                   </div>
                 </div>
               )
