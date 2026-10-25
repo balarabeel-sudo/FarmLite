@@ -48,9 +48,9 @@ export function displayStatus(a: Pick<AdRow, 'status' | 'ends_at'>): DisplayStat
   }
 }
 
-export const PLACEMENTS: { key: Placement; label: string; help: string; companyOnly?: boolean; needsQuery?: boolean }[] = [
+export const PLACEMENTS: { key: Placement; label: string; help: string; companyOnly?: boolean; listingOnly?: boolean; needsQuery?: boolean }[] = [
   { key: 'home', label: 'Home Feed', help: 'Shown between posts on the Home feed.' },
-  { key: 'marketplace', label: 'Marketplace', help: 'Shown among listings in the Marketplace.' },
+  { key: 'marketplace', label: 'Marketplace', help: 'Shown among listings in the Marketplace. Marketplace listing ads only.', listingOnly: true },
   { key: 'companies', label: 'Companies page', help: 'Shown on the Companies page. Company ads only.', companyOnly: true },
   { key: 'search', label: 'Search results', help: 'Shown when a search matches your ad.' },
   { key: 'groups', label: 'Groups', help: 'Shown inside the groups you choose, after every 10 posts. Priced as an add-on.' },
@@ -120,6 +120,7 @@ export const AD_ERRORS: Record<string, string> = {
   links_not_allowed: 'Links are not allowed in ads. Remove the web address.',
   account_not_allowed: 'Your account cannot create ads right now.',
   email_not_confirmed: 'Please confirm your email before creating ads.',
+  marketplace_listings_only: 'The Marketplace is only for listing ads. Remove the Marketplace placement or promote a listing.',
   too_many_today: 'You have created too many ads today. Please try again tomorrow.',
 }
 
