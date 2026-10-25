@@ -18,7 +18,11 @@ const COLORS = {
 // What ads_for_slot() returns for each ad.
 export type AdData = {
   id: string
-  target_type: 'listing' | 'company'
+  target_type: 'listing' | 'company' | 'post' | 'video' | 'profile'
+  advertiser_type?: 'company' | 'user'
+  post_id?: string | null
+  video_id?: string | null
+  username?: string | null
   headline: string
   body: string | null
   image_url: string | null
@@ -66,7 +70,15 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
 
   const image = ad.image_url || (ad.target_type === 'listing' ? ad.listing?.images?.[0] : null) || ad.company.logo_url || null
   const premium = isPremiumActive(ad.company.is_premium, ad.company.premium_until)
-  const target = ad.target_type === 'listing' && ad.listing ? `/listing/${ad.listing.id}` : `/companies/${ad.company.id}`
+  const target =
+    ad.target_type === 'listing' && ad.listing ? `/listing/${ad.listing.id}`
+    : ad.target_type === 'post' && ad.post_id ? `/post/${ad.post_id}`
+    : ad.target_type === 'video' && ad.video_id ? `/videos/${ad.video_id}`
+    : ad.target_type === 'profile' && ad.username ? `/u/${ad.username}`
+    : ad.target_type === 'company' ? `/companies/${ad.company.id}`
+    : '/'
+  const actionLabel = ad.target_type === 'listing' ? 'View listing' : ad.target_type === 'post' ? 'View post' : ad.target_type === 'video' ? 'Watch video' : ad.target_type === 'profile' ? 'View profile' : 'View company'
+  const fallbackIcon = ad.target_type === 'company' ? 'building' : ad.target_type === 'listing' ? 'leaf' : 'user'
 
   const open = () => {
     if (preview) return
@@ -91,7 +103,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
     return (
       <div ref={ref} onClick={open} style={{ background: COLORS.card, borderRadius: '16px', overflow: 'hidden', marginBottom: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: preview ? 'default' : 'pointer' }}>
         <div style={{ position: 'relative', width: '100%', height: '150px', background: COLORS.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={ad.target_type === 'company' ? 'building' : 'leaf'} size={34} color={COLORS.green} />}
+          {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={fallbackIcon} size={34} color={COLORS.green} />}
           {badge}
         </div>
         <div style={{ padding: '12px 14px' }}>
@@ -100,7 +112,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
           {ad.body && <p style={{ fontSize: '12.5px', color: COLORS.textMuted, lineHeight: 1.45, marginTop: '4px' }}>{ad.body}</p>}
           {ad.listing && <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.green, marginTop: '6px' }}>{priceLabel(ad.listing)}</p>}
           <div style={{ marginTop: '10px', display: 'inline-block', background: COLORS.green, color: 'white', fontSize: '12px', fontWeight: 800, padding: '8px 16px', borderRadius: '10px' }}>
-            {ad.target_type === 'listing' ? 'View listing' : 'View company'}
+            {actionLabel}
           </div>
         </div>
       </div>
@@ -110,14 +122,14 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
   return (
     <div ref={ref} onClick={open} style={{ background: COLORS.card, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: preview ? 'default' : 'pointer', border: `1px solid ${COLORS.greenSoft}` }}>
       <div style={{ width: '100%', height: '100px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-        {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={ad.target_type === 'company' ? 'building' : 'leaf'} size={26} color={COLORS.green} />}
+        {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={fallbackIcon} size={26} color={COLORS.green} />}
         {badge}
       </div>
       <div style={{ padding: '10px' }}>
         <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ad.headline}</p>
         {ad.listing
           ? <p style={{ fontSize: '12.5px', fontWeight: 800, color: COLORS.green, marginTop: '4px' }}>{priceLabel(ad.listing)}</p>
-          : <p style={{ fontSize: '11px', color: COLORS.greenDark, fontWeight: 700, marginTop: '4px' }}>View company</p>}
+          : <p style={{ fontSize: '11px', color: COLORS.greenDark, fontWeight: 700, marginTop: '4px' }}>{actionLabel}</p>}
         <div style={{ marginTop: '4px' }}>{owner}</div>
       </div>
     </div>
