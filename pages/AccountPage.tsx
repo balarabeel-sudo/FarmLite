@@ -119,6 +119,7 @@ export default function AccountPage() {
 
             <Section>
               <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
+              <Row icon="tag" label="My Ads" onClick={() => navigate('/my-ads')} />
             </Section>
 
             <Section title="FarmBot">
