@@ -55,7 +55,7 @@ export default function MyAdNewPage() {
   const [locations, setLocations] = useState<string[]>([])
   const [locDraft, setLocDraft] = useState('')
 
-  const [placements, setPlacements] = useState<Placement[]>(['home', 'marketplace'])
+  const [placements, setPlacements] = useState<Placement[]>(['home'])
   const [pickedGroups, setPickedGroups] = useState<GroupPick[]>([])
   const [groupQuery, setGroupQuery] = useState('')
   const [groupResults, setGroupResults] = useState<GroupPick[]>([])
@@ -122,7 +122,7 @@ export default function MyAdNewPage() {
   // Pre-select from the link (e.g. coming from one of my own posts).
   useEffect(() => {
     const t = params.get('type') as Kind | null
-    if (t && ['post', 'listing', 'video', 'profile'].includes(t)) setKind(t)
+    if (t && ['post', 'listing', 'video', 'profile'].includes(t)) { setKind(t); if (t === 'listing') setPlacements(['home', 'marketplace']) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
@@ -165,6 +165,9 @@ export default function MyAdNewPage() {
 
   const switchKind = (k: Kind) => {
     setKind(k)
+    // The Marketplace is only for listing ads.
+    if (k !== 'listing') setPlacements((pl) => pl.filter((x) => x !== 'marketplace'))
+    else setPlacements((pl) => (pl.includes('marketplace') ? pl : [...pl, 'marketplace']))
     setTargetId('')
     setImage(null)
     setCustomImage([])
@@ -366,13 +369,14 @@ export default function MyAdNewPage() {
           <Card title="Where should your ad appear?">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {USER_PLACEMENTS.map((p) => {
-                const on = placements.includes(p.key)
+                const blocked = p.key === 'marketplace' && kind !== 'listing'
+                const on = placements.includes(p.key) && !blocked
                 return (
-                  <div key={p.key} onClick={() => togglePlacement(p.key)} style={{ ...choice(on), display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div key={p.key} onClick={blocked ? undefined : () => togglePlacement(p.key)} style={{ ...choice(on), display: 'flex', alignItems: 'center', gap: '12px', opacity: blocked ? 0.55 : 1, cursor: blocked ? 'not-allowed' : 'pointer' }}>
                     <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${on ? COLORS.green : '#B7C7B7'}`, background: on ? COLORS.green : 'transparent', color: 'white', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on ? '✓' : ''}</span>
                     <div>
                       <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text, margin: 0 }}>{p.label}</p>
-                      <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '2px 0 0' }}>{p.help}</p>
+                      <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '2px 0 0' }}>{blocked ? 'Only available when you promote a Marketplace listing.' : p.help}</p>
                     </div>
                   </div>
                 )
