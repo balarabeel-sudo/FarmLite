@@ -149,6 +149,7 @@ export default function AccountPage() {
               <Row icon="helpCircle" label="Help & Support" onClick={() => navigate('/help')} />
               <Row icon="fileText" label="Terms & Conditions" onClick={() => navigate('/terms')} />
               <Row icon="shield" label="Privacy Policy" onClick={() => navigate('/privacy')} />
+              <Row icon="trash" label="Delete account" onClick={() => navigate('/delete-account')} danger />
               <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
             </Section>
 

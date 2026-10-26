@@ -376,8 +376,8 @@ export default function UserProfilePage() {
         </MetaRow>
 
         <CountsRow items={[
-          { value: compact(profile.following_count || 0), label: 'Following' },
-          { value: compact(profile.followers_count || 0), label: 'Followers' },
+          { value: compact(profile.following_count || 0), label: 'Following', onClick: () => navigate(`/u/${profile.username}/following`) },
+          { value: compact(profile.followers_count || 0), label: 'Followers', onClick: () => navigate(`/u/${profile.username}/followers`) },
           { value: compact(likesReceived), label: 'Likes' },
         ]} />
 

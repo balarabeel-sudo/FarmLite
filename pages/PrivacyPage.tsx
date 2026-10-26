@@ -228,7 +228,7 @@ const SECTIONS: Section[] = [
     title: 'Account deletion',
     review: 'There is no in-app account deletion yet. The approved deletion process must be defined before publishing.',
     blocks: [
-      { p: 'Farmxie does not yet have a button to delete your account inside the app. To ask for your account to be deleted, use Contact Support on the Help & Support page. We may need to confirm that the request really comes from you, and we will reply as soon as we reasonably can.' },
+      { p: 'You can delete your account inside the app: open Account, then Delete account. Your account is deleted 30 days after your request, and you can cancel the request at any time before then. Money in your wallet, open orders and running ads must be settled first. You can also use Contact Support on the Help & Support page.' },
       { p: 'When deletion is processed, we will remove or anonymise personal information we no longer need. Some information may be kept for the reasons in the data retention section, such as transaction records, open disputes, or legal and security needs. Posts and messages that you shared with others may remain visible to the other people involved until they are removed.' },
     ],
   },

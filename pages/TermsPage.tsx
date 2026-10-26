@@ -263,7 +263,7 @@ const SECTIONS: Section[] = [
     title: 'Termination',
     blocks: [
       { list: [
-        'You may stop using Farmxie at any time. To close your account, use Contact Support on the Help & Support page.',
+        'You may stop using Farmxie at any time. To close your account, open Account, then Delete account. Your account is deleted 30 days after your request, and you can cancel before then.',
         'We may suspend or end your access if you break these Terms, put others at risk, misuse payments, or if the law requires it. Where practical, we will give notice and a reason.',
         'If an account is closed, access to it ends. Some information may be kept where needed for legal, security, accounting or dispute purposes, as explained in the Privacy Policy.',
         'Any money in your wallet that belongs to you can be withdrawn under the withdrawal rules, unless it is subject to an open dispute, investigation or legal requirement.',
