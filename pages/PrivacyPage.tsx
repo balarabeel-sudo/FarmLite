@@ -14,16 +14,17 @@ import Icon from '../Icons'
 // Keep this page consistent with pages/TermsPage.tsx (minimum age, contact, deletion).
 // ---------------------------------------------------------------------------
 
-const SHOW_DRAFT_FLAGS = true
+const SHOW_DRAFT_FLAGS = false
 
-const EFFECTIVE_DATE = '[EFFECTIVE DATE: to be set by the owner at publication]'
-const LAST_UPDATED = 'October 15, 2026 (draft)'
+const EFFECTIVE_DATE = 'October 26, 2026'
+const LAST_UPDATED = 'October 26, 2026'
 
-const LEGAL_NAME = '[REGISTERED COMPANY NAME]'
-const REG_NUMBER = '[CAC REGISTRATION NUMBER]'
-const REG_ADDRESS = '[REGISTERED OFFICE ADDRESS]'
-const PRIVACY_EMAIL = '[PRIVACY CONTACT EMAIL]'
-const DPO_NAME = '[DATA PROTECTION OFFICER NAME / CONTACT, IF APPOINTED]'
+// Fill these in when you want them shown in the Contact section. An empty value hides its row.
+const LEGAL_NAME = ''
+const REG_NUMBER = ''
+const REG_ADDRESS = ''
+const PRIVACY_EMAIL = ''
+const DPO_NAME = ''
 
 const COLORS = {
   bg: 'var(--fx-bg)',
@@ -158,7 +159,7 @@ const SECTIONS: Section[] = [
         'legal, tax, accounting and regulatory requirements;',
         'security, fraud prevention and dispute needs, including open orders, reports or investigations.',
       ] },
-      { p: 'Some records, such as wallet transactions, orders and payment references, may need to be kept even after you ask for deletion. Specific retention periods: [TO BE DEFINED BY THE OWNER WITH LEGAL ADVICE].' },
+      { p: 'Some records, such as wallet transactions, orders and payment references, may need to be kept even after you ask for deletion. We keep them for as long as needed for legal, accounting, dispute and security purposes.' },
     ],
   },
   {
@@ -227,7 +228,7 @@ const SECTIONS: Section[] = [
     title: 'Account deletion',
     review: 'There is no in-app account deletion yet. The approved deletion process must be defined before publishing.',
     blocks: [
-      { p: 'Farmxie does not yet have a button to delete your account inside the app. Approved account deletion request process: [TO BE COMPLETED BY THE OWNER BEFORE PUBLICATION, for example email, verification steps and response time].' },
+      { p: 'Farmxie does not yet have a button to delete your account inside the app. To ask for your account to be deleted, use Contact Support on the Help & Support page. We may need to confirm that the request really comes from you, and we will reply as soon as we reasonably can.' },
       { p: 'When deletion is processed, we will remove or anonymise personal information we no longer need. Some information may be kept for the reasons in the data retention section, such as transaction records, open disputes, or legal and security needs. Posts and messages that you shared with others may remain visible to the other people involved until they are removed.' },
     ],
   },
@@ -236,7 +237,7 @@ const SECTIONS: Section[] = [
     title: 'Children’s privacy',
     review: 'The minimum age must match the Terms & Conditions and Nigerian law, including rules for children’s data.',
     blocks: [
-      { p: 'Minimum age for Farmxie: [MINIMUM AGE TO BE CONFIRMED BY THE OWNER AFTER LEGAL REVIEW, and kept the same as in the Terms & Conditions].' },
+      { p: 'Minimum age for Farmxie: you must be at least 18 years old to create an account.' },
       { p: 'Farmxie is not intended for children below that age, and we do not knowingly collect their personal information. If you believe a child has given us personal information, contact us and we will take steps to remove it.' },
     ],
   },
@@ -254,7 +255,7 @@ const SECTIONS: Section[] = [
     title: 'Policy updates',
     blocks: [
       { p: 'We may update this policy when our practices or the law change. For important changes we will tell you through the app, by notification or by email, and we will update the “Last updated” date above.' },
-      { p: 'Changes take effect on the date stated in the notice, normally at least [NOTICE PERIOD TO BE CONFIRMED] days after we tell you, unless a faster change is required by law or for security. If you keep using Farmxie after that date, the updated policy applies to you.' },
+      { p: 'Changes take effect on the date stated in the notice, normally after we give you reasonable notice, unless a faster change is required by law or for security. If you keep using Farmxie after that date, the updated policy applies to you.' },
     ],
   },
   {
@@ -375,15 +376,15 @@ export default function PrivacyPage() {
 
             {s.id === 'contact' && (
               <div style={{ marginTop: '14px', background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px', padding: '16px', display: 'grid', gap: '6px', ...body }}>
-                <p><strong>Company:</strong> {renderText(LEGAL_NAME)}</p>
-                <p><strong>Registration number:</strong> {renderText(REG_NUMBER)}</p>
-                <p><strong>Registered office:</strong> {renderText(REG_ADDRESS)}</p>
-                <p><strong>Privacy contact:</strong> {renderText(PRIVACY_EMAIL)}</p>
-                <p><strong>Data protection officer:</strong> {renderText(DPO_NAME)}</p>
+                {LEGAL_NAME && <p><strong>Company:</strong> {LEGAL_NAME}</p>}
+                {REG_NUMBER && <p><strong>Registration number:</strong> {REG_NUMBER}</p>}
+                {REG_ADDRESS && <p><strong>Registered office:</strong> {REG_ADDRESS}</p>}
+                {PRIVACY_EMAIL && <p><strong>Privacy contact:</strong> {PRIVACY_EMAIL}</p>}
+                {DPO_NAME && <p><strong>Data protection officer:</strong> {DPO_NAME}</p>}
                 <p>
                   <strong>Related:</strong>{' '}
                   <Link to="/terms" style={linkStyle}>Terms &amp; Conditions</Link>
-                  {' '}| Help &amp; Support: <Ph>[HELP &amp; SUPPORT PAGE NOT BUILT YET: link to be added when it exists]</Ph>
+                  {' '}| <Link to="/help" style={linkStyle}>Help &amp; Support</Link>
                 </p>
               </div>
             )}

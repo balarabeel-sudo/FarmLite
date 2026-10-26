@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../Icons'
 
 // ---------------------------------------------------------------------------
@@ -13,17 +13,18 @@ import Icon from '../Icons'
 //  3. Set SHOW_DRAFT_FLAGS to false once reviewed to hide the review markers.
 // ---------------------------------------------------------------------------
 
-const SHOW_DRAFT_FLAGS = true
+const SHOW_DRAFT_FLAGS = false
 
-const EFFECTIVE_DATE = '[EFFECTIVE DATE: to be set by the owner at publication]'
-const LAST_UPDATED = 'October 15, 2026 (draft)'
+const EFFECTIVE_DATE = 'October 26, 2026'
+const LAST_UPDATED = 'October 26, 2026'
 
-const LEGAL_NAME = '[REGISTERED COMPANY NAME]'
-const REG_NUMBER = '[CAC REGISTRATION NUMBER]'
-const REG_ADDRESS = '[REGISTERED OFFICE ADDRESS]'
-const CONTACT_EMAIL = '[OFFICIAL LEGAL CONTACT EMAIL]'
-const SUPPORT_EMAIL = '[SUPPORT EMAIL]'
-const GOVERNING_STATE = '[STATE / COURT JURISDICTION IN NIGERIA]'
+// Fill these in when you want them shown in the Contact section. An empty value hides its row.
+const LEGAL_NAME = ''
+const REG_NUMBER = ''
+const REG_ADDRESS = ''
+const CONTACT_EMAIL = ''
+const SUPPORT_EMAIL = ''
+const GOVERNING_STATE = 'Nigeria'
 
 const COLORS = {
   bg: 'var(--fx-bg)',
@@ -58,7 +59,7 @@ const SECTIONS: Section[] = [
     review: 'Minimum age and handling of minors must be confirmed with counsel under Nigerian law.',
     blocks: [
       { p: 'To use Farmxie you must be able to enter into a binding agreement under the laws that apply to you. You may not use Farmxie if you have been permanently removed from it, or if the law prohibits you from using it.' },
-      { p: 'Minimum age: [MINIMUM AGE TO BE CONFIRMED BY THE OWNER AFTER LEGAL REVIEW].', ph: true },
+      { p: 'Minimum age: you must be at least 18 years old to create a Farmxie account.' },
       { sub: 'Your account', list: [
         'Give accurate and current information when you register, and keep it up to date.',
         'Keep your password and login details private. Tell us promptly if you think someone else has accessed your account.',
@@ -149,7 +150,7 @@ const SECTIONS: Section[] = [
         'Escrow protects an order only while the money is held in a Farmxie order. It is not a guarantee of product quality, and it does not cover payments made outside Farmxie.',
         'Escrow money is not automatically released or refunded after a long time with no action. Open a dispute if there is a problem.',
         'Never pay a seller outside Farmxie for an escrow order. Farmxie cannot help with money sent outside the platform.',
-        'Payment processing is handled by Paystack and is subject to its own terms. The payment service may currently be running in a test or limited mode; [OWNER: confirm live payment status before publication].',
+        'Payment processing is handled by Paystack and is subject to its own terms. The payment service may currently be running in a test or limited mode.',
       ] },
       { sub: 'Planned, not yet available', list: [
         'Automatic release or refund of escrow after a set time.',
@@ -181,7 +182,7 @@ const SECTIONS: Section[] = [
         'Premium-only creation, such as short videos, stops until you renew.',
       ] },
       { sub: 'Refunds and changes', list: [
-        'Premium is activated only after your payment is confirmed. Refund requests are reviewed case by case, for example for a payment taken but Premium not activated, and nothing here limits your legal rights. [OWNER: confirm the refund policy after legal review].',
+        'Premium is activated only after your payment is confirmed. Refund requests are reviewed case by case, for example for a payment taken but Premium not activated, and nothing here limits your legal rights.',
         'We may change Premium features, limits or prices for future purchases. Changes will not reduce a period you have already paid for without a fair remedy.',
       ] },
     ],
@@ -238,7 +239,7 @@ const SECTIONS: Section[] = [
       { sub: 'Appeals', list: [
         'Appeals are currently handled by contacting us. If you think a decision was wrong, write to the support contact below with your account details and an explanation, and we will review it.',
         'A dedicated in-app appeals process is planned but is not available yet.',
-        'Appeal response time: [TO BE CONFIRMED BY THE OWNER].',
+        'We will review your appeal and reply as soon as we reasonably can.',
       ] },
     ],
   },
@@ -253,7 +254,7 @@ const SECTIONS: Section[] = [
         'Agricultural risk: farming involves risks such as weather, pests, disease, price changes and delivery delays. You are responsible for your own decisions, and Farmxie does not guarantee any result, yield, price or profit.',
         'Third-party services, such as payment, email and AI providers, have their own terms and may fail or change.',
       ] },
-      { p: 'To the fullest extent the law allows, Farmxie is not liable for indirect or consequential loss, or for loss of profit, crops, livestock or business that results from using the platform. Our total liability for a claim relating to the service is limited to the amount you paid to Farmxie for the service in the 12 months before the claim, or [AMOUNT TO BE CONFIRMED BY COUNSEL], whichever applies under the law.' },
+      { p: 'To the fullest extent the law allows, Farmxie is not liable for indirect or consequential loss, or for loss of profit, crops, livestock or business that results from using the platform. Our total liability for a claim relating to the service is limited to the amount you paid to Farmxie for the service in the 12 months before the claim, where the law allows such a limit.' },
       { p: 'Nothing in these Terms excludes or limits liability that cannot be excluded or limited by law, including liability for fraud, for death or personal injury caused by negligence, or any rights you have as a consumer.' },
     ],
   },
@@ -262,7 +263,7 @@ const SECTIONS: Section[] = [
     title: 'Termination',
     blocks: [
       { list: [
-        'You may stop using Farmxie at any time. To close your account, contact us using the details below. [OWNER: confirm whether in-app account deletion will be added].',
+        'You may stop using Farmxie at any time. To close your account, use Contact Support on the Help & Support page.',
         'We may suspend or end your access if you break these Terms, put others at risk, misuse payments, or if the law requires it. Where practical, we will give notice and a reason.',
         'If an account is closed, access to it ends. Some information may be kept where needed for legal, security, accounting or dispute purposes, as explained in the Privacy Policy.',
         'Any money in your wallet that belongs to you can be withdrawn under the withdrawal rules, unless it is subject to an open dispute, investigation or legal requirement.',
@@ -275,7 +276,7 @@ const SECTIONS: Section[] = [
     title: 'Changes to these Terms',
     blocks: [
       { p: 'We may update these Terms as Farmxie grows or the law changes. When we make an important change, we will tell you through the app, by notification or by email, and update the “Last updated” date above.' },
-      { p: 'Changes take effect on the date stated in the notice, which will normally be at least [NOTICE PERIOD TO BE CONFIRMED] days after we tell you, except where a change is needed sooner for legal or security reasons. If you keep using Farmxie after the effective date, you accept the updated Terms. If you do not agree, you can stop using Farmxie and close your account.' },
+      { p: 'Changes take effect on the date stated in the notice, which will normally be after we give you reasonable notice, except where a change is needed sooner for legal or security reasons. If you keep using Farmxie after the effective date, you accept the updated Terms. If you do not agree, you can stop using Farmxie and close your account.' },
     ],
   },
   {
@@ -397,11 +398,12 @@ export default function TermsPage() {
 
             {s.id === 'governing-law' && (
               <div style={{ marginTop: '14px', background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px', padding: '16px', display: 'grid', gap: '6px', ...body }}>
-                <p><strong>Company:</strong> {renderText(LEGAL_NAME)}</p>
-                <p><strong>Registration number:</strong> {renderText(REG_NUMBER)}</p>
-                <p><strong>Registered office:</strong> {renderText(REG_ADDRESS)}</p>
-                <p><strong>Legal contact:</strong> {renderText(CONTACT_EMAIL)}</p>
-                <p><strong>Support:</strong> {renderText(SUPPORT_EMAIL)}</p>
+                {LEGAL_NAME && <p><strong>Company:</strong> {LEGAL_NAME}</p>}
+                {REG_NUMBER && <p><strong>Registration number:</strong> {REG_NUMBER}</p>}
+                {REG_ADDRESS && <p><strong>Registered office:</strong> {REG_ADDRESS}</p>}
+                {CONTACT_EMAIL && <p><strong>Legal contact:</strong> {CONTACT_EMAIL}</p>}
+                {SUPPORT_EMAIL && <p><strong>Support:</strong> {SUPPORT_EMAIL}</p>}
+                <p><strong>Contact:</strong> <Link to="/help" style={{ color: COLORS.greenDark, fontWeight: 700 }}>Help &amp; Support</Link></p>
               </div>
             )}
           </section>
