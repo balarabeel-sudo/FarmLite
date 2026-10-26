@@ -70,6 +70,8 @@ import CompanyAdPerformancePage from './company/CompanyAdPerformancePage'
 import CompanyAdBillingPage from './company/CompanyAdBillingPage'
 import MyAdsPage from './pages/MyAdsPage'
 import PeoplePage from './pages/PeoplePage'
+import FollowListPage from './pages/FollowListPage'
+import DeleteAccountPage from './pages/DeleteAccountPage'
 import MyAdNewPage from './pages/MyAdNewPage'
 import MyAdDetailPage from './pages/MyAdDetailPage'
 import MyAdVerifyPage from './pages/MyAdVerifyPage'
@@ -364,6 +366,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/u/:username/followers" element={<ProtectedRoute><FollowListPage kind="followers" /></ProtectedRoute>} />
+            <Route path="/u/:username/following" element={<ProtectedRoute><FollowListPage kind="following" /></ProtectedRoute>} />
             <Route
               path="/u/:username"
               element={
@@ -429,6 +433,7 @@ function App() {
             />
 
             {/* My Ads: a person promotes their own post, listing, video or profile. "new" and "verify" come before ":id" */}
+            <Route path="/delete-account" element={<ProtectedRoute><DeleteAccountPage /></ProtectedRoute>} />
             <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
             <Route path="/my-ads" element={<ProtectedRoute><MyAdsPage /></ProtectedRoute>} />
             <Route path="/my-ads/new" element={<ProtectedRoute><MyAdNewPage /></ProtectedRoute>} />
