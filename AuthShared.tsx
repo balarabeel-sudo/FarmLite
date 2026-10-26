@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode, InputHTMLAttributes } from 'react'
 import { supabase } from './supabaseClient'
 import FarmLiteLogo from './FarmLiteLogo'
@@ -161,9 +161,77 @@ function GoogleG() {
   )
 }
 
-// Google signs in through Supabase.
+// Google sign-in with Google Identity Services: the person picks an account in a Google window that shows the
+// Farmxie name (not the Supabase address) and Google hands us a signed ID token, which Supabase checks.
+// If Google's script cannot load (blocked, offline), the old redirect sign-in is used instead.
+const GOOGLE_CLIENT_ID = '592301393081-nlfe9j42f2cia5blhbhcl06hosb03tsb.apps.googleusercontent.com'
+
+let gsiLoader: Promise<void> | null = null
+function loadGoogleScript(): Promise<void> {
+  if ((window as any).google?.accounts?.id) return Promise.resolve()
+  if (gsiLoader) return gsiLoader
+  gsiLoader = new Promise<void>((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = 'https://accounts.google.com/gsi/client'
+    el.async = true
+    el.defer = true
+    el.onload = () => ((window as any).google?.accounts?.id ? resolve() : reject(new Error('gsi')))
+    el.onerror = () => { gsiLoader = null; reject(new Error('gsi')) }
+    document.head.appendChild(el)
+  })
+  return gsiLoader
+}
+
+const toHex = (buf: ArrayBuffer) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+
 export function GoogleButton({ label, onError }: { label: string; onError: (message: string) => void }) {
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'loading' | 'google' | 'fallback'>('loading')
+  const holder = useRef<HTMLDivElement>(null)
+  const errorRef = useRef(onError)
+  errorRef.current = onError
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        if (!window.crypto?.subtle) throw new Error('no-crypto')
+        await loadGoogleScript()
+        if (!alive || !holder.current) return
+        // Supabase checks that the token was issued for this sign-in: Google gets the hashed nonce, Supabase the raw one.
+        const raw = toHex(window.crypto.getRandomValues(new Uint8Array(16)).buffer)
+        const hashed = toHex(await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)))
+        const g = (window as any).google.accounts.id
+        g.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: hashed,
+          auto_select: false,
+          use_fedcm_for_prompt: true,
+          callback: async (resp: { credential?: string }) => {
+            if (!resp?.credential) { errorRef.current('Could not continue with Google. Please try again.'); return }
+            setBusy(true)
+            errorRef.current('')
+            const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw })
+            if (error) {
+              setBusy(false)
+              errorRef.current(error.message || 'Could not continue with Google. Please try again.')
+            }
+            // On success the signed-in session is picked up by the app, same as any other sign-in.
+          },
+        })
+        const width = Math.max(200, Math.min(400, Math.round(holder.current.offsetWidth || 320)))
+        holder.current.innerHTML = ''
+        g.renderButton(holder.current, {
+          type: 'standard', theme: 'outline', size: 'large', shape: 'pill', logo_alignment: 'left',
+          text: /sign up/i.test(label) ? 'signup_with' : 'continue_with', width,
+        })
+        setMode('google')
+      } catch {
+        if (alive) setMode('fallback')
+      }
+    })()
+    return () => { alive = false }
+  }, [label])
 
   const go = async () => {
     if (busy) return
@@ -178,19 +246,26 @@ export function GoogleButton({ label, onError }: { label: string; onError: (mess
   }
 
   return (
-    <button
-      type="button"
-      onClick={go}
-      disabled={busy}
-      style={{
-        width: '100%', height: '54px', borderRadius: '14px', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: busy ? 'default' : 'pointer',
-        fontSize: '16px', fontWeight: 600, color: AUTH.text, fontFamily: 'inherit', opacity: busy ? 0.6 : 1,
-      }}
-    >
-      <GoogleG />
-      {busy ? 'Opening...' : label}
-    </button>
+    <>
+      <div style={{ display: mode === 'google' ? 'flex' : 'none', justifyContent: 'center', width: '100%', minHeight: '44px', opacity: busy ? 0.5 : 1, pointerEvents: busy ? 'none' : 'auto' }}>
+        <div ref={holder} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
+      </div>
+      {mode !== 'google' && (
+        <button
+          type="button"
+          onClick={go}
+          disabled={busy || mode === 'loading'}
+          style={{
+            width: '100%', height: '54px', borderRadius: '14px', background: 'var(--fx-card)', border: `1.5px solid ${AUTH.fieldBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: busy || mode === 'loading' ? 'default' : 'pointer',
+            fontSize: '16px', fontWeight: 600, color: AUTH.text, fontFamily: 'inherit', opacity: busy || mode === 'loading' ? 0.6 : 1,
+          }}
+        >
+          <GoogleG />
+          {busy ? 'Opening...' : label}
+        </button>
+      )}
+    </>
   )
 }
 
