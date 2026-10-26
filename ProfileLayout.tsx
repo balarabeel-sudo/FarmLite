@@ -198,11 +198,11 @@ export function MetaItem({ icon, children }: { icon: ReactNode; children: ReactN
 }
 
 // "12 Following  34 Followers" style counts.
-export function CountsRow({ items }: { items: { value: string; label: string }[] }) {
+export function CountsRow({ items }: { items: { value: string; label: string; onClick?: () => void }[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 18px', marginTop: '10px' }}>
       {items.map((it) => (
-        <div key={it.label} style={{ fontSize: '12.5px', color: PCOLORS.textMuted }}>
+        <div key={it.label} onClick={it.onClick} role={it.onClick ? 'button' : undefined} style={{ fontSize: '12.5px', color: PCOLORS.textMuted, cursor: it.onClick ? 'pointer' : 'default' }}>
           <span style={{ fontWeight: 800, color: PCOLORS.text }}>{it.value}</span> {it.label}
         </div>
       ))}

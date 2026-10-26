@@ -31,9 +31,9 @@ export async function dismissSuggestedPerson(userId: string): Promise<boolean> {
   return !error
 }
 
-export const personName = (p: SuggestedPerson) => p.full_name?.trim() || p.username
+export const personName = (p: Pick<SuggestedPerson, 'full_name' | 'username'>) => p.full_name?.trim() || p.username
 
-export function PersonAvatar({ p, size }: { p: SuggestedPerson; size: number }) {
+export function PersonAvatar({ p, size }: { p: Pick<SuggestedPerson, 'full_name' | 'username' | 'profile_image'>; size: number }) {
   const letter = personName(p).charAt(0).toUpperCase()
   return p.profile_image ? (
     <img src={p.profile_image} alt="" loading="lazy" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--fx-grey2)' }} />
@@ -42,6 +42,6 @@ export function PersonAvatar({ p, size }: { p: SuggestedPerson; size: number }) 
   )
 }
 
-export function PersonTick({ p }: { p: SuggestedPerson }) {
+export function PersonTick({ p }: { p: Pick<SuggestedPerson, 'is_premium' | 'premium_until'> }) {
   return isPremiumActive(p.is_premium, p.premium_until) ? <PremiumTick size={14} /> : null
 }

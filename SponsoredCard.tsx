@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import Icon from './Icons'
 import PremiumTick from './PremiumTick'
 import { isPremiumActive } from './premiumShared'
+import ReportSheet from './ReportSheet'
 
 const COLORS = {
   card: 'var(--fx-card)',
@@ -48,7 +49,35 @@ function priceLabel(l: NonNullable<AdData['listing']>) {
 // `placement` is where it is shown (used for per-placement analytics).
 // layout "grid" matches a Marketplace listing card, "wide" fits the Home feed.
 // With `preview` it is a static preview (used while creating an ad): nothing is tracked or clickable.
-export default function SponsoredCard({ ad, layout = 'grid', preview = false, placement }: { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean; placement?: 'home' | 'marketplace' | 'companies' | 'search' | 'groups' }) {
+type CardProps = { ad: AdData; layout?: 'grid' | 'wide'; preview?: boolean; placement?: 'home' | 'marketplace' | 'companies' | 'search' | 'groups' }
+
+export default function SponsoredCard(props: CardProps) {
+  const [reportOpen, setReportOpen] = useState(false)
+  const { ad } = props
+  const byCompany = ad.advertiser_type !== 'user'
+  return (
+    <>
+      <SponsoredCardBody {...props} onReport={props.preview ? undefined : () => setReportOpen(true)} />
+      {reportOpen && (
+        // Clicks inside the sheet must not reach the card behind it (that would open the ad).
+        <div onClick={(e) => e.stopPropagation()}>
+          <ReportSheet
+            open
+            onClose={() => setReportOpen(false)}
+            type={byCompany ? 'company' : 'other'}
+            contentId={byCompany ? ad.company.id : null}
+            userId={byCompany ? null : ad.company.id}
+            titleLabel="ad"
+            context={`Sponsored ad ${ad.id}: ${ad.headline}`.slice(0, 200)}
+            targetLabel={`Ad: ${ad.headline}`}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
+function SponsoredCardBody({ ad, layout = 'grid', preview = false, placement, onReport }: CardProps & { onReport?: () => void }) {
   const navigate = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
   const counted = useRef(false)
@@ -92,6 +121,16 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
     </div>
   )
 
+  const reportBtn = onReport ? (
+    <div
+      onClick={(e) => { e.stopPropagation(); onReport() }}
+      role="button"
+      aria-label="Report this ad"
+      style={{ position: 'absolute', right: '6px', top: '6px', background: 'rgba(0,0,0,0.55)', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', cursor: 'pointer' }}>
+      Report
+    </div>
+  ) : null
+
   const owner = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
       <p style={{ fontSize: '10.5px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ad.company.name}</p>
@@ -105,6 +144,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
         <div style={{ position: 'relative', width: '100%', height: '150px', background: COLORS.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={fallbackIcon} size={34} color={COLORS.green} />}
           {badge}
+          {reportBtn}
         </div>
         <div style={{ padding: '12px 14px' }}>
           {owner}
@@ -124,6 +164,7 @@ export default function SponsoredCard({ ad, layout = 'grid', preview = false, pl
       <div style={{ width: '100%', height: '100px', background: 'var(--fx-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {image ? <img src={image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name={fallbackIcon} size={26} color={COLORS.green} />}
         {badge}
+          {reportBtn}
       </div>
       <div style={{ padding: '10px' }}>
         <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ad.headline}</p>
