@@ -6,6 +6,7 @@ import Icon from './Icons'
 import PostImages from './PostImages'
 import CommentsSheet from './CommentsSheet'
 import ReportSheet from './ReportSheet'
+import { addSaved, SAVED_LIMIT_MESSAGE } from './savedShared'
 import PremiumTick from './PremiumTick'
 import { isPremiumActive } from './premiumShared'
 import { followTarget, unfollowTarget, useFollowing } from './followShared'
@@ -153,9 +154,9 @@ export default function PostCard({
       setSaved(false)
       flash('Removed from saved')
     } else {
-      await supabase.from('saved_items').insert({ user_id: user.id, post_id: post.id })
-      setSaved(true)
-      flash('Post saved')
+      const r = await addSaved(user.id, 'post_id', post.id)
+      if (r === 'ok') { setSaved(true); flash('Post saved') }
+      else flash(r === 'limit' ? SAVED_LIMIT_MESSAGE : 'Could not save. Please try again.')
     }
   }
 
