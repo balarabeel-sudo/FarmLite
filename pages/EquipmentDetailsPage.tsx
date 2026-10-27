@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { addSaved, SAVED_LIMIT_MESSAGE } from '../savedShared'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
@@ -68,8 +69,11 @@ export default function EquipmentDetailsPage() {
       if (error) setSaved(true)
     } else {
       setSaved(true)
-      const { error } = await supabase.from('saved_items').insert({ user_id: user.id, equipment_id: item.id })
-      if (error) setSaved(false)
+      const r = await addSaved(user.id, 'equipment_id', item.id)
+      if (r !== 'ok') {
+        setSaved(false)
+        window.alert(r === 'limit' ? SAVED_LIMIT_MESSAGE : 'Could not save. Please try again.')
+      }
     }
   }
 

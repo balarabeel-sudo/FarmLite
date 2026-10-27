@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { addSaved, SAVED_LIMIT_MESSAGE } from '../savedShared'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import { ListCardSkeleton } from '../LoadingSkeleton'
@@ -178,8 +179,11 @@ function EquipmentBrowse() {
       if (error) setSavedIds((prev) => new Set(prev).add(id))
     } else {
       setSavedIds((prev) => new Set(prev).add(id))
-      const { error } = await supabase.from('saved_items').insert({ user_id: user.id, equipment_id: id })
-      if (error) setSavedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      const r = await addSaved(user.id, 'equipment_id', id)
+      if (r !== 'ok') {
+        setSavedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+        window.alert(r === 'limit' ? SAVED_LIMIT_MESSAGE : 'Could not save. Please try again.')
+      }
     }
   }
 

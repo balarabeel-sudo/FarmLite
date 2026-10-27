@@ -11,6 +11,7 @@ import { CATEGORIES as CATEGORY_LIST, priceText } from '../listingConfig'
 import { PAGE_SIZE, LoadMoreButton } from '../shared'
 import PremiumTick from '../PremiumTick'
 import SponsoredCard from '../SponsoredCard'
+import { addSaved, SAVED_LIMIT_MESSAGE } from '../savedShared'
 import type { AdData } from '../SponsoredCard'
 
 const COLORS = {
@@ -190,8 +191,9 @@ export default function MarketplacePage() {
       await supabase.from('saved_items').delete().eq('user_id', user.id).eq('listing_id', listingId)
       setSavedIds((prev) => { const next = new Set(prev); next.delete(listingId); return next })
     } else {
-      await supabase.from('saved_items').insert({ user_id: user.id, listing_id: listingId })
-      setSavedIds((prev) => new Set(prev).add(listingId))
+      const r = await addSaved(user.id, 'listing_id', listingId)
+      if (r === 'ok') setSavedIds((prev) => new Set(prev).add(listingId))
+      else window.alert(r === 'limit' ? SAVED_LIMIT_MESSAGE : 'Could not save. Please try again.')
     }
   }
 
