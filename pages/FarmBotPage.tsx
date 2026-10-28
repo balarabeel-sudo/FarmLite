@@ -6,6 +6,8 @@ import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
 import FarmProfileSheet from '../FarmProfileSheet'
+import { streamFarmbot } from '../farmbotStream'
+import type { WeatherData } from '../farmbotStream'
 import {
   DEFAULT_MAX_FARMBOT_PHOTOS, FARMBOT_BUSY_TEXT, FARMBOT_FREE_LIMIT_TEXT, FARMBOT_PHOTO_PREMIUM_TEXT,
   isPermissionError, removeFarmbotPhotos, signFarmbotPhotos, uploadFarmbotPhotos,
@@ -24,7 +26,7 @@ const COLORS = {
 
 // Search results FarmBot found in Farmxie, and the Farm Desk button, shown under an answer
 type ResultCard = { type: 'marketplace' | 'equipment' | 'company'; id: string; title: string; subtitle: string; image: string | null; path: string }
-type Extras = { items: ResultCard[]; farm_desk: boolean; farm_desk_request?: string | null }
+type Extras = { items: ResultCard[]; farm_desk: boolean; farm_desk_request?: string | null; weather?: WeatherData }
 
 type ChatMessage = {
   id: string
@@ -33,6 +35,7 @@ type ChatMessage = {
   images?: string[]
   uploading?: boolean
   extras?: Extras | null
+  streaming?: boolean
 }
 
 type Chat = {
@@ -63,6 +66,7 @@ const SUGGESTIONS = [
   'What is the best fertilizer for rice?',
   'When should I plant tomatoes?',
   'How do I treat sick chickens?',
+  'Will it rain on my farm this week?',
 ]
 
 function groupChats(chats: Chat[]) {
@@ -98,6 +102,7 @@ export default function FarmBotPage() {
   const [draft, setDraft] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
+  const [statusText, setStatusText] = useState('')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -230,7 +235,13 @@ export default function FarmBotPage() {
     const el = scrollRef.current
     if (!el) return
     const jump = instantScroll.current || prevLen.current === 0
-    el.scrollTo({ top: el.scrollHeight, behavior: jump ? 'auto' : 'smooth' })
+    // While an answer is being written, follow it only if the person is already near the bottom
+    const last = messages[messages.length - 1]
+    if (last?.streaming && el.scrollHeight - el.scrollTop - el.clientHeight > 180) {
+      prevLen.current = messages.length
+      return
+    }
+    el.scrollTo({ top: el.scrollHeight, behavior: jump || last?.streaming ? 'auto' : 'smooth' })
     if (!loading && messages.length > 0) instantScroll.current = false
     prevLen.current = messages.length
   }, [messages, sending, loading])
@@ -390,11 +401,79 @@ export default function FarmBotPage() {
     // Photos are uploaded: the bubble stops showing the "sending" shade
     if (!isRetry) setMessages((prev) => prev.map((m, i) => (i === prev.length - 1 && m.uploading ? { ...m, uploading: false } : m)))
 
-    const { data, error: fnError } = await supabase.functions.invoke('farmbot-chat', {
-      body: { message: content, image_paths: imagePaths, conversation_id: chatId, new_chat: !chatId },
-    })
+    // The answer is written live: text arrives in small pieces and is shown as it comes
+    // (grouped once per screen frame so the phone is not redrawn for every word).
+    const streamId = `local-${Date.now()}-r`
+    let pendingText = ''
+    let raf = 0
+    const flush = () => {
+      raf = 0
+      const chunk = pendingText
+      pendingText = ''
+      if (!chunk) return
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        if (last && last.id === streamId) return [...prev.slice(0, -1), { ...last, message: last.message + chunk }]
+        return [...prev, { id: streamId, role: 'assistant', message: chunk, streaming: true }]
+      })
+    }
+    const removeStream = () => setMessages((prev) => prev.filter((m) => m.id !== streamId))
+
+    setStatusText('')
+    const sendStartedAt = Date.now()
+    const result = await streamFarmbot(
+      { message: content, image_paths: imagePaths, conversation_id: chatId, new_chat: !chatId },
+      {
+        onDelta: (t) => { setStatusText(''); pendingText += t; if (!raf) raf = requestAnimationFrame(flush) },
+        onStatus: (t) => setStatusText(t),
+      },
+    )
+    if (raf) { cancelAnimationFrame(raf); raf = 0 }
+    flush()
+    setStatusText('')
+
+    // The connection dropped while the answer was being written. The server keeps working and saves the
+    // finished answer, so look for it for a few seconds before giving up.
+    if (result.kind === 'interrupted') {
+      setSending(false)
+      const cid = result.conversationId || chatIdRef.current
+      if (cid) {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          await new Promise((r) => setTimeout(r, 3000))
+          const { data: rows } = await supabase
+            .from('ai_conversations')
+            .select('role, message, created_at')
+            .eq('conversation_id', cid)
+            .order('created_at', { ascending: false })
+            .limit(2)
+          const r = (rows || []) as { role: string; message: string; created_at: string }[]
+          const fresh = r.length === 2 && r[0].role === 'assistant' && r[1].role === 'user' && r[1].message.trim() === content.trim()
+            && Math.abs(new Date(r[0].created_at).getTime() - sendStartedAt) < 5 * 60 * 1000
+          if (fresh) {
+            if (cid !== chatIdRef.current) setChatId(cid)
+            await loadMessages(cid, true)
+            loadChats()
+            return
+          }
+        }
+      }
+      setNotice({ kind: 'generic', text: 'The connection dropped before the answer finished. Tap Resend to ask again.', retry: content })
+      return
+    }
 
     setSending(false)
+
+    // Turn the result into the same shape the rest of this function already handles
+    let data: any = null
+    let fnError: { name?: string; message?: string } | null = null
+    if (result.kind === 'done') data = result.data
+    else if (result.kind === 'error') {
+      removeStream()
+      data = { code: result.code, error: result.error, usage: result.usage }
+    } else {
+      removeStream()
+      fnError = { name: 'FunctionsFetchError', message: 'Failed to fetch' }
+    }
 
     // The photos were not used, so they are removed again
     const dropPhotos = () => { if (imagePaths.length > 0) removeFarmbotPhotos(imagePaths) }
@@ -448,7 +527,13 @@ export default function FarmBotPage() {
 
     if (data.usage) setUsage(data.usage)
     if (data.conversation_id && data.conversation_id !== chatId) setChatId(data.conversation_id)
-    setMessages((prev) => [...prev, { id: `local-${Date.now()}-r`, role: 'assistant', message: data.reply, extras: data.extras || null }])
+    const finalMsg: ChatMessage = { id: streamId, role: 'assistant', message: data.reply, extras: data.extras || null }
+    setMessages((prev) => {
+      const last = prev[prev.length - 1]
+      if (last && last.id === streamId) return [...prev.slice(0, -1), finalMsg]
+      return [...prev, finalMsg]
+    })
+    if (data.incomplete) setNotice({ kind: 'generic', text: 'This answer was cut short. Send "continue" to get the rest.' })
     loadChats()
   }
 
@@ -509,14 +594,14 @@ export default function FarmBotPage() {
           messages.map((m) => (
             <Fragment key={m.id}>
               <Bubble role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox} />
-              {m.role === 'assistant' && m.extras && (m.extras.items?.length > 0 || m.extras.farm_desk) && (
+              {m.role === 'assistant' && m.extras && !m.streaming && (m.extras.items?.length > 0 || m.extras.farm_desk || !!m.extras.weather) && (
                 <ExtrasBlock extras={m.extras} onOpen={(path) => navigate(path)} />
               )}
             </Fragment>
           ))
         )}
 
-        {sending && <TypingBubble />}
+        {sending && !messages[messages.length - 1]?.streaming && <TypingBubble label={statusText} />}
 
         {notice && (
           <div style={{
@@ -821,6 +906,11 @@ function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string
   const deskPath = request ? `/farm-desk/new?q=${encodeURIComponent(request)}` : '/farm-desk/new'
   return (
     <div style={{ alignSelf: 'stretch', minWidth: 0, marginTop: '-6px' }}>
+      {extras.weather && (
+        <div style={{ marginBottom: items.length > 0 || extras.farm_desk ? '8px' : 0 }}>
+          <WeatherBlock w={extras.weather} />
+        </div>
+      )}
       {items.length > 0 && (
         <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
           {items.map((c) => (
@@ -861,14 +951,47 @@ function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string
   )
 }
 
-function TypingBubble() {
+function TypingBubble({ label }: { label?: string }) {
   return (
     <div style={{ alignSelf: 'flex-start' }}>
-      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px 16px 16px 4px', padding: '13px 16px', display: 'flex', gap: '4px' }}>
+      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px 16px 16px 4px', padding: '13px 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
         {[0, 1, 2].map((i) => (
           <span key={i} style={{ width: '6px', height: '6px', borderRadius: '3px', background: COLORS.green, animation: `fbDot 1.2s infinite ${i * 0.18}s` }} />
         ))}
+        {label && <span style={{ marginLeft: '8px', fontSize: '12px', color: COLORS.textMuted }}>{label}</span>}
       </div>
+    </div>
+  )
+}
+
+// Forecast FarmBot used for its answer: the next days, with rain chance and temperatures
+function WeatherBlock({ w }: { w: WeatherData }) {
+  const fmtDay = (d: WeatherData['days'][number], i: number) => (i === 0 ? 'Today' : d.weekday)
+  return (
+    <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px', padding: '12px 12px 10px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+        <p style={{ flex: 1, minWidth: 0, fontSize: '12.5px', fontWeight: 800, color: COLORS.text, lineHeight: 1.3 }}>{w.place}</p>
+        {w.now && w.now.temp !== null && <p style={{ fontSize: '12px', fontWeight: 700, color: COLORS.greenDark, flexShrink: 0 }}>{w.now.temp}° now</p>}
+      </div>
+      {w.approximate && (
+        <p style={{ fontSize: '10.5px', color: 'var(--fx-amber-text)', marginTop: '2px' }}>Nearest area found, not the exact spot</p>
+      )}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginTop: '8px', paddingBottom: '2px', WebkitOverflowScrolling: 'touch' }}>
+        {w.days.map((d, i) => (
+          <div key={d.date} style={{ flex: '1 0 64px', minWidth: '64px', background: COLORS.bg, borderRadius: '10px', padding: '8px 6px', textAlign: 'center' }}>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: COLORS.text }}>{fmtDay(d, i)}</p>
+            <p style={{ fontSize: '10px', color: COLORS.textMuted, marginTop: '3px', lineHeight: 1.25, minHeight: '25px' }}>{d.condition}</p>
+            <p style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.text, marginTop: '3px' }}>
+              {d.tmax ?? '–'}°<span style={{ color: COLORS.textMuted, fontWeight: 500 }}> {d.tmin ?? '–'}°</span>
+            </p>
+            <p style={{ fontSize: '10.5px', fontWeight: 700, color: (d.rain_prob ?? 0) >= 60 ? '#2563EB' : COLORS.textMuted, marginTop: '3px' }}>
+              {d.rain_prob !== null ? `${d.rain_prob}% rain` : ''}
+            </p>
+            {d.rain_mm !== null && d.rain_mm >= 0.5 && <p style={{ fontSize: '10px', color: COLORS.textMuted }}>{d.rain_mm} mm</p>}
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: '9.5px', color: COLORS.textMuted, marginTop: '6px' }}>Forecast by Open-Meteo. It can change and may differ a few kilometres away.</p>
     </div>
   )
 }
