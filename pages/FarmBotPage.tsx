@@ -26,7 +26,7 @@ const COLORS = {
 
 // Search results FarmBot found in Farmxie, and the Farm Desk button, shown under an answer
 type ResultCard = { type: 'marketplace' | 'equipment' | 'company'; id: string; title: string; subtitle: string; image: string | null; path: string }
-type Extras = { items: ResultCard[]; farm_desk: boolean; farm_desk_request?: string | null; weather?: WeatherData }
+type Extras = { items: ResultCard[]; farm_desk: boolean; farm_desk_request?: string | null; weather?: WeatherData; followups?: string[] }
 
 type ChatMessage = {
   id: string
@@ -36,7 +36,17 @@ type ChatMessage = {
   uploading?: boolean
   extras?: Extras | null
   streaming?: boolean
+  dbId?: string // id of the saved answer (needed to rate it)
 }
+
+type Feedback = { rating: number; reason: string | null }
+const REASONS: { key: string; label: string }[] = [
+  { key: 'wrong', label: 'Wrong information' },
+  { key: 'unhelpful', label: 'Not helpful' },
+  { key: 'too_long', label: 'Too long' },
+  { key: 'unsafe', label: 'Unsafe advice' },
+  { key: 'other', label: 'Other' },
+]
 
 type Chat = {
   id: string
@@ -103,6 +113,8 @@ export default function FarmBotPage() {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
   const [statusText, setStatusText] = useState('')
+  const [feedback, setFeedback] = useState<Record<string, Feedback>>({})
+  const [reasonFor, setReasonFor] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -173,8 +185,16 @@ export default function FarmBotPage() {
     // A message that is being sent right now must not be wiped by a background refresh
     if (silent && sendingRef.current) { setLoading(false); return }
     if (!silent) instantScroll.current = true
+    // Thumbs the person already gave in this chat (quiet: a failure just shows empty thumbs)
+    supabase.from('farmbot_feedback').select('message_id, rating, reason').eq('conversation_id', id).then(({ data: fb }) => {
+      if (seq !== loadSeq.current || !fb) return
+      const map: Record<string, Feedback> = {}
+      ;(fb as { message_id: string; rating: number; reason: string | null }[]).forEach((f) => { map[f.message_id] = { rating: f.rating, reason: f.reason } })
+      setFeedback(map)
+    })
     setMessages(rows.map((r) => ({
       id: r.id,
+      dbId: r.role === 'assistant' ? r.id : undefined,
       role: r.role,
       message: r.message,
       images: (r.image_paths || []).map((p) => signed[p]).filter(Boolean),
@@ -527,7 +547,7 @@ export default function FarmBotPage() {
 
     if (data.usage) setUsage(data.usage)
     if (data.conversation_id && data.conversation_id !== chatId) setChatId(data.conversation_id)
-    const finalMsg: ChatMessage = { id: streamId, role: 'assistant', message: data.reply, extras: data.extras || null }
+    const finalMsg: ChatMessage = { id: streamId, dbId: data.assistant_message_id || undefined, role: 'assistant', message: data.reply, extras: data.extras || null }
     setMessages((prev) => {
       const last = prev[prev.length - 1]
       if (last && last.id === streamId) return [...prev.slice(0, -1), finalMsg]
@@ -535,6 +555,26 @@ export default function FarmBotPage() {
     })
     if (data.incomplete) setNotice({ kind: 'generic', text: 'This answer was cut short. Send "continue" to get the rest.' })
     loadChats()
+  }
+
+  // Thumbs up / down on an answer. Tapping the same thumb again removes the rating.
+  const rate = async (dbId: string, value: 1 | -1) => {
+    const before = feedback[dbId] || { rating: 0, reason: null }
+    const next = before.rating === value ? 0 : value
+    setFeedback((prev) => ({ ...prev, [dbId]: { rating: next, reason: null } }))
+    setReasonFor(next === -1 ? dbId : null)
+    const { error: rateError } = await supabase.rpc('farmbot_set_feedback', { p_message: dbId, p_rating: next, p_reason: null })
+    if (rateError) {
+      setFeedback((prev) => ({ ...prev, [dbId]: before }))
+      setReasonFor(null)
+      setNotice({ kind: 'generic', text: 'Could not save your feedback. Please try again.' })
+    }
+  }
+
+  const pickReason = async (dbId: string, reason: string) => {
+    setReasonFor(null)
+    setFeedback((prev) => ({ ...prev, [dbId]: { rating: -1, reason } }))
+    await supabase.rpc('farmbot_set_feedback', { p_message: dbId, p_rating: -1, p_reason: reason })
   }
 
   const shell: CSSProperties = {
@@ -591,11 +631,21 @@ export default function FarmBotPage() {
             </div>
           </div>
         ) : (
-          messages.map((m) => (
+          messages.map((m, idx) => (
             <Fragment key={m.id}>
-              <Bubble role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox} />
+              <Bubble
+                role={m.role} text={m.message} images={m.images} uploading={m.uploading} onOpenImage={setLightbox}
+                rating={m.dbId ? feedback[m.dbId]?.rating || 0 : undefined}
+                onRate={m.dbId && !m.streaming ? (v) => rate(m.dbId as string, v) : undefined}
+              />
+              {m.dbId && reasonFor === m.dbId && (
+                <ReasonChips onPick={(k) => pickReason(m.dbId as string, k)} onSkip={() => setReasonFor(null)} />
+              )}
               {m.role === 'assistant' && m.extras && !m.streaming && (m.extras.items?.length > 0 || m.extras.farm_desk || !!m.extras.weather) && (
                 <ExtrasBlock extras={m.extras} onOpen={(path) => navigate(path)} />
+              )}
+              {m.role === 'assistant' && idx === messages.length - 1 && !sending && !m.streaming && !limitReached && (m.extras?.followups?.length || 0) > 0 && (
+                <FollowupChips items={m.extras!.followups!} onPick={(q) => send(q)} />
               )}
             </Fragment>
           ))
@@ -849,7 +899,7 @@ function FormattedText({ text }: { text: string }) {
   )
 }
 
-function Bubble({ role, text, images, uploading, onOpenImage }: { role: 'user' | 'assistant'; text: string; images?: string[]; uploading?: boolean; onOpenImage: (url: string) => void }) {
+function Bubble({ role, text, images, uploading, onOpenImage, rating, onRate }: { role: 'user' | 'assistant'; text: string; images?: string[]; uploading?: boolean; onOpenImage: (url: string) => void; rating?: number; onRate?: (v: 1 | -1) => void }) {
   const mine = role === 'user'
   const [copied, setCopied] = useState(false)
   const hasImages = !!images && images.length > 0
@@ -889,9 +939,21 @@ function Bubble({ role, text, images, uploading, onOpenImage }: { role: 'user' |
         {mine ? text : <FormattedText text={text} />}
       </div>
       {!mine && (
-        <span onClick={copy} style={{ display: 'inline-block', fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer', padding: '4px 4px 0' }}>
-          {copied ? 'Copied!' : 'Copy'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '4px 4px 0' }}>
+          <span onClick={copy} style={{ fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer' }}>
+            {copied ? 'Copied!' : 'Copy'}
+          </span>
+          {onRate && (
+            <>
+              <span role="button" aria-label="Good answer" onClick={() => onRate(1)} style={{ display: 'flex', cursor: 'pointer', padding: '2px' }}>
+                <ThumbIcon up filled={rating === 1} color={rating === 1 ? COLORS.green : COLORS.textMuted} />
+              </span>
+              <span role="button" aria-label="Bad answer" onClick={() => onRate(-1)} style={{ display: 'flex', cursor: 'pointer', padding: '2px' }}>
+                <ThumbIcon up={false} filled={rating === -1} color={rating === -1 ? COLORS.red : COLORS.textMuted} />
+              </span>
+            </>
+          )}
+        </div>
       )}
     </div>
   )
@@ -947,6 +1009,41 @@ function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string
           <Icon name="chevronRight" size={18} color="white" />
         </div>
       )}
+    </div>
+  )
+}
+
+function ThumbIcon({ up, filled, color }: { up: boolean; filled: boolean; color: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={up ? undefined : { transform: 'rotate(180deg)' }}>
+      <path d="M7 10v11H3V10h4z" />
+      <path d="M7 10l4-8a2.5 2.5 0 0 1 2.5 2.5V8h5.6a2 2 0 0 1 2 2.3l-1.3 8A2 2 0 0 1 17.8 20H7" />
+    </svg>
+  )
+}
+
+// Asked after a thumbs down, one tap, optional
+function ReasonChips({ onPick, onSkip }: { onPick: (key: string) => void; onSkip: () => void }) {
+  return (
+    <div style={{ alignSelf: 'stretch', marginTop: '-6px' }}>
+      <p style={{ fontSize: '11.5px', color: COLORS.textMuted, margin: '0 4px 6px' }}>Sorry about that. What was wrong?</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {REASONS.map((r) => (
+          <span key={r.key} role="button" onClick={() => onPick(r.key)} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '14px', padding: '6px 11px', fontSize: '11.5px', fontWeight: 600, color: COLORS.greenDark, cursor: 'pointer' }}>{r.label}</span>
+        ))}
+        <span role="button" onClick={onSkip} style={{ padding: '6px 6px', fontSize: '11.5px', color: COLORS.textMuted, cursor: 'pointer' }}>Skip</span>
+      </div>
+    </div>
+  )
+}
+
+// Questions FarmBot thinks the person may ask next: one tap sends them
+function FollowupChips({ items, onPick }: { items: string[]; onPick: (q: string) => void }) {
+  return (
+    <div style={{ alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', marginTop: '-4px' }}>
+      {items.map((q) => (
+        <span key={q} role="button" onClick={() => onPick(q)} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: '16px', padding: '8px 13px', fontSize: '12.5px', fontWeight: 600, color: COLORS.green, cursor: 'pointer', textAlign: 'left', lineHeight: 1.35, maxWidth: '100%' }}>{q}</span>
+      ))}
     </div>
   )
 }
