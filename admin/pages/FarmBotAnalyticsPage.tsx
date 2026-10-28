@@ -26,6 +26,10 @@ type QRow = {
   error_type: string | null; error_detail: string | null; created_at: string; user: Prof | null
 }
 
+type FbRow = { id: string; rating: number; reason: string | null; created_at: string; question: string | null; answer: string; full_name: string | null; username: string | null }
+type FbData = { up: number; down: number; reasons: Record<string, number>; rows: FbRow[] }
+const REASON_LABEL: Record<string, string> = { wrong: 'Wrong information', unhelpful: 'Not helpful', too_long: 'Too long', unsafe: 'Unsafe advice', other: 'Other', none: 'No reason given' }
+
 const TOPICS = ['Crop Diseases', 'Livestock', 'Farming Methods', 'Fertilizer', 'Pest Control', 'Weather', 'Market Prices', 'Farm Equipment', 'Crop Production', 'General Agriculture']
 const PRESETS: { key: Preset; label: string }[] = [
   { key: 'today', label: 'Today' }, { key: '7d', label: 'Last 7 days' }, { key: '30d', label: 'Last 30 days' },
@@ -224,6 +228,14 @@ export default function FarmBotAnalyticsPage() {
   const reqOverview = useRef(0)
   const reqList = useRef(0)
 
+  // Thumbs people gave to FarmBot answers
+  const [fb, setFb] = useState<FbData | null>(null)
+  const [fbRating, setFbRating] = useState<-1 | 1>(-1)
+  const [fbLoading, setFbLoading] = useState(true)
+  const [fbError, setFbError] = useState(false)
+  const [fbOpen, setFbOpen] = useState<string | null>(null)
+  const reqFb = useRef(0)
+
   const range = computeRange(preset, cFrom, cTo)
   const fromIso = range?.from.toISOString() ?? ''
   const toIso = range?.to.toISOString() ?? ''
@@ -248,6 +260,22 @@ export default function FarmBotAnalyticsPage() {
         setLoading(false)
       })
   }, [fromIso, toIso, tick])
+
+  useEffect(() => {
+    if (!fromIso) return
+    const id = ++reqFb.current
+    setFbLoading(true)
+    setFbError(false)
+    setFbOpen(null)
+    supabase
+      .rpc('admin_farmbot_feedback', { p_from: fromIso, p_to: toIso, p_rating: fbRating, p_limit: 20, p_offset: 0 })
+      .then(({ data: d, error: e }: { data: unknown; error: unknown }) => {
+        if (id !== reqFb.current) return
+        if (e || !d) { setFbError(true); setFbLoading(false); return }
+        setFb(d as FbData)
+        setFbLoading(false)
+      })
+  }, [fromIso, toIso, tick, fbRating])
 
   const loadList = useCallback(async () => {
     if (!fromIso) return
@@ -533,6 +561,55 @@ export default function FarmBotAnalyticsPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+
+          <div className="fb-list" style={{ marginBottom: 18 }}>
+            <div style={{ padding: '14px 16px', borderBottom: `1px solid ${A.border}`, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <div>
+                <p className="fb-title">Answer feedback</p>
+                <p className="fb-hint">Thumbs people gave to FarmBot answers in this period. Use the thumbs down to find and fix weak answers.</p>
+              </div>
+              <div className="fb-seg" role="group" aria-label="Rating">
+                <button className={fbRating === -1 ? 'on' : ''} onClick={() => setFbRating(-1)} aria-pressed={fbRating === -1}>Thumbs down{fb ? ` (${fb.down})` : ''}</button>
+                <button className={fbRating === 1 ? 'on' : ''} onClick={() => setFbRating(1)} aria-pressed={fbRating === 1}>Thumbs up{fb ? ` (${fb.up})` : ''}</button>
+              </div>
+            </div>
+            {fb && fb.up + fb.down > 0 && (
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${A.borderSoft}`, display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', fontSize: 12.5, color: A.textMuted }}>
+                <span><b style={{ color: A.text, fontSize: 18 }}>{Math.round((fb.up / (fb.up + fb.down)) * 100)}%</b> liked ({fb.up + fb.down} rated)</span>
+                {Object.entries(fb.reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => (
+                  <span key={k} style={{ background: A.amberChip, color: A.amber, borderRadius: 999, padding: '3px 10px', fontWeight: 700, fontSize: 11.5 }}>{REASON_LABEL[k] || k}: {n}</span>
+                ))}
+              </div>
+            )}
+            {fbError ? (
+              <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: A.textMuted }}>Could not load answer feedback.</div>
+            ) : fbLoading && !fb ? (
+              <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: A.textMuted }}>Loading feedback...</div>
+            ) : !fb || fb.rows.length === 0 ? (
+              <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: A.textMuted }}>
+                {fbRating === -1 ? 'No thumbs down in this period.' : 'No thumbs up in this period.'}
+              </div>
+            ) : (
+              <div style={{ opacity: fbLoading ? 0.6 : 1 }}>
+                {fb.rows.map((r) => {
+                  const open = fbOpen === r.id
+                  return (
+                    <div key={r.id} onClick={() => setFbOpen(open ? null : r.id)} style={{ padding: '12px 16px', borderBottom: `1px solid ${A.borderSoft}`, cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', fontSize: 12, color: A.textMuted, marginBottom: 6 }}>
+                        <span><b style={{ color: A.text }}>{r.full_name || r.username || 'Deleted user'}</b> · {fmtDay(r.created_at)}, {fmtTime(r.created_at)}</span>
+                        {r.rating === -1 && <span style={{ background: A.amberChip, color: A.amber, borderRadius: 999, padding: '2px 9px', fontWeight: 700, fontSize: 11.5 }}>{REASON_LABEL[r.reason || 'none']}</span>}
+                      </div>
+                      <p style={{ fontSize: 12.5, color: A.textMuted, marginBottom: 3 }}>Question</p>
+                      <p className={open ? undefined : 'fb-clamp'} style={{ fontSize: 13, color: A.text, fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{r.question || '(not found)'}</p>
+                      <p style={{ fontSize: 12.5, color: A.textMuted, margin: '8px 0 3px' }}>FarmBot answer {open ? '' : '(tap to read all)'}</p>
+                      <p className={open ? undefined : 'fb-clamp'} style={{ fontSize: 13, color: A.text, wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{r.answer}</p>
+                    </div>
+                  )
+                })}
+                <p style={{ padding: '10px 16px', fontSize: 11.5, color: A.textSoft }}>Showing the latest {fb.rows.length}. Answers are removed here when the user deletes the chat.</p>
               </div>
             )}
           </div>
