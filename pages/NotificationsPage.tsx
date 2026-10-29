@@ -20,7 +20,7 @@ const COLORS = {
 
 type Notification = {
   id: string
-  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general' | 'farm_desk' | 'activity'
+  category: 'message' | 'like' | 'comment' | 'follow' | 'marketplace' | 'general' | 'farm_desk' | 'activity' | 'farm_weather' | 'market_digest'
   title: string
   body: string | null
   link: string | null
@@ -37,6 +37,8 @@ const CATEGORY_ICON: Record<string, string> = {
   marketplace: 'cart',
   general: 'bell',
   farm_desk: 'leaf',
+  farm_weather: 'leaf',
+  market_digest: 'cart',
 }
 
 export default function NotificationsPage() {
