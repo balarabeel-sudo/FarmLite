@@ -11,6 +11,8 @@ export const NOTIFICATION_CATEGORIES: { key: string; label: string; hint: string
   { key: 'activity', label: 'Shares and followed accounts', hint: 'Someone shares your post, or someone you follow posts or lists something' },
   { key: 'marketplace', label: 'Marketplace and orders', hint: 'Questions about your listings, orders, payments' },
   { key: 'farm_desk', label: 'Farm Desk', hint: 'Updates on your Farm Desk requests' },
+  { key: 'farm_weather', label: 'Farm weather alerts', hint: 'Heavy rain, extreme heat and spraying windows at your farm or business location' },
+  { key: 'market_digest', label: 'Market updates', hint: 'Weekly summary of what is most ordered and listed on Farmxie (agribusiness accounts)' },
   { key: 'general', label: 'Announcements', hint: 'Updates and announcements from Farmxie' },
 ]
 
