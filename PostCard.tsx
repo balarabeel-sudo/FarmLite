@@ -224,7 +224,8 @@ export default function PostCard({
 
   const time = postTime(post.created_at)
   const fullTime = new Date(post.created_at).toLocaleString()
-  const sub = company ? 'Company' : author?.username ? `@${author.username}` : ''
+  // A company post shows the full company name + tick on the line; the "Company" word is dropped so the name is not cut short.
+  const sub = company ? '' : author?.username ? `@${author.username}` : ''
 
   const avatarBox = (size: number, radius: string): CSSProperties => ({ width: `${size}px`, height: `${size}px`, borderRadius: radius, background: 'var(--fx-tint-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 })
   const actionStyle = (color: string): CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color, cursor: 'pointer', minWidth: '44px', minHeight: '32px' })
