@@ -15,6 +15,7 @@ import { VIDEO_SELECT } from '../videoShared'
 import type { VideoRow } from '../videoShared'
 import SponsoredCard from '../SponsoredCard'
 import PeopleSuggestions from '../PeopleSuggestions'
+import { LoadMoreButton } from '../shared'
 import VideoHook from '../VideoHook'
 import type { AdData } from '../SponsoredCard'
 
@@ -90,6 +91,9 @@ export default function HomePage() {
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [listings, setListings] = useState<Listing[]>([])
   const [feed, setFeed] = useState<FeedPost[]>([])
+  const [feedHasMore, setFeedHasMore] = useState(false)
+  const [tabHasMore, setTabHasMore] = useState<{ companies?: boolean; groups?: boolean }>({})
+  const [moreLoading, setMoreLoading] = useState(false)
   const [homeAds, setHomeAds] = useState<AdData[]>([])
   const [homeEvery, setHomeEvery] = useState(4)
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set())
@@ -131,6 +135,7 @@ export default function HomePage() {
       setUnreadNotifications(notifRes.count || 0)
       setListings((listingsRes.data || []) as any)
       setFeed((feedRes.data || []) as any)
+      setFeedHasMore((feedRes.data || []).length >= 10)
       setSavedPostIds(new Set((savedPostsRes.data || []).map((r: any) => r.post_id)))
       setLikedPostIds(new Set((likedPostsRes.data || []).map((r: any) => r.post_id)))
     } catch {
@@ -173,6 +178,7 @@ export default function HomePage() {
         const { data, error } = await q.order('created_at', { ascending: false }).limit(10)
         if (error) throw error
         setTabPosts((prev) => ({ ...prev, [tab]: (data || []) as any }))
+        setTabHasMore((prev) => ({ ...prev, [tab]: (data || []).length >= 10 }))
       } else if (tab === 'products' || tab === 'equipment') {
         const isProducts = tab === 'products'
         const { data, error } = await supabase
@@ -193,6 +199,34 @@ export default function HomePage() {
       setTabError(true)
     }
     setTabLoading(false)
+  }
+
+  // Loads the next 10 posts for the All, Companies or Groups feed.
+  const loadMorePosts = async () => {
+    if (moreLoading) return
+    const tab = feedTab
+    if (tab !== 'all' && tab !== 'companies' && tab !== 'groups') return
+    const current: FeedPost[] = tab === 'all' ? feed : (tabPosts[tab] || [])
+    setMoreLoading(true)
+    try {
+      let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
+      if (tab === 'companies') q = q.not('company_id', 'is', null)
+      if (tab === 'groups') q = q.not('community_id', 'is', null)
+      const { data, error } = await q.order('created_at', { ascending: false }).range(current.length, current.length + 9)
+      if (!error) {
+        const rows = (data || []) as any as FeedPost[]
+        const seen = new Set(current.map((p) => p.id))
+        const fresh = rows.filter((p) => !seen.has(p.id))
+        if (tab === 'all') {
+          setFeed((prev) => [...prev, ...fresh])
+          setFeedHasMore(rows.length >= 10)
+        } else {
+          setTabPosts((prev) => ({ ...prev, [tab]: [...(prev[tab] || []), ...fresh] }))
+          setTabHasMore((prev) => ({ ...prev, [tab]: rows.length >= 10 }))
+        }
+      }
+    } catch { /* keep what is already shown */ }
+    setMoreLoading(false)
   }
 
   const selectTab = (tab: FeedTab) => {
@@ -370,6 +404,7 @@ export default function HomePage() {
                 {feed.length <= homeEvery && homeAds[0] && (
                   <SponsoredCard ad={homeAds[0]} layout="wide" placement="home" />
                 )}
+                <LoadMoreButton onClick={loadMorePosts} loading={moreLoading} hasMore={feedHasMore} />
               </>
             )
           ) : tabError ? (
@@ -380,14 +415,17 @@ export default function HomePage() {
             (tabPosts[feedTab] || []).length === 0 ? (
               <EmptyState icon="message" text={feedTab === 'companies' ? 'No company posts yet.' : 'No group posts yet.'} />
             ) : (
-              (tabPosts[feedTab] || []).map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  initialLiked={likedPostIds.has(post.id)}
-                  initialSaved={savedPostIds.has(post.id)}
-                />
-              ))
+              <>
+                {(tabPosts[feedTab] || []).map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    initialLiked={likedPostIds.has(post.id)}
+                    initialSaved={savedPostIds.has(post.id)}
+                  />
+                ))}
+                <LoadMoreButton onClick={loadMorePosts} loading={moreLoading} hasMore={!!tabHasMore[feedTab]} />
+              </>
             )
           ) : (
             (tabItems[feedTab] || []).length === 0 ? (
