@@ -133,7 +133,7 @@ export function DotsMenu({ items }: { items: MenuItem[] }) {
 
 // Name + green "verified" check + blue Premium tick.
 // Owner without Premium sees a blue tick with "Upgrade" in front of the name row.
-export function NameRow({ name, verified, verifiedLabel, premium, premiumLabel, onUpgrade }: {
+export function NameRow({ name, premium, premiumLabel, onUpgrade }: {
   name: string
   verified?: boolean
   verifiedLabel?: string
@@ -144,7 +144,6 @@ export function NameRow({ name, verified, verifiedLabel, premium, premiumLabel, 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
       <p style={{ fontSize: '18px', fontWeight: 800, color: PCOLORS.text, lineHeight: 1.25, wordBreak: 'break-word' }}>{name}</p>
-      {verified && <span title={verifiedLabel || 'Verified'} style={{ display: 'flex' }}><Icon name="checkCircle" size={16} color={PCOLORS.green} /></span>}
       {premium && <PremiumTick size={18} label={premiumLabel} />}
       {!premium && onUpgrade && (
         <div role="button" onClick={onUpgrade} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px 2px 5px', borderRadius: '999px', background: 'var(--fx-tint-blue)', border: '1px solid var(--fx-bd-blue)', color: 'var(--fx-blue-text2)', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>

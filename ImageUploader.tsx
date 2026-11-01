@@ -31,7 +31,8 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     setError('')
-    const room = max - value.length
+    const single = max === 1
+    const room = single ? 1 : max - value.length
     const picked = Array.from(files).slice(0, Math.max(room, 0))
     if (picked.length === 0) {
       setError(`You can add up to ${max} photos.`)
@@ -48,7 +49,7 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
         setBusy((n) => n - 1)
       }
     }
-    if (added.length) onChange([...value, ...added])
+    if (added.length) onChange(single ? [added[added.length - 1]] : [...value, ...added])
   }
 
   const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i))
@@ -70,10 +71,10 @@ export default function ImageUploader({ value, onChange, folder = 'listings', ma
     <div>
       <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
         {value.map((url, i) => (
-          <div key={url} style={tile}>
+          <div key={url} style={{ ...tile, cursor: max === 1 ? 'pointer' : undefined }} onClick={max === 1 ? () => inputRef.current?.click() : undefined}>
             <img src={url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div
-              onClick={() => remove(i)}
+              onClick={(e) => { e.stopPropagation(); remove(i) }}
               style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', borderRadius: '11px', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <Icon name="close" size={12} color="white" />
             </div>
