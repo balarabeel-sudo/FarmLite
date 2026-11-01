@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 
-export type MediaFolder = 'avatars' | 'covers' | 'logos' | 'gallery' | 'listings' | 'posts' | 'equipment' | 'companies' | 'communities'
+export type MediaFolder = 'avatars' | 'covers' | 'logos' | 'gallery' | 'listings' | 'posts' | 'equipment' | 'companies' | 'communities' | 'company-logos' | 'company-covers' | 'company-gallery' | 'ads' | 'disputes'
 
 const MAX_SIDE: Record<MediaFolder, number> = {
   avatars: 600,
@@ -12,6 +12,11 @@ const MAX_SIDE: Record<MediaFolder, number> = {
   equipment: 1600,
   companies: 1600,
   communities: 1600,
+  'company-logos': 600,
+  'company-covers': 1800,
+  'company-gallery': 1600,
+  ads: 1600,
+  disputes: 1600,
 }
 
 // Shrinks a photo on the phone before upload (saves data and storage).
@@ -45,7 +50,7 @@ export async function uploadMedia(file: File, folder: MediaFolder): Promise<stri
   if (!user) throw new Error('Please log in first.')
   if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.')
 
-  const blob = await compressImage(file, MAX_SIDE[folder])
+  const blob = await compressImage(file, MAX_SIDE[folder] ?? 1600)
   const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/jpeg' ? 'jpg' : 'webp'
   const path = `${user.id}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
