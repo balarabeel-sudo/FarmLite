@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
@@ -46,7 +46,7 @@ const CATEGORIES = [
   'Agricultural Trading', 'Agricultural Services', 'Processing', 'Agricultural Supply', 'Agricultural Technology', 'Other',
 ]
 const FEATURED_MAX = 60 // how many featured companies are fetched in total
-const FEATURED_PREVIEW = 3 // how many show before the person taps View all
+const FEATURED_SLIDE_MS = 2500 // each featured company stays this long before the next one slides in
 
 // Featured companies take turns: the list is shuffled on each visit, so no company is always first.
 function shuffle<T>(items: T[]): T[] {
@@ -148,7 +148,6 @@ export default function CompaniesPage() {
   }
 
   const filtering = !!category || !!search.trim()
-  const shownFeatured = showAllFeatured ? featured : featured.slice(0, FEATURED_PREVIEW)
 
   return (
     <div className="fx-companies" style={{ minHeight: '100vh', background: COLORS.bg, maxWidth: '480px', margin: '0 auto', paddingBottom: '30px' }}>
@@ -185,13 +184,17 @@ export default function CompaniesPage() {
           <div style={{ marginBottom: '18px' }}>
             <SectionTitle
               title="Featured companies"
-              action={featured.length > FEATURED_PREVIEW ? (showAllFeatured ? 'Show less' : 'View all') : undefined}
+              action={featured.length > 1 ? (showAllFeatured ? 'Show less' : 'View all') : undefined}
               onAction={() => setShowAllFeatured((v) => !v)}
               expanded={showAllFeatured}
             />
-            {shownFeatured.map((c) => (
-              <CompanyCard key={c.id} company={c} featured onOpen={() => navigate(`/companies/${c.id}`)} />
-            ))}
+            {showAllFeatured ? (
+              featured.map((c) => (
+                <CompanyCard key={c.id} company={c} featured onOpen={() => navigate(`/companies/${c.id}`)} />
+              ))
+            ) : (
+              <FeaturedSlider items={featured} onOpen={(c) => navigate(`/companies/${c.id}`)} />
+            )}
           </div>
         )}
 
@@ -269,6 +272,66 @@ function CompanyCard({ company: c, featured, own, onOpen }: { company: Company; 
           </span>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Featured companies slide in one at a time (every 2.5 s). Swipe or tap a dot to move; it waits while a finger is on it.
+function FeaturedSlider({ items, onOpen }: { items: Company[]; onOpen: (c: Company) => void }) {
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const touchX = useRef<number | null>(null)
+  const count = items.length
+  const current = Math.min(index, Math.max(count - 1, 0))
+
+  useEffect(() => { setIndex(0) }, [items])
+
+  // The timer restarts after every move, so a manual swipe always gets the full 2.5 s.
+  useEffect(() => {
+    if (count < 2 || paused) return
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const t = setTimeout(() => setIndex((i) => (i + 1) % count), FEATURED_SLIDE_MS)
+    return () => clearTimeout(t)
+  }, [index, paused, count])
+
+  const onTouchEnd = (x: number) => {
+    const start = touchX.current
+    touchX.current = null
+    setPaused(false)
+    if (start === null || count < 2) return
+    const dx = x - start
+    if (Math.abs(dx) < 40) return
+    setIndex((i) => (dx < 0 ? (i + 1) % count : (i - 1 + count) % count))
+  }
+
+  return (
+    <div>
+      <div
+        style={{ overflow: 'hidden', borderRadius: '16px' }}
+        onTouchStart={(e) => { touchX.current = e.touches[0].clientX; setPaused(true) }}
+        onTouchEnd={(e) => onTouchEnd(e.changedTouches[0].clientX)}
+        onTouchCancel={() => { touchX.current = null; setPaused(false) }}>
+        <div style={{ display: 'flex', transform: `translateX(-${current * 100}%)`, transition: 'transform 0.45s ease' }}>
+          {items.map((c) => (
+            <div key={c.id} style={{ flex: '0 0 100%', minWidth: 0 }}>
+              <CompanyCard company={c} featured onOpen={() => onOpen(c)} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {count > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', margin: '2px 0 4px' }}>
+          {items.slice(0, 12).map((c, i) => (
+            <span
+              key={c.id}
+              role="button"
+              aria-label={`Show ${c.name}`}
+              onClick={() => setIndex(i)}
+              style={{ width: i === current ? '18px' : '6px', height: '6px', borderRadius: '3px', background: i === current ? COLORS.green : COLORS.border, transition: 'width 0.25s ease', cursor: 'pointer' }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
