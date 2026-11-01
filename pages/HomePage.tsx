@@ -49,6 +49,7 @@ type Listing = {
 type FeedPost = PostCardData
 
 // Feed filter chips. "Update" is where short videos will live; until that feature exists it shows a coming-soon card.
+const FEED_PAGE = 20 // posts loaded at first and with each "Load more"
 type FeedTab = 'all' | 'products' | 'companies' | 'groups' | 'update' | 'equipment'
 const FEED_TABS: { key: FeedTab; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -120,7 +121,7 @@ export default function HomePage() {
         supabase.from('profiles').select('full_name, username, profile_image').eq('user_id', user.id).maybeSingle(),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
         supabase.from('marketplace_listings').select('id, title, price, currency, unit, location, images').eq('status', 'available').order('created_at', { ascending: false }).limit(6),
-        supabase.from('posts').select(POST_SELECT).eq('visibility', 'public').order('created_at', { ascending: false }).limit(10),
+        supabase.from('posts').select(POST_SELECT).eq('visibility', 'public').order('created_at', { ascending: false }).limit(FEED_PAGE),
         supabase.from('saved_items').select('post_id').eq('user_id', user.id).not('post_id', 'is', null),
         supabase.from('post_likes').select('post_id').eq('user_id', user.id),
       ])
@@ -135,7 +136,7 @@ export default function HomePage() {
       setUnreadNotifications(notifRes.count || 0)
       setListings((listingsRes.data || []) as any)
       setFeed((feedRes.data || []) as any)
-      setFeedHasMore((feedRes.data || []).length >= 10)
+      setFeedHasMore((feedRes.data || []).length >= FEED_PAGE)
       setSavedPostIds(new Set((savedPostsRes.data || []).map((r: any) => r.post_id)))
       setLikedPostIds(new Set((likedPostsRes.data || []).map((r: any) => r.post_id)))
     } catch {
@@ -163,7 +164,7 @@ export default function HomePage() {
     try {
       if (tab === 'update') {
         const [vRes, likesRes, meRes] = await Promise.all([
-          supabase.from('short_videos').select(VIDEO_SELECT).eq('status', 'active').eq('is_hidden_by_admin', false).order('created_at', { ascending: false }).limit(10),
+          supabase.from('short_videos').select(VIDEO_SELECT).eq('status', 'active').eq('is_hidden_by_admin', false).order('created_at', { ascending: false }).limit(FEED_PAGE),
           user ? supabase.from('video_likes').select('video_id').eq('user_id', user.id) : Promise.resolve({ data: [], error: null } as any),
           user ? supabase.from('profiles').select('is_premium, premium_until').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null } as any),
         ])
@@ -175,10 +176,10 @@ export default function HomePage() {
       } else if (tab === 'companies' || tab === 'groups') {
         let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
         q = tab === 'companies' ? q.not('company_id', 'is', null) : q.not('community_id', 'is', null)
-        const { data, error } = await q.order('created_at', { ascending: false }).limit(10)
+        const { data, error } = await q.order('created_at', { ascending: false }).limit(FEED_PAGE)
         if (error) throw error
         setTabPosts((prev) => ({ ...prev, [tab]: (data || []) as any }))
-        setTabHasMore((prev) => ({ ...prev, [tab]: (data || []).length >= 10 }))
+        setTabHasMore((prev) => ({ ...prev, [tab]: (data || []).length >= FEED_PAGE }))
       } else if (tab === 'products' || tab === 'equipment') {
         const isProducts = tab === 'products'
         const { data, error } = await supabase
@@ -212,17 +213,17 @@ export default function HomePage() {
       let q = supabase.from('posts').select(POST_SELECT).eq('visibility', 'public')
       if (tab === 'companies') q = q.not('company_id', 'is', null)
       if (tab === 'groups') q = q.not('community_id', 'is', null)
-      const { data, error } = await q.order('created_at', { ascending: false }).range(current.length, current.length + 9)
+      const { data, error } = await q.order('created_at', { ascending: false }).range(current.length, current.length + FEED_PAGE - 1)
       if (!error) {
         const rows = (data || []) as any as FeedPost[]
         const seen = new Set(current.map((p) => p.id))
         const fresh = rows.filter((p) => !seen.has(p.id))
         if (tab === 'all') {
           setFeed((prev) => [...prev, ...fresh])
-          setFeedHasMore(rows.length >= 10)
+          setFeedHasMore(rows.length >= FEED_PAGE)
         } else {
           setTabPosts((prev) => ({ ...prev, [tab]: [...(prev[tab] || []), ...fresh] }))
-          setTabHasMore((prev) => ({ ...prev, [tab]: rows.length >= 10 }))
+          setTabHasMore((prev) => ({ ...prev, [tab]: rows.length >= FEED_PAGE }))
         }
       }
     } catch { /* keep what is already shown */ }
