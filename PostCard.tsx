@@ -271,6 +271,7 @@ export default function PostCard({
                   </div>
                 </>
               ) : (
+                <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flexWrap: 'nowrap' }}>
                   <p onClick={() => target && navigate(target)} style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, lineHeight: 1.3, color: COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1, cursor: target ? 'pointer' : 'default' }}>{name}</p>
                   {premium && <PremiumTick size={14} />}
@@ -284,6 +285,8 @@ export default function PostCard({
                     )
                   )}
                 </div>
+                {company && <p style={{ margin: 0, fontSize: '11.5px', lineHeight: 1.3, color: COLORS.textMuted }}>Company</p>}
+                </>
               )}
             </div>
 
