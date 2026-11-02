@@ -5,6 +5,7 @@ import { REPORT_REASONS, REPORT_TYPES, reasonLabel, typeLabel } from '../../repo
 import type { ReportStatus, ReportType } from '../../reportShared'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
+import CopilotReportAssist from '../CopilotReportAssist'
 
 const A = {
   bg: '#F7F8F7', surface: '#FFFFFF', border: '#E3E7E3', borderSoft: '#EEF1EE',
@@ -196,6 +197,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 export default function ReportsPage() {
   const staff = useStaff()
   const canManage = staff.permissions.has('reports.manage')
+  const copilotOn = staff.permissions.has('copilot.use')
   const canCommunity = staff.permissions.has('community.moderate')
   const canMarket = staff.permissions.has('marketplace.moderate')
   const canUsers = staff.permissions.has('users.manage')
@@ -347,6 +349,15 @@ export default function ReportsPage() {
   const saveNote = async (r: Row) => {
     if (!note.trim()) return
     if (await run(() => supabase.rpc('admin_report_add_note', { p_id: r.id, p_note: note }), 'Note saved', r.id)) setNote('')
+  }
+
+  // The staff member chose to follow the AI suggestion: keep-and-close runs directly, anything stronger
+  // opens the normal confirmation with the AI's reason as the note, so nothing happens without a confirm.
+  const useAiSuggestion = (r: Row, action: 'remove_content' | 'keep_content' | 'restrict_user', reason: string) => {
+    const n = `AI-assisted: ${reason}`.slice(0, 480)
+    if (action === 'keep_content') { doAction(r, 'keep_content', 'Report closed', n); return }
+    setConfirmNote(n)
+    setConfirm({ kind: action === 'remove_content' ? 'remove' : 'restrict' })
   }
 
   const runConfirm = async (r: Row) => {
@@ -676,6 +687,10 @@ export default function ReportsPage() {
 
               <p className="rp-label">{sel.report_type === 'user' ? 'Reported account' : sel.report_type === 'other' ? 'Reported account (if any)' : `Reported ${typeLabel(sel.report_type).toLowerCase()}`}</p>
               {renderReported(sel)}
+
+              {canManage && copilotOn && sel.status !== 'resolved' && sel.status !== 'dismissed' && (
+                <CopilotReportAssist reportId={sel.id} busy={busy} onUse={(a, why) => useAiSuggestion(sel, a, why)} />
+              )}
 
               {canManage && (
                 <>

@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../AuthContext'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
+import CopilotFarmDeskAssist from '../CopilotFarmDeskAssist'
 import { PhotoPreviews, PhotoButton, MessagePhotos, uploadMessagePhotos } from '../../FarmDeskPhotos'
 import {
   STATUS_META, PAYMENT_LABELS, CURRENCIES, UNITS, DEADLINES, money, fmtDate, fmtDateTime,
@@ -412,6 +413,10 @@ export default function AdminFarmDeskRequestPage() {
               </div>
             )}
           </Card>
+
+          {staff.permissions.has('copilot.use') && (
+            <CopilotFarmDeskAssist requestId={req.id} canReply={canManage} onUseDraft={(t) => setMsgDraft(t.slice(0, 2000))} />
+          )}
 
           {/* Conversation */}
           <Card title="Conversation with customer">

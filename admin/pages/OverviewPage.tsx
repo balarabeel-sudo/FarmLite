@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
+import CopilotBriefing from '../CopilotBriefing'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', amber: '#B45309', amberBg: '#FEF3C7' }
 
@@ -53,6 +54,7 @@ export default function OverviewPage() {
 
   return (
     <AdminLayout title="Overview">
+      {staff.permissions.has('copilot.use') && <CopilotBriefing />}
       {loading ? (
         <p style={{ fontSize: '13px', color: A.textMuted }}>Loading platform statistics...</p>
       ) : error ? (
