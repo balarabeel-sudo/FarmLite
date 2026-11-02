@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient'
 import AdminLayout from '../AdminLayout'
 import { useStaff } from '../AdminStaffContext'
 import { logAdminAction } from '../adminAuth'
+import DeletionRequests from '../DeletionRequests'
 
 const A = { surface: '#FFFFFF', border: '#E3E7E3', green: '#16A34A', text: '#0F1A0F', textMuted: '#6B7280', bg: '#F7F8F7', red: '#DC2626', blue: '#2563EB', amber: '#B45309' }
 
@@ -105,6 +106,7 @@ export default function UsersPage() {
 
   return (
     <AdminLayout title="Users">
+      {canManage && <DeletionRequests />}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input
           value={search}

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-export type Language = 'en' | 'ha'
+export type Language = 'en' // English only for now
 export type Currency = 'NGN' | 'USD' | 'GHS' | 'KES'
 
 const CURRENCIES: { code: Currency; symbol: string; flag: string }[] = [
@@ -10,8 +10,7 @@ const CURRENCIES: { code: Currency; symbol: string; flag: string }[] = [
   { code: 'KES', symbol: 'KSh', flag: '🇰🇪' },
 ]
 
-// Add more keys here as new screens need translation. Every key must exist
-// in both "en" and "ha" or the fallback (English) is used silently.
+// The app is English only for now. Add keys here as new screens need text.
 const STRINGS = {
   en: {
     home: 'Home',
@@ -30,24 +29,6 @@ const STRINGS = {
     viewAll: 'View all',
     signOut: 'Sign Out',
     editProfile: 'Edit Profile',
-  },
-  ha: {
-    home: 'Gida',
-    marketplace: 'Kasuwa',
-    companies: 'Kamfanoni',
-    groups: 'Kungiyoyi',
-    equipment: 'Kayan Aiki',
-    saved: 'Adana',
-    farmbot: 'FarmBot AI',
-    profile: 'Bayani',
-    welcomeBack: 'Barka da dawowa,',
-    welcomeSubtitle: 'Bari mu bunkasa gonarka da kasuwancinka yau.',
-    quickActions: 'Ayyuka Masu Sauri',
-    featuredToday: 'Fitattu A Yau',
-    feed: 'Sabbin Labarai',
-    viewAll: 'Duba duka',
-    signOut: 'Fita',
-    editProfile: 'Gyara Bayani',
   },
 } as const
 
@@ -76,7 +57,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     try {
       const savedLang = localStorage.getItem(LANG_KEY) as Language | null
       const savedCurrency = localStorage.getItem(CURRENCY_KEY) as Currency | null
-      // The app is English only for now; a previously saved Hausa choice is ignored
+      // The app is English only for now; any other saved language is ignored
       if (savedLang === 'en') setLanguageState('en')
       if (savedCurrency) setCurrencyState(savedCurrency)
     } catch {
@@ -94,7 +75,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(CURRENCY_KEY, cur) } catch {}
   }
 
-  const t = (key: TranslationKey) => STRINGS[language][key] ?? STRINGS.en[key]
+  const t = (key: TranslationKey) => STRINGS.en[key]
 
   // NOTE: this only changes the displayed symbol/label, it does NOT convert
   // the underlying numeric value between currencies. Listings are stored in
