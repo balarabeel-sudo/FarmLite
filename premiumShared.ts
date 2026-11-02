@@ -63,8 +63,6 @@ export const COMPANY_FEATURES: Feature[] = [
   { icon: 'users', title: 'Customer Insights', sub: 'Visitors, interest and engagement', free: 'Basic', premium: 'Yes', live: false },
   { icon: 'megaphone', title: 'Advertising Tools', sub: 'Promote your company and listings', free: 'Standard', premium: 'Advanced', live: false, soonLabel: 'Coming soon' },
   { icon: 'file', title: 'Performance Reports', sub: 'Weekly and monthly summaries', free: 'No', premium: 'Yes', live: false },
-  { icon: 'bot', title: 'FarmBot Business Assistance', sub: 'More daily questions and business guidance', free: 'Limited', premium: 'Pro', live: true, limitKey: 'company_farmbot_daily_messages', unit: '/day', hideNumbers: true },
-  { icon: 'camera', title: 'FarmBot Photo Questions', sub: 'Send photos of products, crops and equipment', free: 'No', premium: 'Yes', live: true, limitKey: 'company_farmbot_photos_per_message', hideNumbers: true },
   { icon: 'headset', title: 'Priority Support', sub: 'Faster help from the team', free: 'Standard', premium: 'Priority', live: false },
 ]
 

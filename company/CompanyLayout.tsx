@@ -102,7 +102,6 @@ export default function CompanyLayout() {
     { label: 'Customer Insights', icon: 'eye', to: '/company/insights', active: path.startsWith('/company/insights') },
     { label: 'Reports', icon: 'file', to: '/company/reports', active: path.startsWith('/company/reports') },
     { label: 'Edit Company', icon: 'building', to: '/company/edit', active: path.startsWith('/company/edit') },
-    { label: 'FarmBot', icon: 'comment', to: '/company/farmbot', active: path.startsWith('/company/farmbot') },
     { label: 'Premium', icon: 'crown', to: '/company/premium', active: path.startsWith('/company/premium') },
     { label: 'Public page', icon: 'users', to: `/companies/${company.id}`, active: false },
   ]
