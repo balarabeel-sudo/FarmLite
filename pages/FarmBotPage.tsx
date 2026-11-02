@@ -943,7 +943,10 @@ function Bubble({ role, text, images, uploading, onOpenImage, rating, onRate }: 
           <span onClick={copy} style={{ fontSize: '10.5px', fontWeight: 600, color: COLORS.textMuted, cursor: 'pointer' }}>
             {copied ? 'Copied!' : 'Copy'}
           </span>
-          {onRate && (
+          {onRate && rating === 1 && (
+            <span style={{ fontSize: '10.5px', fontWeight: 600, color: COLORS.green }}>Thanks!</span>
+          )}
+          {onRate && rating !== 1 && (
             <>
               <span role="button" aria-label="Good answer" onClick={() => onRate(1)} style={{ display: 'flex', cursor: 'pointer', padding: '2px' }}>
                 <ThumbIcon up filled={rating === 1} color={rating === 1 ? COLORS.green : COLORS.textMuted} />
