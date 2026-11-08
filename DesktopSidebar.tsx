@@ -4,18 +4,20 @@ import { useAuth } from './AuthContext'
 import Icon from './Icons'
 import FarmLiteLogo from './FarmLiteLogo'
 import { COLORS } from './shared'
+import { useLocale } from './LocaleContext'
+import type { TranslationKey } from './LocaleContext'
 
-const ITEMS = [
-  { icon: 'home', label: 'Home', path: '/' },
-  { icon: 'cart', label: 'Market', path: '/marketplace' },
-  { icon: 'tractor', label: 'Equipment', path: '/equipment' },
-  { icon: 'camera', label: 'Videos', path: '/videos' },
-  { icon: 'users', label: 'Groups', path: '/communities' },
-  { icon: 'building', label: 'Companies', path: '/companies' },
-  { icon: 'message', label: 'Messages', path: '/messages' },
-  { icon: 'robot', label: 'FarmBot', path: '/farmbot' },
-  { icon: 'bell', label: 'Notifications', path: '/notifications' },
-  { icon: 'user', label: 'Account', path: '/profile' },
+const ITEMS: { icon: string; labelKey: TranslationKey; path: string }[] = [
+  { icon: 'home', labelKey: 'home', path: '/' },
+  { icon: 'cart', labelKey: 'market', path: '/marketplace' },
+  { icon: 'tractor', labelKey: 'equipment', path: '/equipment' },
+  { icon: 'camera', labelKey: 'videos', path: '/videos' },
+  { icon: 'users', labelKey: 'groups', path: '/communities' },
+  { icon: 'building', labelKey: 'companies', path: '/companies' },
+  { icon: 'message', labelKey: 'messages', path: '/messages' },
+  { icon: 'robot', labelKey: 'farmbot', path: '/farmbot' },
+  { icon: 'bell', labelKey: 'notifications', path: '/notifications' },
+  { icon: 'user', labelKey: 'account', path: '/profile' },
 ]
 
 // Pages that have their own full layout, or are shown before sign-in.
@@ -23,6 +25,7 @@ const HIDDEN = ['/admin', '/company', '/login', '/register', '/forgot-password',
 
 export default function DesktopSidebar() {
   const { user } = useAuth()
+  const { t } = useLocale()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   if (!user) return null
@@ -44,10 +47,10 @@ export default function DesktopSidebar() {
             tabIndex={0}
             onClick={() => navigate(it.path)}
             onKeyDown={(e) => { if (e.key === 'Enter') navigate(it.path) }}
-            title={it.label}
+            title={t(it.labelKey)}
             style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '11px 12px', borderRadius: '999px', cursor: 'pointer', background: on ? COLORS.card : 'transparent' }}>
             <Icon name={it.icon} size={23} color={on ? COLORS.green : COLORS.text} />
-            <span className="fx-side-label" style={{ fontSize: '16px', fontWeight: on ? 800 : 600, color: on ? COLORS.green : COLORS.text }}>{it.label}</span>
+            <span className="fx-side-label" style={{ fontSize: '16px', fontWeight: on ? 800 : 600, color: on ? COLORS.green : COLORS.text }}>{t(it.labelKey)}</span>
           </div>
         )
       })}

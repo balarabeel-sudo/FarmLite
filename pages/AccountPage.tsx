@@ -33,7 +33,7 @@ type Profile = {
 export default function AccountPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const { currency, currencies, setCurrency } = useLocale()
+  const { currency, currencies, setCurrency, t } = useLocale()
 
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
@@ -104,10 +104,10 @@ export default function AccountPage() {
                   {profile.profile_image ? <img src={profile.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Icon name="user" size={18} color={COLORS.green} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>My Profile</p>
+                  <p style={{ fontSize: '13.5px', fontWeight: 700, color: COLORS.text }}>{t('myProfile')}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                     <p style={{ fontSize: '11px', color: COLORS.textMuted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {profile.full_name || profile.username || 'Farmxie user'}
+                      {profile.full_name || profile.username || t('farmxieUser')}
                     </p>
                     {profile.is_verified && <Icon name="checkCircle" size={12} color={COLORS.green} />}
                     {isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
@@ -118,12 +118,12 @@ export default function AccountPage() {
             </Section>
 
             <Section>
-              <Row icon="wallet" label="Wallet" onClick={() => navigate('/wallet')} />
-              <Row icon="tag" label="My Ads" onClick={() => navigate('/my-ads')} />
+              <Row icon="wallet" label={t('wallet')} onClick={() => navigate('/wallet')} />
+              <Row icon="tag" label={t('myAds')} onClick={() => navigate('/my-ads')} />
             </Section>
 
             <Section title="FarmBot">
-              <Row icon="message" label="FarmBot History" onClick={() => navigate('/farmbot')} />
+              <Row icon="message" label={t('farmbotHistory')} onClick={() => navigate('/farmbot')} />
             </Section>
 
             <Section>
@@ -131,26 +131,27 @@ export default function AccountPage() {
                 onClick={() => navigate('/analytics')}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
                 <AnalyticsIcon size={17} color={COLORS.textMuted} />
-                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Analytics</p>
+                <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>{t('analytics')}</p>
                 {!isPremiumActive(profile.is_premium, profile.premium_until) && <PremiumTick size={14} />}
                 <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
               </div>
             </Section>
 
-            <Section title="Settings">
-              <Row icon="bell" label="Notifications" onClick={() => navigate('/notifications')} />
+            <Section title={t('settings')}>
+              <Row icon="bell" label={t('notifications')} onClick={() => navigate('/notifications')} />
               <ThemeRow />
-              <Row icon="shield" label="Privacy & Security" comingSoon />
-              <SelectRow icon="currency" label="Currency" value={currency} onChange={(v) => setCurrency(v as Currency)}>
+              <LanguageRow />
+              <Row icon="shield" label={t('privacySecurity')} comingSoon />
+              <SelectRow icon="currency" label={t('currency')} value={currency} onChange={(v) => setCurrency(v as Currency)}>
                 {currencies.map((c: { code: string; flag?: string }) => (
                   <option key={c.code} value={c.code}>{c.flag ? `${c.flag} ` : ''}{c.code}</option>
                 ))}
               </SelectRow>
-              <Row icon="helpCircle" label="Help & Support" onClick={() => navigate('/help')} />
-              <Row icon="fileText" label="Terms & Conditions" onClick={() => navigate('/terms')} />
-              <Row icon="shield" label="Privacy Policy" onClick={() => navigate('/privacy')} />
-              <Row icon="trash" label="Delete account" onClick={() => navigate('/delete-account')} danger />
-              <Row icon="logout" label="Log out" onClick={handleSignOut} danger />
+              <Row icon="helpCircle" label={t('helpSupport')} onClick={() => navigate('/help')} />
+              <Row icon="fileText" label={t('terms')} onClick={() => navigate('/terms')} />
+              <Row icon="shield" label={t('privacyPolicy')} onClick={() => navigate('/privacy')} />
+              <Row icon="trash" label={t('deleteAccount')} onClick={() => navigate('/delete-account')} danger />
+              <Row icon="logout" label={t('logOut')} onClick={handleSignOut} danger />
             </Section>
 
             {/* Premium card: Free -> Upgrade, Active -> Extend / View Benefits, Expired -> Renew */}
@@ -164,13 +165,13 @@ export default function AccountPage() {
                       <Icon name="crown" size={21} color="#F5D060" />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Farmxie Premium ✓' : expired ? 'Premium Expired' : 'Farmxie Premium'}</p>
+                      <p style={{ fontSize: '15px', fontWeight: 800 }}>{active ? 'Farmxie Premium ✓' : expired ? t('premiumExpired') : 'Farmxie Premium'}</p>
                       <p style={{ fontSize: '11.5px', color: '#D1FAE5', marginTop: '3px', lineHeight: 1.45 }}>
                         {active
-                          ? (profile.premium_until ? `Active until ${formatDate(profile.premium_until)}` : 'Your Premium membership is active.')
+                          ? (profile.premium_until ? t('activeUntil', { date: formatDate(profile.premium_until) }) : t('premiumActiveText'))
                           : expired
-                            ? `Ended on ${formatDate(profile.premium_until)}. Your data is safe.`
-                            : 'Unlock more tools and insights.'}
+                            ? t('endedOn', { date: formatDate(profile.premium_until) })
+                            : t('unlockMore')}
                       </p>
                     </div>
                   </div>
@@ -178,13 +179,13 @@ export default function AccountPage() {
                     <div
                       onClick={() => navigate('/premium')}
                       style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', background: 'var(--fx-card)', color: 'var(--fx-green-dark)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
-                      {active ? 'Extend Premium' : expired ? 'Renew Premium' : 'Upgrade to Premium'}
+                      {active ? t('extendPremium') : expired ? t('renewPremium') : t('upgradePremium')}
                     </div>
                     {active && (
                       <div
                         onClick={() => navigate('/premium?benefits=1')}
                         style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.5)', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
-                        View Benefits
+                        {t('viewBenefits')}
                       </div>
                     )}
                   </div>
@@ -201,7 +202,7 @@ export default function AccountPage() {
                   <Icon name="building" size={19} color={COLORS.green} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>Switch to Company Dashboard</p>
+                  <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>{t('switchCompany')}</p>
                   <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{myCompany.name}</p>
                 </div>
                 <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
@@ -218,7 +219,7 @@ export default function AccountPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '13.5px', fontWeight: 800, color: COLORS.text }}>{staffRole}</p>
-                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>Open Admin Console</p>
+                  <p style={{ fontSize: '11px', color: COLORS.textMuted, marginTop: '2px' }}>{t('openAdmin')}</p>
                 </div>
                 <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
               </div>
@@ -248,6 +249,7 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
   comingSoon?: boolean
   danger?: boolean
 }) {
+  const { t } = useLocale()
   const disabled = comingSoon || !onClick
   return (
     <div
@@ -259,7 +261,7 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
       }}>
       <Icon name={icon} size={17} color={danger ? '#DC2626' : COLORS.textMuted} />
       <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: danger ? '#DC2626' : COLORS.text }}>{label}</p>
-      {comingSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: COLORS.textMuted }}>Coming soon</span>}
+      {comingSoon && <span style={{ fontSize: '10px', fontWeight: 700, color: COLORS.textMuted }}>{t('comingSoon')}</span>}
       {!comingSoon && rightText && <span style={{ fontSize: '11px', color: COLORS.textMuted }}>{rightText}</span>}
       {!comingSoon && !rightText && onClick && <Icon name="chevronRight" size={15} color={COLORS.textMuted} />}
     </div>
@@ -269,14 +271,15 @@ function Row({ icon, label, onClick, rightText, comingSoon, danger }: {
 // Appearance: Light, Dark or follow the phone. One row that shows the current choice; tap it to open the three options.
 // The choice is remembered on this device.
 function ThemeRow() {
+  const { t } = useLocale()
   const mode = useThemeMode()
   const [open, setOpen] = useState(false)
   const options: { key: ThemeMode; label: string }[] = [
-    { key: 'light', label: 'Light' },
-    { key: 'dark', label: 'Dark' },
-    { key: 'system', label: 'System' },
+    { key: 'light', label: t('light') },
+    { key: 'dark', label: t('dark') },
+    { key: 'system', label: t('system') },
   ]
-  const current = options.find((o) => o.key === mode)?.label || 'System'
+  const current = options.find((o) => o.key === mode)?.label || t('system')
   return (
     <div style={{ borderBottom: `1px solid ${COLORS.bg}` }}>
       <div
@@ -285,14 +288,14 @@ function ThemeRow() {
         onClick={() => setOpen((v) => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
         <Icon name="moon" size={17} color={COLORS.textMuted} />
-        <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>Appearance</p>
+        <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>{t('appearance')}</p>
         <span style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green }}>{current}</span>
         <span style={{ display: 'flex', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
           <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
         </span>
       </div>
       {open && (
-        <div role="radiogroup" aria-label="Appearance" style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px', margin: '0 14px 13px' }}>
+        <div role="radiogroup" aria-label={t('appearance')} style={{ display: 'flex', gap: '6px', background: COLORS.bg, borderRadius: '12px', padding: '4px', margin: '0 14px 13px' }}>
           {options.map((o) => {
             const on = mode === o.key
             return (
@@ -303,6 +306,49 @@ function ThemeRow() {
                 onClick={() => setThemeMode(o.key)}
                 style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.textMuted }}>
                 {o.label}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Language: English, French, Hausa, Arabic or Chinese. One row that shows the current language; tap it to open the five options.
+// The choice is remembered on this device and Arabic flips the page to right-to-left.
+function LanguageRow() {
+  const { language, languages, setLanguage, t } = useLocale()
+  const [open, setOpen] = useState(false)
+  const current = languages.find((l) => l.code === language)?.name || 'English'
+  return (
+    <div style={{ borderBottom: `1px solid ${COLORS.bg}` }}>
+      <div
+        role="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', cursor: 'pointer' }}>
+        <Icon name="globe" size={17} color={COLORS.textMuted} />
+        <p style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: COLORS.text }}>{t('language')}</p>
+        <span style={{ fontSize: '11.5px', fontWeight: 700, color: COLORS.green }}>{current}</span>
+        <span style={{ display: 'flex', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
+          <Icon name="chevronRight" size={15} color={COLORS.textMuted} />
+        </span>
+      </div>
+      {open && (
+        <div role="radiogroup" aria-label={t('language')} style={{ background: COLORS.bg, borderRadius: '12px', padding: '4px', margin: '0 14px 13px' }}>
+          {languages.map((l) => {
+            const on = language === l.code
+            return (
+              <div
+                key={l.code}
+                role="radio"
+                aria-checked={on}
+                onClick={() => { setLanguage(l.code); setOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', background: on ? COLORS.green : 'transparent', color: on ? 'white' : COLORS.text }}>
+                <span style={{ flex: 1 }}>{l.name}</span>
+                {l.name !== l.english && <span style={{ fontSize: '11px', fontWeight: 600, opacity: 0.75 }}>{l.english}</span>}
+                {on && <Icon name="check" size={15} color="white" />}
               </div>
             )
           })}
@@ -334,12 +380,13 @@ function SelectRow({ icon, label, value, onChange, children }: {
 }
 
 function Header({ onBack }: { onBack: () => void }) {
+  const { t } = useLocale()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: COLORS.card, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       <div onClick={onBack} style={{ cursor: 'pointer', display: 'flex' }}>
         <Icon name="arrowLeft" size={22} color={COLORS.text} />
       </div>
-      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, margin: 0 }}>Account</p>
+      <p style={{ fontSize: '16px', fontWeight: 800, color: COLORS.text, margin: 0 }}>{t('account')}</p>
     </div>
   )
 }

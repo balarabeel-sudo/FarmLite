@@ -51,13 +51,13 @@ type FeedPost = PostCardData
 // Feed filter chips. "Update" is where short videos will live; until that feature exists it shows a coming-soon card.
 const FEED_PAGE = 20 // posts loaded at first and with each "Load more"
 type FeedTab = 'all' | 'products' | 'companies' | 'groups' | 'update' | 'equipment'
-const FEED_TABS: { key: FeedTab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'companies', label: 'Companies' },
-  { key: 'products', label: 'Products' },
-  { key: 'groups', label: 'Groups' },
-  { key: 'update', label: 'Update' },
-  { key: 'equipment', label: 'Equipment' },
+const FEED_TABS: { key: FeedTab; labelKey: 'all' | 'companies' | 'products' | 'groups' | 'update' | 'equipment' }[] = [
+  { key: 'all', labelKey: 'all' },
+  { key: 'companies', labelKey: 'companies' },
+  { key: 'products', labelKey: 'products' },
+  { key: 'groups', labelKey: 'groups' },
+  { key: 'update', labelKey: 'update' },
+  { key: 'equipment', labelKey: 'equipment' },
 ]
 
 type TabItem = {
@@ -291,7 +291,7 @@ export default function HomePage() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Farm Desk</p>
-              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Tell Farmxie what you need. We'll help you find it.</p>
+              <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{t('farmDeskTagline')}</p>
             </div>
             <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
           </div>
@@ -340,7 +340,7 @@ export default function HomePage() {
                   flex: '1 1 auto', minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', padding: '8px 4px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700, cursor: 'pointer',
                   background: active ? '#166534' : 'var(--fx-grey2)', color: active ? 'white' : COLORS.textMuted,
                 }}>
-                {c.label}
+                {t(c.labelKey)}
               </div>
             )
           })}
@@ -356,8 +356,8 @@ export default function HomePage() {
                   <PlayIcon size={20} color="white" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Post a short video</p>
-                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>Share a short video with the Farmxie community.</p>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>{t('postShortVideo')}</p>
+                  <p style={{ fontSize: '11.5px', color: COLORS.textMuted, marginTop: '2px' }}>{t('postShortVideoSub')}</p>
                 </div>
                 <Icon name="chevronRight" size={18} color={COLORS.textMuted} />
               </div>
@@ -367,7 +367,7 @@ export default function HomePage() {
               ) : tabLoading || videos === null ? (
                 <FeedPostSkeleton count={2} />
               ) : videos.length === 0 ? (
-                <EmptyState icon="camera" text="No videos yet. Be the first to post one!" />
+                <EmptyState icon="camera" text={t('noVideos')} />
               ) : (
                 videos.map((v) => (
                   <VideoCard
@@ -530,12 +530,13 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 
 function BottomNav() {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const items = [
-    { icon: 'home', label: 'Home', path: '/', primary: false },
-    { icon: 'cart', label: 'Market', path: '/marketplace', primary: false },
+    { icon: 'home', label: t('home'), path: '/', primary: false },
+    { icon: 'cart', label: t('market'), path: '/marketplace', primary: false },
     { icon: 'plus', label: '', path: '/create', primary: true },
-    { icon: 'message', label: 'Messages', path: '/messages', primary: false },
-    { icon: 'user', label: 'Account', path: '/profile', primary: false },
+    { icon: 'message', label: t('messages'), path: '/messages', primary: false },
+    { icon: 'user', label: t('account'), path: '/profile', primary: false },
   ]
   return (
     <div style={{
