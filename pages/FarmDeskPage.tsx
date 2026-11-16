@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
+import { useFarmDeskEnabled } from '../usePlatformStatus'
 import {
   FD, STATUS_META, timeAgo, destinationText, sourceText, quantityText,
   type FarmDeskRequest,
@@ -22,6 +23,7 @@ export default function FarmDeskPage() {
   const { user } = useAuth()
 
   const [requests, setRequests] = useState<FarmDeskRequest[]>([])
+  const farmDeskOn = useFarmDeskEnabled()
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
   const [tab, setTab] = useState<Tab>('active')
@@ -63,11 +65,17 @@ export default function FarmDeskPage() {
         <p style={{ fontSize: '12px', color: '#DCFCE7', marginTop: '8px', lineHeight: 1.5 }}>
           Can't find it in the Marketplace? Send a request and our team will source suppliers for you.
         </p>
-        <div
-          onClick={() => navigate('/farm-desk/new')}
-          style={{ marginTop: '16px', background: 'var(--fx-card)', color: FD.greenDark, borderRadius: '12px', padding: '12px', textAlign: 'center', fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>
-          Create a Request
-        </div>
+        {farmDeskOn ? (
+          <div
+            onClick={() => navigate('/farm-desk/new')}
+            style={{ marginTop: '16px', background: 'var(--fx-card)', color: FD.greenDark, borderRadius: '12px', padding: '12px', textAlign: 'center', fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>
+            Create a Request
+          </div>
+        ) : (
+          <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: '12px', padding: '12px', textAlign: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1.4 }}>
+            Farm Desk is not available now. Please come back soon.
+          </div>
+        )}
       </div>
 
       {/* My requests */}
