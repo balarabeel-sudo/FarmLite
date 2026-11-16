@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import Icon from '../Icons'
 import NetworkError from '../NetworkError'
+import { useFarmDeskEnabled } from '../usePlatformStatus'
 import FarmProfileSheet from '../FarmProfileSheet'
 import { streamFarmbot } from '../farmbotStream'
 import type { WeatherData } from '../farmbotStream'
@@ -509,6 +510,15 @@ export default function FarmBotPage() {
       return
     }
 
+    // An admin paused FarmBot (or maintenance mode is on): nothing was sent, so keep the text.
+    if (data?.code === 'unavailable') {
+      dropPhotos()
+      restore()
+      const m = String(data.error || '')
+      setNotice({ kind: 'generic', text: /maintenance/i.test(m) ? m : 'FarmBot is not available now. Please come back soon.' })
+      return
+    }
+
     // AI provider quota reached: friendly message, nothing technical shown.
     if (data?.code === 'daily_limit') {
       dropPhotos()
@@ -966,6 +976,7 @@ const CARD_LABEL: Record<ResultCard['type'], string> = { marketplace: 'Listing',
 
 // Listings, equipment or companies FarmBot found on Farmxie, plus the Farm Desk button when FarmBot offered it
 function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string) => void }) {
+  const farmDeskOn = useFarmDeskEnabled()
   const items = extras.items || []
   const request = (extras.farm_desk_request || '').trim()
   const deskPath = request ? `/farm-desk/new?q=${encodeURIComponent(request)}` : '/farm-desk/new'
@@ -1000,7 +1011,7 @@ function ExtrasBlock({ extras, onOpen }: { extras: Extras; onOpen: (path: string
           ))}
         </div>
       )}
-      {extras.farm_desk && (
+      {extras.farm_desk && farmDeskOn && (
         <div
           role="button"
           onClick={() => onOpen(deskPath)}
