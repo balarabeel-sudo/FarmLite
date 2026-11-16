@@ -27,7 +27,8 @@ const MODULES: { key: string; label: string; desc: string }[] = [
   { key: 'platform.marketplace', label: 'Marketplace', desc: 'Allows new listings and new orders. Browsing and existing orders keep working.' },
   { key: 'platform.community', label: 'Community', desc: 'Allows new posts and comments. Existing posts stay visible.' },
   { key: 'platform.groups', label: 'Groups', desc: 'Allows creating and joining groups. Existing groups stay visible.' },
-  { key: 'platform.farmbot', label: 'FarmBot', desc: 'Lets FarmBot answer questions. While off, it replies that it is paused.' },
+  { key: 'platform.farmbot', label: 'FarmBot', desc: 'Lets FarmBot answer questions. While off, FarmBot replies that it is not available now and to come back soon.' },
+  { key: 'platform.farm_desk', label: 'Farm Desk', desc: 'Allows new Farm Desk requests. While off, Farm Desk is hidden from Home and Marketplace, and anyone who submits sees that it is not available now. Existing requests keep working.' },
 ]
 const NOTIFS: { key: string; label: string; desc: string }[] = [
   { key: 'notifications.report_alerts', label: 'Report notifications', desc: 'Tell staff who manage reports when a user submits a new report.' },
