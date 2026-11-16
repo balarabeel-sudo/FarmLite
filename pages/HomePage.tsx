@@ -8,6 +8,7 @@ import Icon from '../Icons'
 import FarmLiteLogo from '../FarmLiteLogo'
 import { QuickActionsSkeleton, GridCardSkeleton, FeedPostSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
+import { useFarmDeskEnabled } from '../usePlatformStatus'
 import PostCard, { POST_SELECT } from '../PostCard'
 import type { PostCardData } from '../PostCard'
 import VideoCard from '../VideoCard'
@@ -85,6 +86,7 @@ export default function HomePage() {
   const { t } = useLocale()
   const [searchParams] = useSearchParams()
 
+  const farmDeskOn = useFarmDeskEnabled()
   const [loading, setLoading] = useState(true)
   const [netError, setNetError] = useState(false)
 
@@ -281,8 +283,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Farm Desk entry point */}
-        {!loading && (
+        {/* Farm Desk entry point (hidden while an admin has switched Farm Desk off) */}
+        {!loading && farmDeskOn && (
           <div
             onClick={() => navigate('/farm-desk')}
             style={{ background: COLORS.card, borderRadius: '14px', padding: '14px 16px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid var(--fx-tint-green)' }}>
