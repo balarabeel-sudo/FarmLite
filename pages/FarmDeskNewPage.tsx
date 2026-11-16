@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
+import { useFarmDeskEnabled } from '../usePlatformStatus'
 import Icon from '../Icons'
 import {
   FD, CATEGORIES, UNITS, CURRENCIES, SOURCE_SCOPES, DEADLINES, money,
@@ -34,6 +35,7 @@ type Form = {
 export default function FarmDeskNewPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const farmDeskOn = useFarmDeskEnabled()
   const [params] = useSearchParams()
 
   // Marketplace integration: /farm-desk/new?q=500 bags maize&listing=<id>
@@ -153,6 +155,7 @@ export default function FarmDeskNewPage() {
       const msg = insertError?.message || ''
       if (/network|failed to fetch/i.test(msg)) setError('No internet connection. Check your network and try again.')
       else if (/cannot create/i.test(msg)) setError('Your account cannot create Farm Desk requests right now.')
+      else if (/not available now|under maintenance/i.test(msg)) setError(msg)
       else setError('Could not submit your request. Please try again.')
       return
     }
@@ -160,6 +163,19 @@ export default function FarmDeskNewPage() {
   }
 
   // ---------- Success screen ----------
+  // An admin switched Farm Desk off: nothing can be submitted until it is back
+  if (!farmDeskOn && !created) {
+    return (
+      <div style={{ minHeight: '100vh', background: FD.bg, maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
+        <p style={{ fontSize: '18px', fontWeight: 800, color: FD.text }}>Farm Desk is not available now</p>
+        <p style={{ fontSize: '13px', color: FD.textMuted, marginTop: '8px', lineHeight: 1.5 }}>Please come back soon.</p>
+        <div onClick={() => navigate('/', { replace: true })} style={{ marginTop: '20px', background: FD.green, color: 'white', borderRadius: '12px', padding: '12px 28px', fontSize: '13.5px', fontWeight: 800, cursor: 'pointer' }}>
+          Back to Home
+        </div>
+      </div>
+    )
+  }
+
   if (created) {
     return (
       <div style={{ minHeight: '100vh', background: FD.bg, maxWidth: '480px', margin: '0 auto', padding: '60px 24px', textAlign: 'center' }}>
