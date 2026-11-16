@@ -8,7 +8,11 @@ import { GridCardSkeleton } from '../LoadingSkeleton'
 import NetworkError from '../NetworkError'
 import MarketplaceInbox from '../MarketplaceInbox'
 import { CATEGORIES as CATEGORY_LIST, priceText } from '../listingConfig'
-import { PAGE_SIZE, LoadMoreButton } from '../shared'
+import { LoadMoreButton } from '../shared'
+import { useFarmDeskEnabled } from '../usePlatformStatus'
+
+// Marketplace shows 30 listings before "Load more" (other pages keep the shared page size).
+const PAGE_SIZE = 30
 import PremiumTick from '../PremiumTick'
 import SponsoredCard from '../SponsoredCard'
 import { addSaved, SAVED_LIMIT_MESSAGE } from '../savedShared'
@@ -66,6 +70,7 @@ const LISTING_COLUMNS =
 
 export default function MarketplacePage() {
   const navigate = useNavigate()
+  const farmDeskOn = useFarmDeskEnabled()
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -351,7 +356,7 @@ export default function MarketplacePage() {
               <Icon name="package" size={28} color={COLORS.textMuted} />
             </div>
             {listings.length === 0 ? 'No listings yet. Tap + to add the first one.' : 'No listings match your search or filter.'}
-            {!mineOnly && (
+            {!mineOnly && farmDeskOn && (
               <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${COLORS.bg}` }}>
                 <p style={{ fontSize: '13px', fontWeight: 800, color: COLORS.text }}>Can't find what you need?</p>
                 <p style={{ fontSize: '12px', marginTop: '4px', lineHeight: 1.5 }}>Let Farmxie find it for you through Farm Desk.</p>
@@ -372,7 +377,7 @@ export default function MarketplacePage() {
         <LoadMoreButton onClick={loadMore} loading={loadingMore} hasMore={hasMore && !loading} />
 
         {/* Farm Desk entry point under the results */}
-        {!mineOnly && !loading && !netError && filtered.length > 0 && (
+        {!mineOnly && farmDeskOn && !loading && !netError && filtered.length > 0 && (
           <div
             onClick={() => navigate(`/farm-desk/new${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''}`)}
             style={{ marginTop: '14px', background: COLORS.card, borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
